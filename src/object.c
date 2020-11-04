@@ -11,8 +11,9 @@ object_t *object_from_cint(state_t *state, int64_t value)
 {
 	object_t *o = object_istanciate(state, (object_t*) &int_type_object);
 
-	#warning "Check the returns of object_istanciate"
-
+	if(o == 0)
+		return 0;
+	
 	object_int_t *x = (object_int_t*) o;
 
 	x->value = value;
@@ -24,6 +25,9 @@ object_t *object_from_cfloat(state_t *state, double value)
 {
 	object_t *o = object_istanciate(state, (object_t*) &float_type_object);
 
+	if(o == 0)
+		return 0;
+
 	object_float_t *x = (object_float_t*) o;
 
 	x->value = value;
@@ -34,6 +38,9 @@ object_t *object_from_cfloat(state_t *state, double value)
 object_t *object_from_executable_and_offset(state_t *state, executable_t *executable, uint32_t offset)
 {
 	object_t *o = object_istanciate(state, (object_t*) &function_type_object);
+
+	if(o == 0)
+		return 0;
 
 	object_function_t *x = (object_function_t*) o;
 
