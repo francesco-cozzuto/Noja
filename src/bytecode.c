@@ -38,7 +38,6 @@ static const char *operand_types[] = {
 	[OPCODE_RETURN] = "",
 
 	[OPCODE_JUMP_ABSOLUTE] = "a",
-	[OPCODE_JUMP_RELATIVE] = "a",
 	[OPCODE_JUMP_IF_FALSE_AND_POP] = "a",
 
 	[OPCODE_PRINT] = "",
@@ -111,7 +110,6 @@ const char *get_opcode_name(int opcode)
 		case OPCODE_RETURN: return "RETURN";
 
 		case OPCODE_JUMP_ABSOLUTE: return "JUMP_ABSOLUTE";
-		case OPCODE_JUMP_RELATIVE: return "JUMP_RELATIVE";
 		case OPCODE_JUMP_IF_FALSE_AND_POP: return "JUMP_IF_FALSE_AND_POP";
 
 		case OPCODE_PRINT: return "PRINT";

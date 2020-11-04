@@ -409,12 +409,6 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 		assert(0);
 		#warning "Implement OPCODE_JUMP_ABSOLUTE"
 		break;
-
-		case OPCODE_JUMP_RELATIVE: 
-		fetch_u32(state, 0); 
-		assert(0);
-		#warning "Implement OPCODE_JUMP_RELATIVE"
-		break;
 		
 		case OPCODE_JUMP_IF_FALSE_AND_POP: 
 		fetch_u32(state, 0); 
