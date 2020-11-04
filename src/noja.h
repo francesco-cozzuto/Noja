@@ -136,6 +136,12 @@ typedef struct {
 	uint8_t value;
 } object_bool_t;
 
+typedef struct {
+	object_t super;
+	executable_t *executable;
+	uint32_t offset;
+} object_function_t;
+
 extern object_bool_t object_true;
 extern object_bool_t object_false;
 extern object_type_t int_type_object;
@@ -145,7 +151,7 @@ extern object_type_t type_type_object;
 extern object_type_t array_type_object;
 extern object_type_t float_type_object;
 extern object_type_t string_type_object;
-
+extern object_type_t function_type_object;
 
 object_t *dict_cselect(state_t *state, object_t *self, const char *name);
 int 	  dict_cinsert(state_t *state, object_t *self, const char *name, object_t *value);
@@ -154,6 +160,7 @@ int 	  array_cinsert(state_t *state, object_t *self, int64_t index, object_t *va
 
 object_t *object_from_cint(state_t *state, int64_t value);
 object_t *object_from_cfloat(state_t *state, double value);
+object_t *object_from_executable_and_offset(state_t *state, executable_t *executable, uint32_t offset);
 object_t *object_istanciate(state_t *state, object_t *type);
 void 	  object_print(state_t *state, object_t *self, FILE *fp);
 object_t *object_add(state_t *state, object_t *self, object_t *right);

@@ -232,6 +232,14 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 
 		case OPCODE_PUSH_FLOAT:
 		{
+			if(state->stack_item_count == state->stack_item_count_max) {
+
+				// #ERROR
+				// PUSH_FLOAT on a full stack
+				report(error_buffer, error_buffer_size, "PUSH_FLOAT while out of stack");
+				return -1;
+			}
+
 			double value;
 
 			if(!fetch_f64(state, &value)) {
@@ -263,10 +271,46 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 		break;
 		
 		case OPCODE_PUSH_FUNCTION:
-		fetch_u32(state, 0);
-		assert(0);
-		#warning "Implement OPCODE_PUSH_FUNCTION"
-		break;
+		{
+			if(state->stack_item_count == state->stack_item_count_max) {
+
+				// #ERROR
+				// PUSH_FUNCTION on a full stack
+				report(error_buffer, error_buffer_size, "PUSH_FUNCTION while out of stack");
+				return -1;
+			}
+		
+			uint32_t dest;
+
+			if(!fetch_u32(state, &dest)) {
+
+				// #ERROR
+				// Unexpected end of code while fetching PUSH_FUNCTION's operand
+				report(error_buffer, error_buffer_size, "Unexpected end of code while fetching PUSH_FUNCTION's operand");
+				return -1;
+			}
+
+			if(dest >= state->executable->code_length) {
+
+				// #ERROR
+				// PUSH_FUNCTION refers to an address outside of the code segment
+				report(error_buffer, error_buffer_size, "PUSH_FUNCTION refers to an address outside of the code segment");
+				return -1;
+			}
+
+			object_t *object = object_from_executable_and_offset(state, state->executable, dest);
+
+			if(object == 0) {
+
+				// #ERROR
+				// Failed to create object
+				report(error_buffer, error_buffer_size, "Failed to create PUSH_FUNCTION's value");
+				return -1;
+			}
+
+			state->stack[state->stack_item_count++] = object;
+			break;
+		}
 
 		case OPCODE_PUSH_VARIABLE:
 		{
