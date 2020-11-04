@@ -7,6 +7,8 @@ node_t *parse_expression(pool_t *pool, token_iterator_t *iterator, char *source)
 
 #define FAILED fprintf(stderr, ">> Failed at %s:%d\n", __FILE__, __LINE__);
 
+#warning "Implement parsing error reporting"
+
 node_t *parse_function_expression(pool_t *pool, token_iterator_t *iterator, char *source)
 {
 	token_t token = token_iterator_current(iterator);
@@ -532,6 +534,8 @@ node_t *parse_postfix_expression(pool_t *pool, token_iterator_t *iterator, char 
 			break;
 
 		token_t token = token_iterator_current(iterator);
+
+		#warning "Parse postfix expressions (array subscriptions, function calls and dot selections)"
 
 		switch(token.kind) {
 			case '[': assert(0); break;
@@ -1654,6 +1658,7 @@ node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, char *source)
 		return parse_while_statement(pool, iterator, source);
 
 		case TOKEN_KIND_KWORD_IMPORT:
+		#warning "Parse import statements"
 		assert(0); // Unsupported!
 
 		case TOKEN_KIND_KWORD_RETURN:

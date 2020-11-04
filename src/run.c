@@ -165,6 +165,7 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 
 		// #TODO
 		assert(0);
+		#warning "Implement OPCODE_PUSH_NULL"
 
 		break;
 		
@@ -180,6 +181,7 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 
 		// #TODO
 		assert(0);
+		#warning "Implement OPCODE_PUSH_TRUE"
 
 		break;
 
@@ -195,6 +197,7 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 
 		// #TODO
 		assert(0);
+		#warning "Implement OPCODE_PUSH_FALSE"
 		
 		break;
 		
@@ -236,16 +239,19 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 		case OPCODE_PUSH_FLOAT:
 		fetch_f64(state, 0);
 		assert(0);
+		#warning "Implement OPCODE_PUSH_FLOAT"
 		break;
 
 		case OPCODE_PUSH_STRING:
 		fetch_string(state, 0);
 		assert(0);
+		#warning "Implement OPCODE_PUSH_STRING"
 		break;
 		
 		case OPCODE_PUSH_FUNCTION:
 		fetch_u32(state, 0);
 		assert(0);
+		#warning "Implement OPCODE_PUSH_FUNCTION"
 		break;
 
 		case OPCODE_PUSH_VARIABLE:
@@ -285,17 +291,36 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 		case OPCODE_POP:
 		fetch_i64(state, 0);
 		assert(0);
+		#warning "Implement OPCODE_POP"
 		break;
 
 		case OPCODE_ASSIGN:
 		fetch_string(state, 0);
 		assert(0);
+		#warning "Implement OPCODE_ASSIGN"
 		break;
 
-		case OPCODE_SELECT: assert(0); break;
-		case OPCODE_INSERT: assert(0); break;
-		case OPCODE_SELECT_ATTRIBUTE: fetch_string(state, 0); assert(0); break;
-		case OPCODE_INSERT_ATTRIBUTE: fetch_string(state, 0); assert(0); break;
+		case OPCODE_SELECT: 
+		assert(0); 
+		#warning "Implement OPCODE_SELECT"
+		break;
+
+		case OPCODE_INSERT: 
+		assert(0); 
+		#warning "Implement OPCODE_INSERT"
+		break;
+
+		case OPCODE_SELECT_ATTRIBUTE: 
+		fetch_string(state, 0); 
+		assert(0); 
+		#warning "Implement OPCODE_SELECT_ATTRIBUTE"
+		break;
+		
+		case OPCODE_INSERT_ATTRIBUTE: 
+		fetch_string(state, 0); 
+		assert(0); 
+		#warning "Implement OPCODE_INSERT_ATTRIBUTE"
+		break;
 
 		case OPCODE_VARIABLE_MAP_PUSH:
 		{
@@ -337,57 +362,69 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 		break;
 
 		case OPCODE_BREAK: 
-		assert(0); 
+		assert(0);
+		#warning "Implement OPCODE_BREAK"
 		break;
 		
 		case OPCODE_BREAK_DESTINATION_PUSH: 
 		fetch_u32(state, 0); 
-		assert(0); 
+		assert(0);
+		#warning "Implement OPCODE_BREAK_DESTINATION_PUSH"
 		break;
 		
 		case OPCODE_BREAK_DESTINATION_POP: 
-		assert(0); 
+		assert(0);
+		#warning "Implement OPCODE_BREAK_DESTINATION_POP"
 		break;
 
 		case OPCODE_CONTINUE: 
-		assert(0); 
+		assert(0);
+		#warning "Implement OPCODE_CONTINUE"
 		break;
 		
 		case OPCODE_CONTINUE_DESTINATION_PUSH: 
 		fetch_u32(state, 0); 
 		assert(0); 
+		#warning "Implement OPCODE_CONTINUE_DESTINATION_PUSH"
 		break;
 		
 		case OPCODE_CONTINUE_DESTINATION_POP:
 		assert(0);
+		#warning "Implement OPCODE_CONTINUE_DESTINATION_POP"
 		break;
 
 		case OPCODE_CALL: 
 		fetch_u32(state, 0); 
 		assert(0);
+		#warning "Implement OPCODE_CALL"
 		break;
 
 		case OPCODE_RETURN:
 		assert(0);
+		#warning "Implement OPCODE_RETURN"
 		break;
 
 		case OPCODE_JUMP_ABSOLUTE: 
 		fetch_u32(state, 0); 
 		assert(0);
+		#warning "Implement OPCODE_JUMP_ABSOLUTE"
 		break;
 
 		case OPCODE_JUMP_RELATIVE: 
 		fetch_u32(state, 0); 
 		assert(0);
+		#warning "Implement OPCODE_JUMP_RELATIVE"
 		break;
 		
 		case OPCODE_JUMP_IF_FALSE_AND_POP: 
 		fetch_u32(state, 0); 
 		assert(0);
+		#warning "Implement OPCODE_JUMP_IF_FALSE_AND_POP"
 		break;
 
 		case OPCODE_PRINT:
 		assert(0);
+		#warning "Implement OPCODE_PRINT"
 		break;
 
 		case OPCODE_ADD:
@@ -418,6 +455,7 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 			break;
 		}
 
+		#warning "Implement operation instructions other than ADD"
 		case OPCODE_SUB: assert(0); break;
 		case OPCODE_MUL: assert(0); break;
 		case OPCODE_DIV: assert(0); break;
@@ -452,6 +490,7 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 		if(!gc_collect(state)) {
 
 			// #ERROR Out of memory
+			report(error_buffer, error_buffer_size, "Out of memory");
 			return -1;
 		}
 

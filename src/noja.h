@@ -136,9 +136,9 @@ extern object_type_t array_type_object;
 extern object_type_t string_type_object;
 
 object_t *dict_cselect(state_t *state, object_t *self, const char *name);
-int dict_cinsert(state_t *state, object_t *self, const char *name, object_t *value);
+int 	  dict_cinsert(state_t *state, object_t *self, const char *name, object_t *value);
 object_t *array_cselect(state_t *state, object_t *self, int64_t index);
-int array_cinsert(state_t *state, object_t *self, int64_t index, object_t *value);
+int 	  array_cinsert(state_t *state, object_t *self, int64_t index, object_t *value);
 
 object_t *object_from_cint(state_t *state, int64_t value);
 object_t *object_istanciate(state_t *state, object_t *type);
@@ -149,21 +149,23 @@ int  state_init(state_t *state, executable_t *executable);
 void state_deinit(state_t *state);
 int  step(state_t *state, char *error_buffer, int error_buffer_size);
 
-int gc_requires_collection(state_t *state);
-void *gc_allocate(state_t *state, uint32_t size);
-int gc_collect(state_t *state);
+int 	gc_requires_collection(state_t *state);
+void   *gc_allocate(state_t *state, uint32_t size);
+int 	gc_collect(state_t *state);
 
 int tokenize(char *source, int source_length, token_array_t *e_token_array);
 int parse(token_array_t *array, char *source, pool_t **e_pool, node_t **e_node);
 int check(node_t *node, char *source, char *error_buffer, int error_buffer_size);
 executable_t *generate(node_t *node);
-
+void disassemble(executable_t *executable, FILE *fp);
+executable_t *compile(char *source, int length, char *error_buffer, int error_buffer_size);
+executable_t *compile_from_file(char *path, char *error_buffer, int error_buffer_size);
 
 int get_lineno_of_offset(const char *text, int offset);
 void report(char *error_buffer, int error_buffer_size, const char *format, ...);
 int read_line(FILE *src, char **e_buffer, int *e_length);
 int tokenize_buffer(char *buffer, char ***e_tokens, int *e_token_count);
-
+int load_text(const char *path, char **e_content, int *e_length);
 
 const char *get_instruction_operands(int opcode);
 const char *get_opcode_name(int opcode);
