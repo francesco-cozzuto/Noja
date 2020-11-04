@@ -370,7 +370,7 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 				report(error_buffer, error_buffer_size, "Failed to execute ASSIGN instrucion. Couldn't insert into the variable map");
 				return -1;
 			}
-			
+
 			break;
 		}
 
@@ -503,11 +503,39 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 			break;
 		}
 		
-		case OPCODE_JUMP_IF_FALSE_AND_POP: 
-		fetch_u32(state, 0); 
-		assert(0);
-		#warning "Implement OPCODE_JUMP_IF_FALSE_AND_POP"
-		break;
+		case OPCODE_JUMP_IF_FALSE_AND_POP:
+		{
+			uint32_t dest;
+
+			if(!fetch_u32(state, &dest)) {
+
+				// #ERROR
+				// Unexpected end of code while fetching JUMP_IF_FALSE_AND_POP's operand
+				report(error_buffer, error_buffer_size, "Unexpected end of code while fetching JUMP_IF_FALSE_AND_POP's operand");
+				return -1;
+			}
+
+			if(dest >= state->executable->code_length) {
+
+				// #ERROR
+				// JUMP_IF_FALSE_AND_POP refers to an address outside of the code segment
+				report(error_buffer, error_buffer_size, "JUMP_IF_FALSE_AND_POP refers to an address outside of the code segment");
+				return -1;
+			}
+
+			if(state->stack_item_count == 0) {
+
+				// #ERROR
+				// JUMP_IF_FALSE_AND_POP on an empty stack
+				report(error_buffer, error_buffer_size, "JUMP_IF_FALSE_AND_POP on an empty stack");
+				return -1;
+			}
+
+			if(object_test(state, state->stack[state->stack_item_count-1]))
+				state->program_counters[state->program_counters_depth-1] = dest;
+	
+			break;
+		}
 
 		case OPCODE_PRINT:
 		{
