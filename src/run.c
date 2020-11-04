@@ -433,10 +433,29 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 		break;
 
 		case OPCODE_JUMP_ABSOLUTE: 
-		fetch_u32(state, 0); 
-		assert(0);
-		#warning "Implement OPCODE_JUMP_ABSOLUTE"
-		break;
+		{
+		
+			uint32_t dest;
+
+			if(!fetch_u32(state, &dest)) {
+
+				// #ERROR
+				// Unexpected end of code while fetching JUMP_ABSOLUTE's operand
+				report(error_buffer, error_buffer_size, "Unexpected end of code while fetching JUMP_ABSOLUTE's operand");
+				return -1;
+			}
+
+			if(dest >= state->executable->code_length) {
+
+				// #ERROR
+				// JUMP_ABSOLUTE refers to an address outside of the code segment
+				report(error_buffer, error_buffer_size, "JUMP_ABSOLUTE refers to an address outside of the code segment");
+				return -1;
+			}
+
+			state->program_counters[state->program_counters_depth-1] = dest;
+			break;
+		}
 		
 		case OPCODE_JUMP_IF_FALSE_AND_POP: 
 		fetch_u32(state, 0); 
