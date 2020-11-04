@@ -334,13 +334,45 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 
 			break;
 		}
-		break;
 
 		case OPCODE_ASSIGN:
-		fetch_string(state, 0);
-		assert(0);
-		#warning "Implement OPCODE_ASSIGN"
-		break;
+		{
+			char *variable_name;
+
+			if(!fetch_string(state, &variable_name)) {
+
+				// #ERROR
+				// Unexpected error of code or offset pointrs outside of the data segment
+				report(error_buffer, error_buffer_size, "Unexpected end of code while fetching PUSH_VARIABLE's operand or it's operand points outside of the data segment");
+				return -1;
+			}
+
+			if(state->variable_maps_count == 0) {
+
+				// #ERROR
+				// ASSIGN while the variable map stack is empty
+				report(error_buffer, error_buffer_size, "ASSIGN while the variable maps stack is empty");
+				return -1;
+			}
+
+			if(state->stack_item_count == 0) {
+
+				// #ERROR
+				// ASSIGN while the stack is empty
+				report(error_buffer, error_buffer_size, "ASSIGN while the stack is empty");
+				return -1;
+			}
+
+			if(!dict_cinsert(state, state->variable_maps[state->variable_maps_count-1], variable_name, state->stack[state->stack_item_count-1])) {
+
+				// #ERROR
+				// Failed to create the variable
+				report(error_buffer, error_buffer_size, "Failed to execute ASSIGN instrucion. Couldn't insert into the variable map");
+				return -1;
+			}
+			
+			break;
+		}
 
 		case OPCODE_SELECT: 
 		assert(0); 
