@@ -12,6 +12,8 @@ static const char *operand_types[] = {
 	[OPCODE_PUSH_INT] = "i",
 	[OPCODE_PUSH_FLOAT] = "f",
 	[OPCODE_PUSH_STRING] = "s",
+	[OPCODE_PUSH_ARRAY] = "",
+	[OPCODE_PUSH_DICT] = "",
 	[OPCODE_PUSH_FUNCTION] = "a",
 	[OPCODE_PUSH_VARIABLE] = "s",
 
@@ -84,6 +86,8 @@ const char *get_opcode_name(int opcode)
 		case OPCODE_PUSH_INT: return "PUSH_INT";
 		case OPCODE_PUSH_FLOAT: return "PUSH_FLOAT";
 		case OPCODE_PUSH_STRING: return "PUSH_STRING";
+		case OPCODE_PUSH_ARRAY: return "PUSH_ARRAY";
+		case OPCODE_PUSH_DICT: return "PUSH_DICT";
 		case OPCODE_PUSH_FUNCTION: return "PUSH_FUNCTION";
 		case OPCODE_PUSH_VARIABLE: return "PUSH_VARIABLE";
 

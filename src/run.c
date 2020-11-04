@@ -253,7 +253,55 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 
 				// #ERROR
 				// Failed to create object
-				report(error_buffer, error_buffer_size, "Failed to create PUSH_FLOAT's integer value");
+				report(error_buffer, error_buffer_size, "Failed to create PUSH_FLOAT's value");
+				return -1;
+			}
+
+			state->stack[state->stack_item_count++] = object;
+			break;
+		}
+
+		case OPCODE_PUSH_ARRAY:
+		{
+			if(state->stack_item_count == state->stack_item_count_max) {
+
+				// #ERROR
+				// PUSH_ARRAY on a full stack
+				report(error_buffer, error_buffer_size, "PUSH_ARRAY while out of stack");
+				return -1;
+			}
+
+			object_t *object = object_istanciate(state, &array_type_object);
+
+			if(object == 0) {
+
+				// #ERROR
+				// Failed to create object
+				report(error_buffer, error_buffer_size, "Failed to create PUSH_ARRAY's value");
+				return -1;
+			}
+
+			state->stack[state->stack_item_count++] = object;
+			break;
+		}
+
+		case OPCODE_PUSH_DICT:
+		{
+			if(state->stack_item_count == state->stack_item_count_max) {
+
+				// #ERROR
+				// PUSH_DICT on a full stack
+				report(error_buffer, error_buffer_size, "PUSH_DICT while out of stack");
+				return -1;
+			}
+
+			object_t *object = object_istanciate(state, &dict_type_object);
+
+			if(object == 0) {
+
+				// #ERROR
+				// Failed to create object
+				report(error_buffer, error_buffer_size, "Failed to create PUSH_DICT's value");
 				return -1;
 			}
 
