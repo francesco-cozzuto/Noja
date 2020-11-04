@@ -1,0 +1,28 @@
+a;
+
+if a 2;
+
+while a 3;
+
+(1 + 2);
+
+while a { 
+	
+	3; 
+
+}
+
+function() {
+	
+	"hello";
+};
+
+function(a) {
+	
+	"hello";
+};
+
+function(a, b) {
+	
+	"hello";
+};
