@@ -3,6 +3,7 @@
 
 static void int_print(state_t *state, object_t *self, FILE *fp);
 static object_t *int_add(state_t *state, object_t *self, object_t *right);
+static uint8_t int_test(state_t *state, object_t *self);
 
 object_type_t int_type_object = {
 
@@ -19,6 +20,7 @@ object_type_t int_type_object = {
 	.on_sub = 0,
 	.on_mul = 0,
 	.on_div = 0,
+	.on_test = int_test,
 };
 
 static void int_print(state_t *state, object_t *self, FILE *fp)
@@ -44,4 +46,13 @@ static object_t *int_add(state_t *state, object_t *self, object_t *right)
 	object_int_t *r = (object_int_t*) right;
 
 	return object_from_cint(state, x->value + r->value);
+}
+
+static uint8_t int_test(state_t *state, object_t *self)
+{
+	(void) state;
+	
+	object_int_t *x = (object_int_t*) self;
+
+	return x->value != 0;
 }

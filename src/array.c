@@ -23,6 +23,7 @@ object_type_t array_type_object = {
 	.on_sub = 0,
 	.on_mul = 0,
 	.on_div = 0,
+	.on_test = 0,
 };
 
 static int array_init(state_t *state, object_t *self)

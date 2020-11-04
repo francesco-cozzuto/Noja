@@ -76,6 +76,8 @@ typedef struct {
 	object_t *(*on_mul)(state_t *state, object_t *self, object_t *right);
 	object_t *(*on_div)(state_t *state, object_t *self, object_t *right);
 
+	uint8_t (*on_test)(state_t *state, object_t *self);
+
 } object_type_t;
 
 typedef struct {

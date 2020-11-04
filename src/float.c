@@ -4,6 +4,7 @@
 
 static void float_print(state_t *state, object_t *self, FILE *fp);
 static object_t *float_add(state_t *state, object_t *self, object_t *right);
+static uint8_t float_test(state_t *state, object_t *self);
 
 object_type_t float_type_object = {
 
@@ -20,19 +21,22 @@ object_type_t float_type_object = {
 	.on_sub = 0,
 	.on_mul = 0,
 	.on_div = 0,
+	.on_test = float_test,
 };
 
 static void float_print(state_t *state, object_t *self, FILE *fp)
 {
-	object_float_t *x = (object_float_t*) self;
-
 	(void) state;
+
+	object_float_t *x = (object_float_t*) self;
 	
 	fprintf(fp, "%g", x->value);
 }
 
 static object_t *float_add(state_t *state, object_t *self, object_t *right)
 {
+	(void) state;
+
 	object_float_t *x = (object_float_t*) self;
 
 	if(right->type != (object_t*) &float_type_object) {
@@ -45,4 +49,13 @@ static object_t *float_add(state_t *state, object_t *self, object_t *right)
 	object_float_t *r = (object_float_t*) right;
 
 	return object_from_cfloat(state, x->value + r->value);
+}
+
+static uint8_t float_test(state_t *state, object_t *self)
+{
+	(void) state;
+	
+	object_float_t *x = (object_float_t*) self;
+
+	return x->value != 0;
 }

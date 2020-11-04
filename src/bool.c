@@ -2,6 +2,7 @@
 #include "noja.h"
 
 static void bool_print(state_t *state, object_t *self, FILE *fp);
+static uint8_t bool_test(state_t *state, object_t *self);
 
 object_type_t bool_type_object = {
 
@@ -18,6 +19,7 @@ object_type_t bool_type_object = {
 	.on_sub = 0,
 	.on_mul = 0,
 	.on_div = 0,
+	.on_test = bool_test,
 };
 
 object_bool_t object_true = {
@@ -32,9 +34,18 @@ object_bool_t object_false = {
 
 static void bool_print(state_t *state, object_t *self, FILE *fp)
 {
-	object_bool_t *x = (object_bool_t*) self;
-
 	(void) state;
+
+	object_bool_t *x = (object_bool_t*) self;
 	
 	fprintf(fp, "%s", x->value ? "true" : "false");
+}
+
+static uint8_t bool_test(state_t *state, object_t *self)
+{
+	(void) state;
+
+	object_bool_t *x = (object_bool_t*) self;
+
+	return x->value;
 }

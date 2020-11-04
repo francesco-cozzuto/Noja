@@ -19,4 +19,5 @@ object_type_t string_type_object = {
 	.on_sub = 0,
 	.on_mul = 0,
 	.on_div = 0,
+	.on_test = 0,
 };
