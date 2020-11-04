@@ -179,10 +179,7 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 			return -1;
 		}
 
-		// #TODO
-		assert(0);
-		#warning "Implement OPCODE_PUSH_TRUE"
-
+		state->stack[state->stack_item_count++] = (object_t*) &object_true;
 		break;
 
 		case OPCODE_PUSH_FALSE:
@@ -195,10 +192,7 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 			return -1;
 		}
 
-		// #TODO
-		assert(0);
-		#warning "Implement OPCODE_PUSH_FALSE"
-		
+		state->stack[state->stack_item_count++] = (object_t*) &object_false;
 		break;
 		
 		
