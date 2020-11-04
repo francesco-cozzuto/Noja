@@ -289,9 +289,37 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 		}
 
 		case OPCODE_POP:
-		fetch_i64(state, 0);
-		assert(0);
-		#warning "Implement OPCODE_POP"
+		{
+			int64_t count;
+			
+			if(!fetch_i64(state, &count)) {
+
+				// #ERROR
+				// Unexpected end of code while fetching POP's operand
+				report(error_buffer, error_buffer_size, "Unexpected end of code while fetching POP's operand");
+				return -1;
+			}
+
+			if(count < 0) {
+
+				// #ERROR
+				// POP's operand is negative
+				report(error_buffer, error_buffer_size, "POP's operand is negative");
+				return -1;	
+			}
+
+			if(count > state->stack_item_count) {
+
+				// #ERROR
+				// POP's operand is negative
+				report(error_buffer, error_buffer_size, "POPping more item than there are on the stack");
+				return -1;	
+			}
+
+			state->stack_item_count -= count;
+
+			break;
+		}
 		break;
 
 		case OPCODE_ASSIGN:
