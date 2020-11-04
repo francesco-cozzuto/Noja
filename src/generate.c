@@ -466,6 +466,7 @@ static void node_compile(function_text_t *ft, node_t *node)
 			label_t C = function_text_get_label_here(ft);
 			function_text_append_u32(ft, 0);	
 
+			#warning "Handle the case where a while-block or if-else block returns, since the continue and break stacks need to be popped"
 			node_compile(ft, x->block); // #TODO Handle the case where this block returns! The continue and break destinations need to be popped!
 
 			label_t D = function_text_get_label_here(ft);
@@ -489,11 +490,13 @@ static void node_compile(function_text_t *ft, node_t *node)
 			switch(x->kind) {
 
 				case EXPRESSION_KIND_INT:
+				#warning "Align PUSH_INT operand"
 				function_text_append_u32(ft, OPCODE_PUSH_INT);
 				function_text_append_i64(ft, ((node_expr_int_t*) node)->value); // #TODO Should align
 				break;
 
 				case EXPRESSION_KIND_FLOAT:
+				#warning "Align PUSH_FLOAT operand"
 				function_text_append_u32(ft, OPCODE_PUSH_FLOAT);
 				function_text_append_f64(ft, ((node_expr_float_t*) node)->value); // #TODO Should align
 				break;
@@ -504,10 +507,12 @@ static void node_compile(function_text_t *ft, node_t *node)
 				break;
 
 				case EXPRESSION_KIND_ARRAY:
+				#warning "Implement array compilation"
 				assert(0);
 				break;
 				
 				case EXPRESSION_KIND_DICT:
+				#warning "Implement dict compilation"
 				assert(0);
 				break;
 
@@ -604,12 +609,14 @@ static void node_compile(function_text_t *ft, node_t *node)
 				case EXPRESSION_KIND_BITWISE_XOR:
 				case EXPRESSION_KIND_SHL:
 				case EXPRESSION_KIND_SHR:
+				#warning "Implement binary operation compilation other than ADD"
 				assert(0);
 
 				case EXPRESSION_KIND_PRE_INC:
 				case EXPRESSION_KIND_PRE_DEC:
 				case EXPRESSION_KIND_POST_INC:
 				case EXPRESSION_KIND_POST_DEC:
+				#warning "Implement compilation of post/pre-increment/decrement operators"
 				assert(0);
 
 				case EXPRESSION_KIND_ASSIGN:
@@ -623,6 +630,7 @@ static void node_compile(function_text_t *ft, node_t *node)
 				case EXPRESSION_KIND_ASSIGN_BITWISE_XOR:
 				case EXPRESSION_KIND_ASSIGN_SHL:
 				case EXPRESSION_KIND_ASSIGN_SHR:
+				#warning "Implement assign operators compilation"
 				assert(0);
 				
 			}
