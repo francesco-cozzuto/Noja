@@ -507,14 +507,59 @@ static void node_compile(function_text_t *ft, node_t *node)
 				break;
 
 				case EXPRESSION_KIND_ARRAY:
-				#warning "Implement array compilation"
-				assert(0);
-				break;
+				{
+					node_expr_array_t *x = (node_expr_array_t*) node;
+
+					node_t *item = x->item_head;
+
+					function_text_append_u32(ft, OPCODE_PUSH_ARRAY);
+
+					int i = 0;
+
+					while(item) {
+
+						function_text_append_u32(ft, OPCODE_PUSH_INT);
+						function_text_append_i64(ft, i);
+						node_compile(ft, item);
+						function_text_append_u32(ft, OPCODE_INSERT);
+
+						function_text_append_u32(ft, OPCODE_POP);
+						function_text_append_i64(ft, 2);
+
+
+						i++;
+						item = item->next;
+					}
+					break;
+				}
 				
 				case EXPRESSION_KIND_DICT:
-				#warning "Implement dict compilation"
-				assert(0);
-				break;
+				{
+					node_expr_dict_t *x = (node_expr_dict_t*) node;
+
+					node_t *item = x->item_head;
+
+					function_text_append_u32(ft, OPCODE_PUSH_DICT);
+
+					int i = 0;
+
+					while(item) {
+
+						node_dict_item_t *x = (node_dict_item_t*) item;
+
+						node_compile(ft, x->key);
+						node_compile(ft, x->value);
+						function_text_append_u32(ft, OPCODE_INSERT);
+
+						function_text_append_u32(ft, OPCODE_POP);
+						function_text_append_i64(ft, 2);
+
+
+						i++;
+						item = item->next;
+					}
+					break;
+				}
 
 				case EXPRESSION_KIND_FUNCTION:
 				{
