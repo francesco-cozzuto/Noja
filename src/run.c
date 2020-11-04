@@ -163,10 +163,7 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 			return -1;
 		}
 
-		// #TODO
-		assert(0);
-		#warning "Implement OPCODE_PUSH_NULL"
-
+		state->stack[state->stack_item_count++] = (object_t*) &object_null;
 		break;
 		
 		case OPCODE_PUSH_TRUE:
