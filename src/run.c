@@ -531,9 +531,9 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 				return -1;
 			}
 
-			if(object_test(state, state->stack[state->stack_item_count-1]))
+			if(!object_test(state, state->stack[--state->stack_item_count]))
 				state->program_counters[state->program_counters_depth-1] = dest;
-	
+		
 			break;
 		}
 
