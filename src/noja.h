@@ -142,9 +142,11 @@ typedef struct {
 	uint32_t offset;
 } object_function_t;
 
+extern object_t object_null;
 extern object_bool_t object_true;
 extern object_bool_t object_false;
 extern object_type_t int_type_object;
+extern object_type_t null_type_object;
 extern object_type_t bool_type_object;
 extern object_type_t dict_type_object;
 extern object_type_t type_type_object;
