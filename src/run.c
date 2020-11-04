@@ -419,14 +419,56 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 		}
 
 		case OPCODE_SELECT: 
-		assert(0); 
-		#warning "Implement OPCODE_SELECT"
-		break;
+		{
+			if(state->stack_item_count < 2) {
+
+				// #ERROR
+				report(error_buffer, error_buffer_size, "SELECT on a stack with less than 2 items");
+				return -1;
+			}
+
+			object_t *container, *key, *item;
+
+			container = state->stack[state->stack_item_count-2];
+			key 	  = state->stack[state->stack_item_count-1];
+
+			item = object_select(state, container, key);
+
+			if(item == 0) {
+
+				// #ERROR
+				report(error_buffer, error_buffer_size, "Object doesn't contain item");
+				return -1;
+			}
+
+			state->stack[state->stack_item_count-1] = item;
+			break;
+		}
 
 		case OPCODE_INSERT: 
-		assert(0); 
-		#warning "Implement OPCODE_INSERT"
-		break;
+		{
+			if(state->stack_item_count < 3) {
+
+				// #ERROR
+				report(error_buffer, error_buffer_size, "INSERT on a stack with less than 3 items");
+				return -1;
+			}
+
+			object_t *container, *key, *item;
+
+			container = state->stack[state->stack_item_count-3];
+			key 	  = state->stack[state->stack_item_count-2];
+			item   	  = state->stack[state->stack_item_count-1];
+
+			if(!object_insert(state, container, key, item)) {
+
+				// #ERROR
+				report(error_buffer, error_buffer_size, "Failed to insert item into object");
+				return -1;
+			}
+
+			break;
+		}
 
 		case OPCODE_SELECT_ATTRIBUTE: 
 		fetch_string(state, 0); 

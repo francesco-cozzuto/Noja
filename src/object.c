@@ -13,7 +13,7 @@ object_t *object_from_cint(state_t *state, int64_t value)
 
 	if(o == 0)
 		return 0;
-	
+
 	object_int_t *x = (object_int_t*) o;
 
 	x->value = value;
@@ -48,6 +48,26 @@ object_t *object_from_executable_and_offset(state_t *state, executable_t *execut
 	x->offset = offset;
 
 	return o;
+}
+
+object_t *object_select(state_t *state, object_t *self, object_t *key)
+{
+	object_type_t *type = (object_type_t*) self->type;
+
+	if(type->on_select == 0)
+		return 0;
+
+	return type->on_select(state, self, key);
+}
+
+int object_insert(state_t *state, object_t *self, object_t *key, object_t *item)
+{
+	object_type_t *type = (object_type_t*) self->type;
+
+	if(type->on_insert == 0)
+		return 0;
+
+	return type->on_insert(state, self, key, item);
 }
 
 uint8_t object_test(state_t *state, object_t *object)

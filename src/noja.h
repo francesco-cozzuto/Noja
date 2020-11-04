@@ -165,6 +165,9 @@ object_t *object_istanciate(state_t *state, object_t *type);
 void 	  object_print(state_t *state, object_t *self, FILE *fp);
 object_t *object_add(state_t *state, object_t *self, object_t *right);
 uint8_t   object_test(state_t *state, object_t *object);
+object_t *object_select(state_t *state, object_t *self, object_t *key);
+int 	  object_insert(state_t *state, object_t *self, object_t *key, object_t *item);
+
 
 int  state_init(state_t *state, executable_t *executable);
 void state_deinit(state_t *state);

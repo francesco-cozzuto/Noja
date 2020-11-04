@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include "noja.h"
 
+#warning "Implement comments"
+
 static char is_alpha(char c)
 {
 	return (c <= 'z' && c >= 'a') || (c <= 'Z' && c >= 'A');
