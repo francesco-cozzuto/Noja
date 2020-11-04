@@ -436,36 +436,119 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 		}
 
 		case OPCODE_BREAK: 
-		assert(0);
-		#warning "Implement OPCODE_BREAK"
-		break;
+		{
+			if(state->break_destinations_depth == 0) {
+
+				// #ERROR
+				report(error_buffer, error_buffer_size, "BREAK but no break destination was set");
+				return -1;
+			}
+			
+			state->program_counters[state->program_counters_depth-1] = state->break_destinations[state->break_destinations_depth-1];
+			break;
+		}
 		
 		case OPCODE_BREAK_DESTINATION_PUSH: 
-		fetch_u32(state, 0); 
-		assert(0);
-		#warning "Implement OPCODE_BREAK_DESTINATION_PUSH"
-		break;
+		{
+			uint32_t dest;
+
+			if(!fetch_u32(state, &dest)) {
+
+				// #ERROR
+				// Unexpected end of code while fetching OPCODE_BREAK_DESTINATION_PUSH's operand
+				report(error_buffer, error_buffer_size, "Unexpected end of code while fetching OPCODE_BREAK_DESTINATION_PUSH's operand");
+				return -1;
+			}
+
+			if(dest >= state->executable->code_length) {
+
+				// #ERROR
+				// OPCODE_BREAK_DESTINATION_PUSH refers to an address outside of the code segment
+				report(error_buffer, error_buffer_size, "OPCODE_BREAK_DESTINATION_PUSH refers to an address outside of the code segment");
+				return -1;
+			}
+
+			if(state->continue_destinations_depth == 16) {
+
+				// #ERROR
+				// break destination stack is full
+				report(error_buffer, error_buffer_size, "OPCODE_BREAK_DESTINATION_PUSH but the break destination stack is full");
+				return -1;
+			}
+
+			state->break_destinations[state->break_destinations_depth++] = dest;
+			break;
+		}
 		
 		case OPCODE_BREAK_DESTINATION_POP: 
-		assert(0);
-		#warning "Implement OPCODE_BREAK_DESTINATION_POP"
-		break;
+		{
+			if(state->break_destinations_depth == 0) {
+
+				// #ERROR
+				report(error_buffer, error_buffer_size, "OPCODE_BREAK_DESTINATION_POP but the break destination stack is empty");
+				return -1;
+			}
+
+			state->break_destinations_depth--;
+			break;
+		}
 
 		case OPCODE_CONTINUE: 
-		assert(0);
-		#warning "Implement OPCODE_CONTINUE"
-		break;
+		{
+			if(state->continue_destinations_depth == 0) {
+
+				// #ERROR
+				report(error_buffer, error_buffer_size, "CONTINUE but no break destination was set");
+				return -1;
+			}
+			
+			state->program_counters[state->program_counters_depth-1] = state->continue_destinations[state->continue_destinations_depth-1];
+			break;
+		}
 		
 		case OPCODE_CONTINUE_DESTINATION_PUSH: 
-		fetch_u32(state, 0); 
-		assert(0); 
-		#warning "Implement OPCODE_CONTINUE_DESTINATION_PUSH"
-		break;
+		{
+			uint32_t dest;
+
+			if(!fetch_u32(state, &dest)) {
+
+				// #ERROR
+				// Unexpected end of code while fetching OPCODE_CONTINUE_DESTINATION_PUSH's operand
+				report(error_buffer, error_buffer_size, "Unexpected end of code while fetching OPCODE_CONTINUE_DESTINATION_PUSH's operand");
+				return -1;
+			}
+
+			if(dest >= state->executable->code_length) {
+
+				// #ERROR
+				// OPCODE_CONTINUE_DESTINATION_PUSH refers to an address outside of the code segment
+				report(error_buffer, error_buffer_size, "OPCODE_CONTINUE_DESTINATION_PUSH refers to an address outside of the code segment");
+				return -1;
+			}
+
+			if(state->continue_destinations_depth == 16) {
+
+				// #ERROR
+				// continue destination stack is full
+				report(error_buffer, error_buffer_size, "OPCODE_CONTINUE_DESTINATION_PUSH but the continue destination stack is full");
+				return -1;
+			}
+
+			state->continue_destinations[state->continue_destinations_depth++] = dest;
+			break;
+		}
 		
 		case OPCODE_CONTINUE_DESTINATION_POP:
-		assert(0);
-		#warning "Implement OPCODE_CONTINUE_DESTINATION_POP"
-		break;
+		{
+			if(state->continue_destinations_depth == 0) {
+
+				report(error_buffer, error_buffer_size, "OPCODE_CONTINUE_DESTINATION_POP but the continue destination stack is empty");
+				return -1;
+			}
+
+			state->continue_destinations_depth--;
+			break;
+		}
 
 		case OPCODE_CALL: 
 		fetch_u32(state, 0); 

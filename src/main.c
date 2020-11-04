@@ -43,6 +43,14 @@ int inspect(state_t *state)
 
 			_continue = 1;
 
+		} else if(!strcmp(argv[0], "vars")) {
+
+			for(size_t i = 0; i < state->variable_maps_count; i++) {
+
+				object_print(state, state->variable_maps[state->variable_maps_count-i-1], stdout);
+				fprintf(stdout, "\n");
+			}
+
 		} else if(!strcmp(argv[0], "pc")) {
 
 			fprintf(stdout, "The current program counter is %d\n", state->program_counters[state->program_counters_depth-1]);

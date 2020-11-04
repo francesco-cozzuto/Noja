@@ -31,7 +31,7 @@ object_t *object_from_cfloat(state_t *state, double value)
 
 uint8_t object_test(state_t *state, object_t *object)
 {
-	object_type_t *type = (object_type_t*) object;
+	object_type_t *type = (object_type_t*) object->type;
 
 	if(type->on_test)
 		return type->on_test(state, object);
