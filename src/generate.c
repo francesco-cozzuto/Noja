@@ -620,6 +620,24 @@ static void node_compile(function_text_t *ft, node_t *node)
 				assert(0);
 
 				case EXPRESSION_KIND_ASSIGN:
+				{
+					node_expr_operation_t *x = (node_expr_operation_t*) node;
+					#warning "Compile an assignment to an attribute or array item"
+
+					node_expr_t *l, *r;
+
+					l = (node_expr_t*) x->operand_head;
+					r = (node_expr_t*) x->operand_tail;
+
+					assert(l->kind == EXPRESSION_KIND_IDENTIFIER);
+
+					node_compile(ft, (node_t*) r);
+					
+					function_text_append_u32(ft, OPCODE_ASSIGN);
+					function_text_append_string(ft, ((node_expr_identifier_t*) l)->content);
+					break;
+				}
+
 				case EXPRESSION_KIND_ASSIGN_ADD:
 				case EXPRESSION_KIND_ASSIGN_SUB:
 				case EXPRESSION_KIND_ASSIGN_MUL:
