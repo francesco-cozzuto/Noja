@@ -18,6 +18,17 @@ object_t *object_from_cint(state_t *state, int64_t value)
 	return o;
 }
 
+object_t *object_from_cfloat(state_t *state, double value)
+{
+	object_t *o = object_istanciate(state, (object_t*) &float_type_object);
+
+	object_float_t *x = (object_float_t*) o;
+
+	x->value = value;
+
+	return o;
+}
+
 object_t *object_istanciate(state_t *state, object_t *type)
 {
 
