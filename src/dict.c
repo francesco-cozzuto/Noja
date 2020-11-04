@@ -92,6 +92,9 @@ static int dict_deinit(state_t *state, object_t *self)
 
 	object_dict_t *x = (object_dict_t*) self;
 
+	for(int i = 0; i < x->item_used; i++)
+		free(x->item_keys[i]);
+
 	free(x->map);
 	free(x->item_keys);
 
