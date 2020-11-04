@@ -129,7 +129,15 @@ typedef struct {
 
 } object_array_t;
 
+typedef struct {
+	object_t super;
+	uint8_t value;
+} object_bool_t;
+
+extern object_bool_t object_true;
+extern object_bool_t object_false;
 extern object_type_t int_type_object;
+extern object_type_t bool_type_object;
 extern object_type_t dict_type_object;
 extern object_type_t type_type_object;
 extern object_type_t array_type_object;
