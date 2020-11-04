@@ -231,10 +231,30 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 		}
 
 		case OPCODE_PUSH_FLOAT:
-		fetch_f64(state, 0);
-		assert(0);
-		#warning "Implement OPCODE_PUSH_FLOAT"
-		break;
+		{
+			double value;
+
+			if(!fetch_f64(state, &value)) {
+
+				// #ERROR
+				// Unexpected end of code
+				report(error_buffer, error_buffer_size, "Unexpected end of code while fetching PUSH_FLOAT's operand");
+				return -1;
+			}
+
+			object_t *object = object_from_cfloat(state, value);
+
+			if(object == 0) {
+
+				// #ERROR
+				// Failed to create object
+				report(error_buffer, error_buffer_size, "Failed to create PUSH_FLOAT's integer value");
+				return -1;
+			}
+
+			state->stack[state->stack_item_count++] = object;
+			break;
+		}
 
 		case OPCODE_PUSH_STRING:
 		fetch_string(state, 0);
