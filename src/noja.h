@@ -97,12 +97,10 @@ typedef struct {
 } object_float_t;
 
 typedef struct {
-
 	object_t super;
-
+	int flags;
 	char *value;
 	size_t length;
-
 } object_string_t;
 
 typedef struct {
@@ -162,6 +160,8 @@ int 	  array_cinsert(state_t *state, object_t *self, int64_t index, object_t *va
 
 object_t *object_from_cint(state_t *state, int64_t value);
 object_t *object_from_cfloat(state_t *state, double value);
+object_t *object_from_cstring(state_t *state, char *value, size_t length);
+object_t *object_from_cstring_ref(state_t *state, char *value, size_t length);
 object_t *object_from_executable_and_offset(state_t *state, executable_t *executable, uint32_t offset);
 object_t *object_istanciate(state_t *state, object_t *type);
 void 	  object_print(state_t *state, object_t *self, FILE *fp);
