@@ -6,6 +6,73 @@
 #include "ast.h"
 #include "token.h"
 
+enum {
+
+	OPCODE_NOPE,
+	OPCODE_QUIT,
+		
+	OPCODE_PUSH_NULL,
+	OPCODE_PUSH_TRUE,
+	OPCODE_PUSH_FALSE,
+	OPCODE_PUSH_INT,
+	OPCODE_PUSH_FLOAT,
+	OPCODE_PUSH_STRING,
+	OPCODE_PUSH_ARRAY,
+	OPCODE_PUSH_DICT,
+	OPCODE_PUSH_FUNCTION,
+	OPCODE_PUSH_VARIABLE,
+
+	OPCODE_POP,
+
+	OPCODE_ASSIGN,
+	OPCODE_SELECT,
+	OPCODE_INSERT,
+	OPCODE_SELECT_ATTRIBUTE,
+	OPCODE_INSERT_ATTRIBUTE,
+
+	OPCODE_VARIABLE_MAP_PUSH,
+	OPCODE_VARIABLE_MAP_POP,
+
+	OPCODE_BREAK,
+	OPCODE_BREAK_DESTINATION_PUSH,
+	OPCODE_BREAK_DESTINATION_POP,
+
+	OPCODE_CONTINUE,
+	OPCODE_CONTINUE_DESTINATION_PUSH,
+	OPCODE_CONTINUE_DESTINATION_POP,
+
+	OPCODE_CALL,
+	OPCODE_EXPECT,
+	OPCODE_RETURN,
+
+	OPCODE_JUMP_ABSOLUTE,
+	OPCODE_JUMP_IF_FALSE_AND_POP,
+
+	OPCODE_ADD,
+	OPCODE_SUB,
+	OPCODE_MUL,
+	OPCODE_DIV,
+	OPCODE_MOD,
+	OPCODE_POW,
+	OPCODE_NEG,
+	OPCODE_LSS,
+	OPCODE_GRT,
+	OPCODE_LEQ,
+	OPCODE_GEQ,
+	OPCODE_EQL,
+	OPCODE_NQL,
+	OPCODE_AND,
+	OPCODE_OR,
+	OPCODE_NOT,
+	OPCODE_SHL,
+	OPCODE_SHR,
+	OPCODE_BITWISE_AND,
+	OPCODE_BITWISE_OR,
+	OPCODE_BITWISE_XOR,
+	OPCODE_BITWISE_NOT,
+	
+};
+
 typedef struct object_t object_t;
 
 struct object_t {
@@ -201,7 +268,6 @@ int tokenize(char *source, int source_length, token_array_t *e_token_array);
 int parse(token_array_t *array, char *source, pool_t **e_pool, node_t **e_node);
 int check(node_t *node, char *source, char *error_buffer, int error_buffer_size);
 executable_t *generate(node_t *node);
-void disassemble(executable_t *executable, FILE *fp);
 executable_t *compile(char *source, int length, char *error_buffer, int error_buffer_size);
 executable_t *compile_from_file(char *path, char *error_buffer, int error_buffer_size);
 
@@ -211,5 +277,3 @@ int read_line(FILE *src, char **e_buffer, int *e_length);
 int tokenize_buffer(char *buffer, char ***e_tokens, int *e_token_count);
 int load_text(const char *path, char **e_content, int *e_length);
 
-const char *get_instruction_operands(int opcode);
-const char *get_opcode_name(int opcode);

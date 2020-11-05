@@ -1,5 +1,5 @@
 
-#include "noja.h"
+#include "../noja.h"
 
 object_type_t function_type_object = {
 

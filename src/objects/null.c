@@ -1,5 +1,5 @@
 
-#include "noja.h"
+#include "../noja.h"
 
 static void null_print(state_t *state, object_t *self, FILE *fp);
 

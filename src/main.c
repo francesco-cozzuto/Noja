@@ -140,8 +140,6 @@ int main()
 		return -1;
 	}
 
-	disassemble(executable, stdout);
-
 	if(!run(executable, buffer, sizeof(buffer))) {
 
 		fprintf(stderr, "Runtime error: %s\n", buffer);

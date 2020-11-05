@@ -2,7 +2,7 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include "noja.h"
+#include "../noja.h"
 
 enum {
 	STRING_IS_OWNED = 1,

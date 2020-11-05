@@ -1,6 +1,5 @@
 
-
-#include "noja.h"
+#include "../noja.h"
 
 static void float_print(state_t *state, object_t *self, FILE *fp);
 static object_t *float_add(state_t *state, object_t *self, object_t *right);

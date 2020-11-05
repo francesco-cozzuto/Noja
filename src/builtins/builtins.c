@@ -1,6 +1,6 @@
 
 #include <string.h>
-#include "noja.h"
+#include "builtins.h"
 
 typedef object_t *(*builtin_interface_t)(state_t *state, int argc, object_t **argv);
 
@@ -49,12 +49,14 @@ static char *builtin_names[] = {
 	"print",
 	"type_of",
 	"typename_of",
+	"disassemble",
 };
 
 static builtin_interface_t builtin_routines[] = {
 	builtin_print,
 	builtin_typeof,
 	builtin_typenameof,
+	builtin_disassemble,
 };
 
 static int builtin_count = sizeof(builtin_names) / sizeof(char*);

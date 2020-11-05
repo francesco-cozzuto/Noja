@@ -1,5 +1,5 @@
 
-#include "noja.h"
+#include "../noja.h"
 
 static void bool_print(state_t *state, object_t *self, FILE *fp);
 static uint8_t bool_test(state_t *state, object_t *self);

@@ -3,7 +3,6 @@
 #include <string.h>
 #include <assert.h>
 #include "noja.h"
-#include "bytecode.h"
 
 #define BYTES_PER_DATA_CHUNK 4096
 #define BYTES_PER_CODE_CHUNK 1024

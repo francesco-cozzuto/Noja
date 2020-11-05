@@ -1,7 +1,7 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include "noja.h"
+#include "../noja.h"
 
 static int dict_init(state_t *state, object_t *self);
 static int dict_deinit(state_t *state, object_t *self);

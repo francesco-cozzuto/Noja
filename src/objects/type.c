@@ -1,5 +1,5 @@
 
-#include "noja.h"
+#include "../noja.h"
 
 //static object_t *type_select_attribute(state_t *state, object_t *self, const char *name);
 //static int type_insert_attribute(state_t *state, object_t *self, const char *name, object_t *value);

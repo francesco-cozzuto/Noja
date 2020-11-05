@@ -3,7 +3,6 @@
 #include <assert.h>
 #include <string.h>
 #include "noja.h"
-#include "bytecode.h"
 
 int gc_requires_collection(state_t *state)
 {

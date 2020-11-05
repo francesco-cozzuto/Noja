@@ -1,6 +1,6 @@
 
 
-#include "noja.h"
+#include "../noja.h"
 
 object_type_t cfunction_type_object = {
 

@@ -1,5 +1,5 @@
 
-#include "noja.h"
+#include "../noja.h"
 
 static void int_print(state_t *state, object_t *self, FILE *fp);
 static object_t *int_add(state_t *state, object_t *self, object_t *right);

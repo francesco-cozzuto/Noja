@@ -1,5 +1,6 @@
 
-#include "bytecode.h"
+#include <assert.h>
+#include "builtins.h"
 
 static const char *operand_types[] = {
 	
@@ -67,12 +68,12 @@ static const char *operand_types[] = {
 	[OPCODE_BITWISE_NOT] = "",
 };
 
-const char *get_instruction_operands(int opcode)
+static const char *get_instruction_operands(int opcode)
 {
 	return operand_types[opcode];
 }
 
-const char *get_opcode_name(int opcode)
+static const char *get_opcode_name(int opcode)
 {
 	switch(opcode) {
 
@@ -141,4 +142,112 @@ const char *get_opcode_name(int opcode)
 	}
 
 	return "???";
+}
+
+
+object_t *builtin_disassemble(state_t *state, int argc, object_t **argv)
+{
+	(void) state;
+
+	if(argc != 0)
+
+		// #ERROR
+		// Unexpected arguments 
+		return 0;
+
+	char *code, *data;
+	int code_length, data_length;
+
+	code = state->executable_stack[state->call_depth-1]->code;
+	data = state->executable_stack[state->call_depth-1]->data;
+	code_length = state->executable_stack[state->call_depth-1]->code_length;
+	data_length = state->executable_stack[state->call_depth-1]->data_length;
+
+	{
+		int i = 0;
+
+		while(i < data_length) {
+
+			char c = data[i];
+
+			if(i == 0 || data[i-1] == '\0')
+				fprintf(stdout, "%-4d | \"", i);
+
+			switch(c) {
+				case '\0': fprintf(stdout, "\"\n"); break;
+				case '\n': fprintf(stdout, "\\n"); break;
+				case '\t': fprintf(stdout, "\\t"); break;
+				case '\r': fprintf(stdout, "\\s"); break;
+				default: fprintf(stdout, "%c", c); break;
+			}
+
+			i++;
+		}
+	}
+
+	int i = 0;
+
+	while(i < code_length) {
+
+		uint32_t opcode = *(uint32_t*) (code + i);
+
+		const char *name = get_opcode_name(opcode);
+
+		fprintf(stdout, "%-4d | %s ", i, name);
+
+		i += sizeof(uint32_t);
+
+		const char *operands = get_instruction_operands(opcode);
+
+		assert(operands);
+
+		int j = 0;
+		while(operands[j]) {
+
+			switch(operands[j]) {
+				case 'i':
+				{
+					fprintf(stdout, "%ld", *(int64_t*) (code + i));
+
+					i += sizeof(int64_t);
+					break;
+				}
+				case 's':
+				{
+					uint32_t offset = *(uint32_t*) (code + i);
+
+					fprintf(stdout, "%d (\"%s\")", offset, data + offset);
+
+					i += sizeof(uint32_t);
+					break;
+				}
+				case 'f':
+				{
+					fprintf(stdout, "%f", *(double*) (code + i));
+
+					i += sizeof(double);
+					break;
+				}
+
+				case 'a':
+				{
+					fprintf(stdout, "%d", *(uint32_t*) (code + i));
+
+					i += sizeof(uint32_t);
+					break;
+				}
+
+				default: fprintf(stdout, "Unexpected operand type [%c]\n", operands[j]);
+			}
+
+			if(operands[j+1])
+				fprintf(stdout, ", ");
+
+			j++;
+		}
+
+		fprintf(stdout, "\n");
+	}
+
+	return (object_t*) &object_null;
 }

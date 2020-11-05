@@ -1,7 +1,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "noja.h"
+#include "../noja.h"
 
 static int array_init(state_t *state, object_t *self);
 static int array_deinit(state_t *state, object_t *self);
