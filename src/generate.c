@@ -739,12 +739,47 @@ static void node_compile(function_text_t *ft, node_t *node)
 					l = (node_expr_t*) x->operand_head;
 					r = (node_expr_t*) x->operand_tail;
 
-					assert(l->kind == EXPRESSION_KIND_IDENTIFIER);
+					switch(l->kind) {
 
-					node_compile(ft, (node_t*) r);
-					
-					function_text_append_u32(ft, OPCODE_ASSIGN);
-					function_text_append_string(ft, ((node_expr_identifier_t*) l)->content);
+						case EXPRESSION_KIND_IDENTIFIER:
+						{
+							node_compile(ft, (node_t*) r);
+
+							function_text_append_u32(ft, OPCODE_ASSIGN);
+							function_text_append_string(ft, ((node_expr_identifier_t*) l)->content);
+							break;
+						}
+
+						case EXPRESSION_KIND_INDEX_SELECTION:
+						{
+							node_t *container, *index, *value;
+
+							container = ((node_expr_operation_t*) l)->operand_head;
+							index     = ((node_expr_operation_t*) l)->operand_tail;
+							value     = (node_t*) r;
+
+							node_compile(ft, container);
+							node_compile(ft, index);
+							node_compile(ft, value);
+							function_text_append_u32(ft, OPCODE_INSERT);
+							break;
+						}
+
+						case EXPRESSION_KIND_DOT_SELECTION:
+						{
+							node_t *container, *attribute_name, *value;
+
+							container 		= ((node_expr_operation_t*) l)->operand_head;
+							attribute_name  = ((node_expr_operation_t*) l)->operand_tail;
+							value     		= (node_t*) r;
+
+							node_compile(ft, container);
+							node_compile(ft, value);
+							function_text_append_u32(ft, OPCODE_INSERT_ATTRIBUTE);
+							function_text_append_string(ft, ((node_expr_identifier_t*) attribute_name)->content);
+							break;
+						}
+					}
 					break;
 				}
 

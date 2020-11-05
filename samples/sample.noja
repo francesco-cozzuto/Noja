@@ -43,4 +43,6 @@ a[1];
 
 c["C"];
 
-c.hello;
+c.hello = 5;
+
+print(c.hello);

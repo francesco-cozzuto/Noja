@@ -360,11 +360,11 @@ static int node_check(checking_context_t *ctx, node_t *node)
 
 					#warning "Handle the case where the left node kind of an assignment is a dot selection or an array subscription"
 					
-					if(l->kind != EXPRESSION_KIND_IDENTIFIER) {
+					if(l->kind != EXPRESSION_KIND_IDENTIFIER && l->kind != EXPRESSION_KIND_INDEX_SELECTION && l->kind != EXPRESSION_KIND_DOT_SELECTION) {
 						FAILED;
 
 						// #ERROR
-						// Assignment to something that is not a variable
+						// Assignment to something that is not a assignable
 
 						report(ctx->error_buffer, ctx->error_buffer_size, "Semantic error at line %d, offset %d: Found assignment to something that is not a variable", get_lineno_of_offset(ctx->source, node->offset), node->offset);
 						return 0;
