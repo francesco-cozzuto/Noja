@@ -32,7 +32,7 @@ object_type_t string_type_object = {
 	.on_test = 0,
 };
 
-object_t *object_from_cstring_ref(state_t *state, char *value, size_t length)
+object_t *object_from_cstring_ref(state_t *state, const char *value, size_t length)
 {
 	object_t *o = object_istanciate(state, (object_t*) &string_type_object);
 
@@ -42,7 +42,7 @@ object_t *object_from_cstring_ref(state_t *state, char *value, size_t length)
 	object_string_t *x = (object_string_t*) o;
 
 	x->flags = 0;
-	x->value = value;
+	x->ref_value = value;
 	x->length = length;
 
 	return o;

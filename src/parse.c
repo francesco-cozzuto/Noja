@@ -535,8 +535,6 @@ node_t *parse_postfix_expression(pool_t *pool, token_iterator_t *iterator, char 
 
 		token_t token = token_iterator_current(iterator);
 
-		#warning "Parse postfix expressions (array subscriptions, function calls and dot selections)"
-
 		switch(token.kind) {
 			
 			case '[': 

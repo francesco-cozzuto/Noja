@@ -5,6 +5,8 @@ a;
 
 if a 2;
 
+if a break;
+
 i = 0;
 
 while i {

@@ -358,8 +358,6 @@ static int node_check(checking_context_t *ctx, node_t *node)
 
 					node_expr_t *l = (node_expr_t*) x->operand_head;
 
-					#warning "Handle the case where the left node kind of an assignment is a dot selection or an array subscription"
-					
 					if(l->kind != EXPRESSION_KIND_IDENTIFIER && l->kind != EXPRESSION_KIND_INDEX_SELECTION && l->kind != EXPRESSION_KIND_DOT_SELECTION) {
 						FAILED;
 

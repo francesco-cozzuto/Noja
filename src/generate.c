@@ -732,8 +732,7 @@ static void node_compile(function_text_t *ft, node_t *node)
 				case EXPRESSION_KIND_ASSIGN:
 				{
 					node_expr_operation_t *x = (node_expr_operation_t*) node;
-					#warning "Compile an assignment to an attribute or array item"
-
+					
 					node_expr_t *l, *r;
 
 					l = (node_expr_t*) x->operand_head;

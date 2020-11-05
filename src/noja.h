@@ -103,7 +103,10 @@ typedef struct {
 typedef struct {
 	object_t super;
 	int flags;
-	char *value;
+	union {
+		char *value;
+		const char *ref_value;
+	};
 	size_t length;
 } object_string_t;
 
@@ -173,7 +176,7 @@ int 	  array_cinsert(state_t *state, object_t *self, int64_t index, object_t *va
 object_t *object_from_cint(state_t *state, int64_t value);
 object_t *object_from_cfloat(state_t *state, double value);
 object_t *object_from_cstring(state_t *state, char *value, size_t length);
-object_t *object_from_cstring_ref(state_t *state, char *value, size_t length);
+object_t *object_from_cstring_ref(state_t *state, const char *value, size_t length);
 object_t *object_from_cfunction(state_t *state, object_t *(*routine)(state_t *state, int argc, object_t **argv));
 object_t *object_from_executable_and_offset(state_t *state, executable_t *executable, uint32_t offset);
 object_t *object_istanciate(state_t *state, object_t *type);

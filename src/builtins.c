@@ -40,7 +40,7 @@ static object_t *builtin_typenameof(state_t *state, int argc, object_t **argv)
 		// Unexpected arguments 
 		return 0;
 
-	char *name = ((object_type_t*) argv[0]->type)->name;
+	const char *name = ((object_type_t*) argv[0]->type)->name;
 
 	return object_from_cstring_ref(state, name, strlen(name));
 }

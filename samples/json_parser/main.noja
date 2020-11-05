@@ -1,0 +1,12 @@
+
+parse_from_file = function(path) {
+
+	object = {};
+
+	text = load_text(path);
+
+	if text == null return false;
+
+	
+
+};
