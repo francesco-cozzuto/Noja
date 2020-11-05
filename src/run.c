@@ -271,7 +271,7 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 				return -1;
 			}
 
-			object_t *object = object_istanciate(state, &array_type_object);
+			object_t *object = object_istanciate(state, (object_t*) &array_type_object);
 
 			if(object == 0) {
 
@@ -295,7 +295,7 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 				return -1;
 			}
 
-			object_t *object = object_istanciate(state, &dict_type_object);
+			object_t *object = object_istanciate(state, (object_t*) &dict_type_object);
 
 			if(object == 0) {
 

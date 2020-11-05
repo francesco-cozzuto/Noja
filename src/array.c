@@ -1,5 +1,6 @@
 
 #include <stdlib.h>
+#include <string.h>
 #include "noja.h"
 
 static int array_init(state_t *state, object_t *self);
@@ -87,13 +88,33 @@ object_t *array_cselect(state_t *state, object_t *self, int64_t index)
 int array_cinsert(state_t *state, object_t *self, int64_t index, object_t *value)
 {
 	(void) state;
-	
+
 	object_array_t *a = (object_array_t*) self;
 
 	if(index < 0 || index > a->item_used)
 		return 0;
 
-	a->items[index] = value;
+	if(index == a->item_used) {
+
+		if(a->item_used == a->item_size) {
+
+			object_t **items = malloc(sizeof(object_t*) * a->item_size * 2);
+
+			memcpy(items, a->items, sizeof(object_t*) * a->item_used);
+
+			free(a->items);
+
+			a->items = items;
+			a->item_size *= 2;
+
+		}
+
+		a->items[a->item_used++] = value;
+
+	} else {
+
+		a->items[index] = value;
+	}
 
 	return 1;
 }
