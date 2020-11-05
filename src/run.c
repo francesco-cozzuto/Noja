@@ -718,6 +718,12 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 		#warning "Implement OPCODE_CALL"
 		break;
 
+		case OPCODE_EXPECT:
+		fetch_i64(state, 0);
+		assert(0);
+		#warning "Implement OPCODE_EXPECT"
+		break;
+
 		case OPCODE_RETURN:
 		assert(0);
 		#warning "Implement OPCODE_RETURN"

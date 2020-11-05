@@ -37,6 +37,7 @@ static const char *operand_types[] = {
 	[OPCODE_CONTINUE_DESTINATION_POP] = "",
 
 	[OPCODE_CALL] = "i",
+	[OPCODE_EXPECT] = "i",
 	[OPCODE_RETURN] = "",
 
 	[OPCODE_JUMP_ABSOLUTE] = "a",
@@ -111,6 +112,7 @@ const char *get_opcode_name(int opcode)
 		case OPCODE_CONTINUE_DESTINATION_POP: return "CONTINUE_DESTINATION_POP";
 
 		case OPCODE_CALL: return "CALL";
+		case OPCODE_EXPECT: return "EXPECT";
 		case OPCODE_RETURN: return "RETURN";
 
 		case OPCODE_JUMP_ABSOLUTE: return "JUMP_ABSOLUTE";

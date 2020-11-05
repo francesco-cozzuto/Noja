@@ -594,13 +594,22 @@ static void node_compile(function_text_t *ft, node_t *node)
 							}
 						}
 
+						function_text_append_u32(sub_ft, OPCODE_EXPECT);
+						function_text_append_i64(sub_ft, x->argument_count);
+
 						// Iterate it backwards
 
 						for(int j = i-1; j >= 0; j--) {
 
 							function_text_append_u32(sub_ft, OPCODE_ASSIGN);
 							function_text_append_string(sub_ft, names[j]);
+
+							function_text_append_u32(sub_ft, OPCODE_POP);
+							function_text_append_i64(sub_ft, 1);
 						}
+
+						function_text_append_u32(sub_ft, OPCODE_POP);
+						function_text_append_i64(sub_ft, 1);
 					}
 
 					node_compile(sub_ft, x->body);
@@ -637,6 +646,23 @@ static void node_compile(function_text_t *ft, node_t *node)
 					node_compile(ft, (node_t*) l);
 					function_text_append_u32(ft, OPCODE_SELECT_ATTRIBUTE);
 					function_text_append_string(ft, ((node_expr_identifier_t*) r)->content);
+					break;	
+				}
+
+				case EXPRESSION_KIND_CALL:
+				{
+					node_expr_operation_t *x = (node_expr_operation_t*) node;
+
+					node_t *arg = x->operand_head;
+					
+					while(arg) {
+						node_compile(ft, arg);
+						arg = arg->next;
+					}
+
+					#warning "Align OPCODE_CALL's operand"
+					function_text_append_u32(ft, OPCODE_CALL);
+					function_text_append_i64(ft, x->operand_count);
 					break;	
 				}
 
