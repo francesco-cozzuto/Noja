@@ -456,7 +456,8 @@ static void node_compile(function_text_t *ft, node_t *node)
 			label_t B = function_text_get_label_here(ft);
 			function_text_append_u32(ft, 0);
 
-			function_text_write_u32_from_label(A, B);
+			label_t Q = function_text_get_label_here(ft);
+			function_text_write_u32_from_label(A, Q);
 
 			label_t G = function_text_get_label_here(ft);
 

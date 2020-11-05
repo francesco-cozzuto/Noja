@@ -5,10 +5,12 @@ a;
 
 if a 2;
 
-while 1 {
+i = 10;
+
+while i {
 	
-	print(3);
-	break;
+	print(3 + 2);
+	continue;
 }
 
 (1 + 2);
