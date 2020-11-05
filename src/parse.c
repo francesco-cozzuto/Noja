@@ -1790,11 +1790,61 @@ node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, char *source)
 		}
 
 		case TOKEN_KIND_KWORD_BREAK:
-		return node_break_create(pool, token.offset, token.length);
+		{
+			node_t *node = node_break_create(pool, token.offset, token.length);
+		
+			if(!token_iterator_next(iterator)) {
+
+				FAILED;
+
+				// #ERROR
+				// Unexpected end of source after break statement. Was expected [;]
+				return 0;
+			}
+			
+			token = token_iterator_current(iterator);
+
+			if(token.kind != ';') {
+
+				FAILED;
+
+				// #ERROR
+				// Unexpected token after break statement. Was expected [;]
+
+				return 0;
+			}
+
+			return node;
+		}
 
 		case TOKEN_KIND_KWORD_CONTINUE:
-		return node_continue_create(pool, token.offset, token.length);
+		{
+			node_t *node = node_continue_create(pool, token.offset, token.length);
+		
+			if(!token_iterator_next(iterator)) {
 
+				FAILED;
+
+				// #ERROR
+				// Unexpected end of source after continue statement. Was expected [;]
+				return 0;
+			}
+			
+			token = token_iterator_current(iterator);
+
+			if(token.kind != ';') {
+
+				FAILED;
+
+				// #ERROR
+				// Unexpected token after continue statement. Was expected [;]
+
+				return 0;
+			}
+
+			return node;
+		}
+		
 		case TOKEN_KIND_KWORD_ELSE:
 		{
 			FAILED;
