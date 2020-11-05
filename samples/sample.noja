@@ -13,9 +13,11 @@ i = 0;
 
 print();
 
-while i {
+while 0 {
 	
-	print(3 + 2);
+	print(i);
+
+	i = i + 1;
 }
 
 (1 + 2);

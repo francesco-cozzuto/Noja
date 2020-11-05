@@ -4,18 +4,20 @@
 #include <string.h>
 #include "noja.h"
 
-int main()
+int main(int argc, char **argv)
 {
+	if(argc == 1) {
+
+		fprintf(stderr, "A file path was expected\n");
+		return -1;
+	}
+
 	char *error_text;
 
-	if(!run_file("samples/sample.noja", &error_text)) {
+	if(!run_file(argv[1], &error_text)) {
 
-		fprintf(stderr, "Runtime error: %s\n", error_text);
+		fprintf(stderr, "%s\n", error_text);
 		free(error_text);
-		
-	} else {
-
-		fprintf(stderr, "All good.\n");
 	}
 
 	return 0;
