@@ -59,6 +59,11 @@ int state_init(state_t *state, executable_t *executable)
 
 	assert(state->variable_maps[0]);
 
+	if(!insert_builtins(state, state->variable_maps[0], 0, 0)) {
+
+		return 0;
+	}
+
 	return 1;
 }
 
@@ -740,19 +745,36 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 				return -1;
 			}
 				
-			state->argc = argc;
-
 			object_t *callable = state->stack[state->stack_item_count - argc - 1];
 
-			if(callable->type != (object_t*) &function_type_object) {
+			if(callable->type == (object_t*) &cfunction_type_object) {
 
-				report(error_buffer, error_buffer_size, "CALL on something that is not a function");
+				object_t *result = ((object_cfunction_t*) callable)->routine(state, argc, state->stack + state->stack_item_count - argc);
+
+				if(result == 0) {
+
+					report(error_buffer, error_buffer_size, "C function returned NULL");
+					return -1;
+				}
+
+				state->stack_item_count -= argc + 1;
+				state->stack[state->stack_item_count++] = result;
+
+			} else if(callable->type == (object_t*) &function_type_object) {
+
+				state->argc = argc;
+
+				state->executable_stack[state->call_depth] = ((object_function_t*) callable)->executable;
+				state->program_counters[state->call_depth] = ((object_function_t*) callable)->offset;
+				state->call_depth++;
+
+			} else {
+
+				report(error_buffer, error_buffer_size, "CALL on something that is not callable");
 				return -1;
 			}
 
-			state->executable_stack[state->call_depth] = ((object_function_t*) callable)->executable;
-			state->program_counters[state->call_depth] = ((object_function_t*) callable)->offset;
-			state->call_depth++;
+			
 			break;		
 		}
 

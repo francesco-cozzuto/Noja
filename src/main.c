@@ -97,7 +97,8 @@ int inspect(state_t *state)
 int inspect_run(executable_t *executable, char *error_buffer, int error_buffer_size)
 {
 	state_t state;
-	state_init(&state, executable);
+	if(!state_init(&state, executable))
+		return 0;
 
 	int result;
 
@@ -116,7 +117,8 @@ int inspect_run(executable_t *executable, char *error_buffer, int error_buffer_s
 int run(executable_t *executable, char *error_buffer, int error_buffer_size)
 {
 	state_t state;
-	state_init(&state, executable);
+	if(!state_init(&state, executable))
+		return 0;
 
 	int result;
 

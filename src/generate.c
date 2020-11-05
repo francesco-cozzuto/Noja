@@ -459,15 +459,21 @@ static void node_compile(function_text_t *ft, node_t *node)
 
 			function_text_write_u32_from_label(A, B);
 
+			label_t G = function_text_get_label_here(ft);
+
 			node_compile(ft, x->expression);
 
 			function_text_append_u32(ft, OPCODE_JUMP_IF_FALSE_AND_POP);
 
 			label_t C = function_text_get_label_here(ft);
-			function_text_append_u32(ft, 0);	
+			function_text_append_u32(ft, 0);
 
 			#warning "Handle the case where a while-block or if-else block returns, since the continue and break stacks need to be popped"
 			node_compile(ft, x->block); // #TODO Handle the case where this block returns! The continue and break destinations need to be popped!
+
+			function_text_append_u32(ft, OPCODE_JUMP_ABSOLUTE);
+			label_t T = function_text_get_label_here(ft);
+			function_text_write_u32_from_label(T, G);
 
 			label_t D = function_text_get_label_here(ft);
 

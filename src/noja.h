@@ -141,6 +141,11 @@ typedef struct {
 	uint32_t offset;
 } object_function_t;
 
+typedef struct {
+	object_t super;
+	object_t *(*routine)(state_t *state, int argc, object_t **argv);
+} object_cfunction_t;
+
 extern object_t object_null;
 extern object_bool_t object_true;
 extern object_bool_t object_false;
@@ -153,6 +158,9 @@ extern object_type_t array_type_object;
 extern object_type_t float_type_object;
 extern object_type_t string_type_object;
 extern object_type_t function_type_object;
+extern object_type_t cfunction_type_object;
+
+int insert_builtins(state_t *state, object_t *dest, char *error_buffer, int error_buffer_size);
 
 object_t *dict_cselect(state_t *state, object_t *self, const char *name);
 int 	  dict_cinsert(state_t *state, object_t *self, const char *name, object_t *value);
@@ -163,6 +171,7 @@ object_t *object_from_cint(state_t *state, int64_t value);
 object_t *object_from_cfloat(state_t *state, double value);
 object_t *object_from_cstring(state_t *state, char *value, size_t length);
 object_t *object_from_cstring_ref(state_t *state, char *value, size_t length);
+object_t *object_from_cfunction(state_t *state, object_t *(*routine)(state_t *state, int argc, object_t **argv));
 object_t *object_from_executable_and_offset(state_t *state, executable_t *executable, uint32_t offset);
 object_t *object_istanciate(state_t *state, object_t *type);
 void 	  object_print(state_t *state, object_t *self, FILE *fp);
