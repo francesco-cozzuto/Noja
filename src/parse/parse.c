@@ -1917,7 +1917,7 @@ node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, const char *so
 	}
 }
 
-int parse(const char *source, int source_length, pool_t **e_pool, node_t **e_node, string_builder_t *output_builder)
+int parse(const char *source, int source_length, ast_t *e_ast, string_builder_t *output_builder)
 {
 	token_array_t array;
 
@@ -1981,7 +1981,7 @@ int parse(const char *source, int source_length, pool_t **e_pool, node_t **e_nod
 		return 0;
 	}
 
-	*e_pool = pool;
-	*e_node = result;
+	e_ast->pool = pool;
+	e_ast->root = result;
 	return 1;
 }

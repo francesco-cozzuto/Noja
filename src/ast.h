@@ -79,6 +79,12 @@ struct node_t {
 	node_t *next;
 };
 
+typedef struct ast_t ast_t;
+struct ast_t {
+	node_t *root;
+	pool_t *pool;
+};
+
 typedef struct {
 	node_t super;
 	int kind;
@@ -165,6 +171,7 @@ typedef struct {
 	int count;
 } node_compound_t;
 
+void ast_delete(ast_t ast);
 node_t *node_neg_create(pool_t *pool, int offset, int length, node_t *operand);
 node_t *node_add_create(pool_t *pool, int offset, int length, node_t *left_operand, node_t *right_operand);
 node_t *node_sub_create(pool_t *pool, int offset, int length, node_t *left_operand, node_t *right_operand);

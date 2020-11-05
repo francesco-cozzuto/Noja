@@ -229,7 +229,7 @@ function_text_t *function_text_create(generating_context_t *ctx)
 
 static void node_compile(function_text_t *ft, node_t *node);
 
-executable_t *generate(node_t *node)
+executable_t *generate(ast_t ast)
 {
 	generating_context_t ctx;
 	ctx.head_data.next = 0;
@@ -245,7 +245,7 @@ executable_t *generate(node_t *node)
 	ctx.tail_function = &ctx.head_function;
 	ctx.tail_call_gap = 0;
 
-	node_compile(&ctx.head_function, node);
+	node_compile(&ctx.head_function, ast.root);
 
 	function_text_append_u32(&ctx.head_function, OPCODE_QUIT);
 

@@ -258,8 +258,8 @@ int 	  object_insert(state_t *state, object_t *self, object_t *key, object_t *it
 object_t *object_select_attribute(state_t *state, object_t *self, const char *name);
 int 	  object_insert_attribute(state_t *state, object_t *self, const char *name, object_t *value);
 
-int parse(const char *source, int source_length, pool_t **e_pool, node_t **e_node, string_builder_t *output_builder);
-executable_t *generate(node_t *node);
+int parse(const char *source, int source_length, ast_t *ast, string_builder_t *output_builder);
+executable_t *generate(ast_t ast);
 
 int run_text(const char *text, int length, char **error_text);
 int run_file(const char *path, char **error_text);

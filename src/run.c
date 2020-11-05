@@ -15,30 +15,26 @@ int run_text_inner(const char *text, int length, string_builder_t *output_builde
 {
 	executable_t *executable;
 	state_t state;
-	pool_t *pool;
-	node_t *node;
+	ast_t ast;
 
-	if(!parse(text, length, &pool, &node, output_builder))
+	if(!parse(text, length, &ast, output_builder))
 		return 0;
 
-	executable = generate(node);
+	executable = generate(ast);
 
+	ast_delete(ast);
 	assert(executable);
 
-	if(!state_init(&state, executable, output_builder)) {
-
-		pool_destroy(pool);
+	if(!state_init(&state, executable, output_builder))
 		return 0;
-	}
 
 	while(step(&state));
 
 	int result = !state.failed;
 
 	state_deinit(&state);
-	free(executable);
-	pool_destroy(pool);
 
+	free(executable);
 	return result;	
 }
 
@@ -106,12 +102,6 @@ static int state_init(state_t *state, executable_t *executable, string_builder_t
 	state->failed = 0;
 	state->output_builder = output_builder;
 
-	state->builtins_map = object_istanciate(state, (object_t*) &dict_type_object);
-	assert(state->builtins_map);
-
-	if(!insert_builtins(state, state->builtins_map))
-		return 0;
-
 	state->heap_size = 4096;
 	state->heap_used = 0;
 	state->overflow_allocations = 0;
@@ -128,10 +118,15 @@ static int state_init(state_t *state, executable_t *executable, string_builder_t
 	state->variable_maps[0] = object_istanciate(state, (object_t*) &dict_type_object);
 	state->variable_maps_count = 1;
 	state->variable_maps_count_max = 128;
+	assert(state->variable_maps[0]);
+
+	state->builtins_map = object_istanciate(state, (object_t*) &dict_type_object);
+	assert(state->builtins_map);
+
+	if(!insert_builtins(state, state->builtins_map))
+		return 0;
 
 	state->argc = -1;
-
-	assert(state->variable_maps[0]);
 
 	return 1;
 }

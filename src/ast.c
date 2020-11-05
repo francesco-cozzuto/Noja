@@ -2,6 +2,11 @@
 #include <assert.h>
 #include "ast.h"
 
+void ast_delete(ast_t ast)
+{
+	pool_destroy(ast.pool);
+}
+
 static node_t *node_operation_create(pool_t *pool, int offset, int length, int kind, node_t *operand_head, node_t *operand_tail, int operand_count)
 {
 	node_expr_operation_t *node = pool_request(pool, sizeof(node_expr_operation_t));
