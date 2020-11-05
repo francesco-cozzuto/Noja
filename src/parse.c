@@ -1844,7 +1844,7 @@ node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, char *source)
 
 			return node;
 		}
-		
+
 		case TOKEN_KIND_KWORD_ELSE:
 		{
 			FAILED;
@@ -1859,10 +1859,6 @@ node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, char *source)
 
 		case TOKEN_KIND_KWORD_WHILE:
 		return parse_while_statement(pool, iterator, source);
-
-		case TOKEN_KIND_KWORD_IMPORT:
-		#warning "Parse import statements"
-		assert(0); // Unsupported!
 
 		case TOKEN_KIND_KWORD_RETURN:
 		{

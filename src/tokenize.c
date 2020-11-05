@@ -70,11 +70,6 @@ static void assign_identifier_kind(char *source, token_t *token)
 			token->kind = TOKEN_KIND_KWORD_IF;
 			break;
 		}
-
-		if MATCH("import") {
-			token->kind = TOKEN_KIND_KWORD_IMPORT;
-			break;
-		}
 		break;
 
 		case 'w':

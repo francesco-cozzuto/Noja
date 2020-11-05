@@ -43,6 +43,6 @@ a[1];
 
 c["C"];
 
-c.hello = 5;
+c.hello = "wassuuupppp";
 
 print(c.hello);
