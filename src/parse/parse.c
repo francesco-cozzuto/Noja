@@ -1,15 +1,19 @@
 
 #include <assert.h>
-#include "noja.h"
+#include "token.h"
+#include "../noja.h"
 
-node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, char *source);
-node_t *parse_expression(pool_t *pool, token_iterator_t *iterator, char *source);
+int tokenize(const char *source, int source_length, token_array_t *e_token_array);
+int check(node_t *node, const char *source, string_builder_t *output_builder);
+
+node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, const char *source);
+node_t *parse_expression(pool_t *pool, token_iterator_t *iterator, const char *source);
 
 #define FAILED fprintf(stderr, ">> Failed at %s:%d\n", __FILE__, __LINE__);
 
 #warning "Implement parsing error reporting"
 
-node_t *parse_function_expression(pool_t *pool, token_iterator_t *iterator, char *source)
+node_t *parse_function_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
 {
 	token_t token = token_iterator_current(iterator);
 
@@ -159,7 +163,7 @@ node_t *parse_function_expression(pool_t *pool, token_iterator_t *iterator, char
 
 
 
-node_t *parse_dict_expression(pool_t *pool, token_iterator_t *iterator, char *source)
+node_t *parse_dict_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
 {
 
 	int dict_offset, dict_length;
@@ -299,7 +303,7 @@ node_t *parse_dict_expression(pool_t *pool, token_iterator_t *iterator, char *so
 	return node_dict_create(pool, dict_offset, dict_length, item_head, item_tail, item_count);
 }
 
-node_t *parse_array_expression(pool_t *pool, token_iterator_t *iterator, char *source)
+node_t *parse_array_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
 {
 
 	int array_offset, array_length;
@@ -400,7 +404,7 @@ node_t *parse_array_expression(pool_t *pool, token_iterator_t *iterator, char *s
 	return node_array_create(pool, array_offset, array_length, item_head, item_tail, item_count);
 }
 
-node_t *parse_subexpression_expression(pool_t *pool, token_iterator_t *iterator, char *source)
+node_t *parse_subexpression_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
 {
 	token_t token = token_iterator_current(iterator);
 
@@ -450,7 +454,7 @@ node_t *parse_subexpression_expression(pool_t *pool, token_iterator_t *iterator,
 	return node;
 }
 
-node_t *parse_primary_expression(pool_t *pool, token_iterator_t *iterator, char *source)
+node_t *parse_primary_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
 {
 	token_t token = token_iterator_current(iterator);
 
@@ -519,7 +523,7 @@ node_t *parse_primary_expression(pool_t *pool, token_iterator_t *iterator, char 
 	return 0;
 }
 
-node_t *parse_postfix_expression(pool_t *pool, token_iterator_t *iterator, char *source)
+node_t *parse_postfix_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
 {
 	node_t *node = parse_primary_expression(pool, iterator, source);
 
@@ -706,7 +710,7 @@ node_t *parse_postfix_expression(pool_t *pool, token_iterator_t *iterator, char 
 	return node;
 }
 
-node_t *parse_unary_expression(pool_t *pool, token_iterator_t *iterator, char *source)
+node_t *parse_unary_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
 {
 	token_t token = token_iterator_current(iterator);
 
@@ -792,7 +796,7 @@ node_t *parse_unary_expression(pool_t *pool, token_iterator_t *iterator, char *s
 	return parse_postfix_expression(pool, iterator, source);
 }
 
-node_t *parse_multiplicative_expression(pool_t *pool, token_iterator_t *iterator, char *source)
+node_t *parse_multiplicative_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
 {
 	node_t *node = parse_unary_expression(pool, iterator, source);
 
@@ -869,7 +873,7 @@ node_t *parse_multiplicative_expression(pool_t *pool, token_iterator_t *iterator
 	return node;
 }
 
-node_t *parse_additive_expression(pool_t *pool, token_iterator_t *iterator, char *source)
+node_t *parse_additive_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
 {
 	node_t *node = parse_multiplicative_expression(pool, iterator, source);
 
@@ -926,7 +930,7 @@ node_t *parse_additive_expression(pool_t *pool, token_iterator_t *iterator, char
 	return node;
 }
 
-node_t *parse_shift_expression(pool_t *pool, token_iterator_t *iterator, char *source)
+node_t *parse_shift_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
 {
 	node_t *node = parse_additive_expression(pool, iterator, source);
 
@@ -983,7 +987,7 @@ node_t *parse_shift_expression(pool_t *pool, token_iterator_t *iterator, char *s
 	return node;
 }
 
-node_t *parse_relational_expression(pool_t *pool, token_iterator_t *iterator, char *source)
+node_t *parse_relational_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
 {
 	node_t *node = parse_shift_expression(pool, iterator, source);
 
@@ -1078,7 +1082,7 @@ node_t *parse_relational_expression(pool_t *pool, token_iterator_t *iterator, ch
 	return node;
 }
 
-node_t *parse_equality_expression(pool_t *pool, token_iterator_t *iterator, char *source)
+node_t *parse_equality_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
 {
 	node_t *node = parse_relational_expression(pool, iterator, source);
 
@@ -1135,7 +1139,7 @@ node_t *parse_equality_expression(pool_t *pool, token_iterator_t *iterator, char
 	return node;
 }
 
-node_t *parse_bitwise_and_expression(pool_t *pool, token_iterator_t *iterator, char *source)
+node_t *parse_bitwise_and_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
 {
 	node_t *node = parse_equality_expression(pool, iterator, source);
 
@@ -1173,7 +1177,7 @@ node_t *parse_bitwise_and_expression(pool_t *pool, token_iterator_t *iterator, c
 	return node;
 }
 
-node_t *parse_bitwise_xor_expression(pool_t *pool, token_iterator_t *iterator, char *source)
+node_t *parse_bitwise_xor_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
 {
 	node_t *node = parse_bitwise_and_expression(pool, iterator, source);
 
@@ -1211,7 +1215,7 @@ node_t *parse_bitwise_xor_expression(pool_t *pool, token_iterator_t *iterator, c
 	return node;
 }
 
-node_t *parse_bitwise_or_expression(pool_t *pool, token_iterator_t *iterator, char *source)
+node_t *parse_bitwise_or_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
 {
 	node_t *node = parse_bitwise_xor_expression(pool, iterator, source);
 
@@ -1249,7 +1253,7 @@ node_t *parse_bitwise_or_expression(pool_t *pool, token_iterator_t *iterator, ch
 	return node;
 }
 
-node_t *parse_and_expression(pool_t *pool, token_iterator_t *iterator, char *source)
+node_t *parse_and_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
 {
 	node_t *node = parse_bitwise_or_expression(pool, iterator, source);
 
@@ -1287,7 +1291,7 @@ node_t *parse_and_expression(pool_t *pool, token_iterator_t *iterator, char *sou
 	return node;
 }
 
-node_t *parse_or_expression(pool_t *pool, token_iterator_t *iterator, char *source)
+node_t *parse_or_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
 {
 	node_t *node = parse_and_expression(pool, iterator, source);
 
@@ -1325,7 +1329,7 @@ node_t *parse_or_expression(pool_t *pool, token_iterator_t *iterator, char *sour
 	return node;
 }
 
-node_t *parse_assign_expression(pool_t *pool, token_iterator_t *iterator, char *source)
+node_t *parse_assign_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
 {
 	node_t *node = parse_or_expression(pool, iterator, source);
 
@@ -1553,12 +1557,12 @@ node_t *parse_assign_expression(pool_t *pool, token_iterator_t *iterator, char *
 }
 
 
-node_t *parse_expression(pool_t *pool, token_iterator_t *iterator, char *source)
+node_t *parse_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
 {
 	return parse_assign_expression(pool, iterator, source);
 }
 
-node_t *parse_while_statement(pool_t *pool, token_iterator_t *iterator, char *source)
+node_t *parse_while_statement(pool_t *pool, token_iterator_t *iterator, const char *source)
 {
 	int while_stmt_offset,
 		while_stmt_length;
@@ -1609,7 +1613,7 @@ node_t *parse_while_statement(pool_t *pool, token_iterator_t *iterator, char *so
 	return node_while_create(pool, while_stmt_offset, while_stmt_length, expression, block);
 }
 
-node_t *parse_ifelse_statement(pool_t *pool, token_iterator_t *iterator, char *source)
+node_t *parse_ifelse_statement(pool_t *pool, token_iterator_t *iterator, const char *source)
 {
 	int ifelse_stmt_offset,
 		ifelse_stmt_length;
@@ -1686,7 +1690,7 @@ node_t *parse_ifelse_statement(pool_t *pool, token_iterator_t *iterator, char *s
 	return node_ifelse_create(pool, ifelse_stmt_offset, ifelse_stmt_length, expression, if_block, else_block);
 }
 
-node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, char *source)
+node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, const char *source)
 {
 	token_t token = token_iterator_current(iterator);
 
@@ -1913,10 +1917,17 @@ node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, char *source)
 	}
 }
 
-int parse(token_array_t *array, char *source, pool_t **e_pool, node_t **e_node)
+int parse(const char *source, int source_length, pool_t **e_pool, node_t **e_node, string_builder_t *output_builder)
 {
+	token_array_t array;
+
+	if(!tokenize(source, source_length, &array)) {
+		string_builder_append(output_builder, "Out of memory");
+		return 0;
+	}
+
 	token_iterator_t iterator;
-	token_iterator_init(&iterator, array);
+	token_iterator_init(&iterator, &array);
 
 	pool_t *pool = pool_create();
 
@@ -1961,6 +1972,11 @@ int parse(token_array_t *array, char *source, pool_t **e_pool, node_t **e_node)
 
 	if(result == 0) {
 
+		pool_destroy(pool);
+		return 0;
+	}
+
+	if(!check(result, source, output_builder)) {
 		pool_destroy(pool);
 		return 0;
 	}

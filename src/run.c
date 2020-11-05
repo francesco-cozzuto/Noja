@@ -2,92 +2,85 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <stdarg.h>
 #include "noja.h"
 #include "utils/basic.h"
 
-static int state_init(state_t *state, executable_t *executable);
+int step(state_t *state);
+int insert_builtins(state_t *state, object_t *dest);
+static int  state_init(state_t *state, executable_t *executable, string_builder_t *output_builder);
 static void state_deinit(state_t *state);
-static inline int step(state_t *state, char *error_buffer, int error_buffer_size);
 
-int run_text(const char *text, int length, char *error_buffer, int error_buffer_size)
+int run_text_inner(const char *text, int length, string_builder_t *output_builder)
 {
 	executable_t *executable;
-	token_array_t tokens;
 	state_t state;
 	pool_t *pool;
 	node_t *node;
 
-
-	if(!tokenize(text, length, &tokens)) 
-
+	if(!parse(text, length, &pool, &node, output_builder))
 		return 0;
-
-
-	if(!parse(&tokens, text, &pool, &node)) {
-
-		token_array_deinit(&tokens);
-		return 0;
-	}
-
-	token_array_deinit(&tokens);
-
-
-	if(!check(node, text, error_buffer, error_buffer_size)) {
-
-		pool_destroy(pool);
-		return 0;
-	}
 
 	executable = generate(node);
 
 	assert(executable);
 
-
-	if(!state_init(&state, executable)) {
+	if(!state_init(&state, executable, output_builder)) {
 
 		pool_destroy(pool);
 		return 0;
 	}
 
-	int result;
+	while(step(&state));
 
-	while((result = step(&state, error_buffer, error_buffer_size)) > 0);
+	int result = !state.failed;
 
 	state_deinit(&state);
 	free(executable);
 	pool_destroy(pool);
 
-	return result >= 0;	
+	return result;	
 }
 
-int run_file(const char *path, char *error_buffer, int error_buffer_size)
+int run_text(const char *text, int length, char **error_text)
+{
+	string_builder_t output_builder;
+	string_builder_init(&output_builder);
+
+	int result = run_text_inner(text, length, &output_builder);
+
+	if(!result && error_text) {
+
+		(*error_text) = malloc(output_builder.length + 1);
+
+		if(*error_text)
+			string_builder_serialize_to_buffer(&output_builder, *error_text);
+	}
+
+	string_builder_deinit(&output_builder);
+	return result;
+}
+
+int run_file(const char *path, char **error_text)
 {
 	char *text;
 	int length;
 
-	if(!load_text(path, &text, &length))
+	if(!load_text(path, &text, &length)) {
 
 		// Failed to load file contents
+		
 		return 0;
+	}
 
-	int result = run_text(text, length, error_buffer, error_buffer_size);
+	int result = run_text(text, length, error_text);
 
 	free(text);
 
 	return result;
 }
 
-int gc_requires_collection(state_t *state)
-{
-	return state->overflow_allocations != 0;
-}
-
-int gc_collect(state_t *state)
-{
-	return 1;
-}
-
-static int state_init(state_t *state, executable_t *executable)
+static int state_init(state_t *state, executable_t *executable, string_builder_t *output_builder)
 {
 	state->heap = malloc(4096);
 
@@ -110,6 +103,15 @@ static int state_init(state_t *state, executable_t *executable)
 		return 0;
 	}
 
+	state->failed = 0;
+	state->output_builder = output_builder;
+
+	state->builtins_map = object_istanciate(state, (object_t*) &dict_type_object);
+	assert(state->builtins_map);
+
+	if(!insert_builtins(state, state->builtins_map))
+		return 0;
+
 	state->heap_size = 4096;
 	state->heap_used = 0;
 	state->overflow_allocations = 0;
@@ -131,11 +133,6 @@ static int state_init(state_t *state, executable_t *executable)
 
 	assert(state->variable_maps[0]);
 
-	if(!insert_builtins(state, state->variable_maps[0], 0, 0)) {
-
-		return 0;
-	}
-
 	return 1;
 }
 
@@ -144,924 +141,4 @@ static void state_deinit(state_t *state)
 	free(state->heap);
 	free(state->stack);
 	free(state->variable_maps);
-}
-
-static int fetch_u32(state_t *state, uint32_t *value)
-{
-	if(state->program_counters[state->call_depth-1] + sizeof(uint32_t) > state->executable_stack[state->call_depth-1]->code_length)
-		return 0;
-
-	if(value)
-		*value = *(uint32_t*) (state->executable_stack[state->call_depth-1]->code + state->program_counters[state->call_depth-1]);
-
-	state->program_counters[state->call_depth-1] += sizeof(uint32_t);
-
-	return 1;
-}
-
-static int fetch_i64(state_t *state, int64_t *value)
-{
-	if(state->program_counters[state->call_depth-1] + sizeof(int64_t) > state->executable_stack[state->call_depth-1]->code_length)
-		return 0;
-
-	if(value)
-		*value = *(int64_t*) (state->executable_stack[state->call_depth-1]->code + state->program_counters[state->call_depth-1]);
-
-	state->program_counters[state->call_depth-1] += sizeof(int64_t);
-
-	return 1;
-}
-
-static int fetch_f64(state_t *state, double *value)
-{
-	if(state->program_counters[state->call_depth-1] + sizeof(double) > state->executable_stack[state->call_depth-1]->code_length)
-		return 0;
-
-	if(value)
-		*value = *(double*) (state->executable_stack[state->call_depth-1]->code + state->program_counters[state->call_depth-1]);
-
-	state->program_counters[state->call_depth-1] += sizeof(double);
-
-	return 1;
-}
-
-static int fetch_string(state_t *state, char **value)
-{
-	if(state->program_counters[state->call_depth-1] + sizeof(uint32_t) > state->executable_stack[state->call_depth-1]->code_length)
-		
-		return 0;
-
-	uint32_t offset = *(uint32_t*) (state->executable_stack[state->call_depth-1]->code + state->program_counters[state->call_depth-1]);
-
-	if(offset >= state->executable_stack[state->call_depth-1]->data_length)
-
-		return 0;
-
-	if(value)
-		*value = state->executable_stack[state->call_depth-1]->data + offset;
-
-	state->program_counters[state->call_depth-1] += sizeof(uint32_t);
-
-	return 1;
-}
-
-static inline int step(state_t *state, char *error_buffer, int error_buffer_size)
-{
-	(void) error_buffer;
-	(void) error_buffer_size;
-
-	uint32_t opcode;
-
-	if(!fetch_u32(state, &opcode))
-
-		// Unexpected end of code
-		return -1;
-
-	switch(opcode) {
-
-		case OPCODE_NOPE:
-		// Do nothing
-		break;
-
-		case OPCODE_QUIT:
-		state->program_counters[state->call_depth-1] -= sizeof(uint32_t);
-		return 0;
-			
-		case OPCODE_PUSH_NULL:
-
-		if(state->stack_item_count == state->stack_item_count_max) {
-
-			// #ERROR
-			// The stack is full!
-			report(error_buffer, error_buffer_size, "PUSH_NULL while out of stack");
-			return -1;
-		}
-
-		state->stack[state->stack_item_count++] = (object_t*) &object_null;
-		break;
-		
-		case OPCODE_PUSH_TRUE:
-
-		if(state->stack_item_count == state->stack_item_count_max) {
-
-			// #ERROR
-			// The stack is full!
-			report(error_buffer, error_buffer_size, "PUSH_TRUE while out of stack");
-			return -1;
-		}
-
-		state->stack[state->stack_item_count++] = (object_t*) &object_true;
-		break;
-
-		case OPCODE_PUSH_FALSE:
-		
-		if(state->stack_item_count == state->stack_item_count_max) {
-
-			// #ERROR
-			// The stack is full!
-			report(error_buffer, error_buffer_size, "PUSH_FALSE while out of stack");
-			return -1;
-		}
-
-		state->stack[state->stack_item_count++] = (object_t*) &object_false;
-		break;
-		
-		
-		case OPCODE_PUSH_INT:
-		{
-			if(state->stack_item_count == state->stack_item_count_max) {
-
-				// #ERROR
-				// PUSH_INT on a full stack
-				report(error_buffer, error_buffer_size, "PUSH_INT while out of stack");
-				return -1;
-			}
-
-			int64_t value;
-
-			if(!fetch_i64(state, &value)) {
-
-				// #ERROR
-				// Unexpected end of code
-				report(error_buffer, error_buffer_size, "Unexpected end of code while fetching PUSH_INT's operand");
-				return -1;
-			}
-				
-			object_t *object = object_from_cint(state, value);
-
-			if(object == 0) {
-
-				// #ERROR
-				// Failed to create object
-				report(error_buffer, error_buffer_size, "Failed to create PUSH_INT's integer value");
-				return -1;
-			}
-
-			state->stack[state->stack_item_count++] = object;
-			break;
-		}
-
-		case OPCODE_PUSH_FLOAT:
-		{
-			if(state->stack_item_count == state->stack_item_count_max) {
-
-				// #ERROR
-				// PUSH_FLOAT on a full stack
-				report(error_buffer, error_buffer_size, "PUSH_FLOAT while out of stack");
-				return -1;
-			}
-
-			double value;
-
-			if(!fetch_f64(state, &value)) {
-
-				// #ERROR
-				// Unexpected end of code
-				report(error_buffer, error_buffer_size, "Unexpected end of code while fetching PUSH_FLOAT's operand");
-				return -1;
-			}
-
-			object_t *object = object_from_cfloat(state, value);
-
-			if(object == 0) {
-
-				// #ERROR
-				// Failed to create object
-				report(error_buffer, error_buffer_size, "Failed to create PUSH_FLOAT's value");
-				return -1;
-			}
-
-			state->stack[state->stack_item_count++] = object;
-			break;
-		}
-
-		case OPCODE_PUSH_ARRAY:
-		{
-			if(state->stack_item_count == state->stack_item_count_max) {
-
-				// #ERROR
-				// PUSH_ARRAY on a full stack
-				report(error_buffer, error_buffer_size, "PUSH_ARRAY while out of stack");
-				return -1;
-			}
-
-			object_t *object = object_istanciate(state, (object_t*) &array_type_object);
-
-			if(object == 0) {
-
-				// #ERROR
-				// Failed to create object
-				report(error_buffer, error_buffer_size, "Failed to create PUSH_ARRAY's value");
-				return -1;
-			}
-
-			state->stack[state->stack_item_count++] = object;
-			break;
-		}
-
-		case OPCODE_PUSH_DICT:
-		{
-			if(state->stack_item_count == state->stack_item_count_max) {
-
-				// #ERROR
-				// PUSH_DICT on a full stack
-				report(error_buffer, error_buffer_size, "PUSH_DICT while out of stack");
-				return -1;
-			}
-
-			object_t *object = object_istanciate(state, (object_t*) &dict_type_object);
-
-			if(object == 0) {
-
-				// #ERROR
-				// Failed to create object
-				report(error_buffer, error_buffer_size, "Failed to create PUSH_DICT's value");
-				return -1;
-			}
-
-			state->stack[state->stack_item_count++] = object;
-			break;
-		}
-
-		case OPCODE_PUSH_STRING:
-		{
-
-			if(state->stack_item_count == state->stack_item_count_max) {
-
-				// #ERROR
-				// PUSH_STRING on a full stack
-				report(error_buffer, error_buffer_size, "PUSH_STRING while out of stack");
-				return -1;
-			}
-
-			char *value;
-
-			if(!fetch_string(state, &value)) {
-
-				// #ERROR
-				// Unexpected end of code or PUSH_STRING's operand points outsize of the data segment
-				report(error_buffer, error_buffer_size, "Unexpected end of code or PUSH_STRING's operand points outsize of the data segment");
-				return -1;
-			}
-
-			object_t *object = object_from_cstring_ref(state, value, strlen(value));
-
-			if(object == 0) {
-
-				// #ERROR
-				// Failed to create object
-				report(error_buffer, error_buffer_size, "Failed to create PUSH_STRING's value");
-				return -1;
-			}
-
-			state->stack[state->stack_item_count++] = object;
-
-			break;
-		}
-		
-		case OPCODE_PUSH_FUNCTION:
-		{
-			if(state->stack_item_count == state->stack_item_count_max) {
-
-				// #ERROR
-				// PUSH_FUNCTION on a full stack
-				report(error_buffer, error_buffer_size, "PUSH_FUNCTION while out of stack");
-				return -1;
-			}
-		
-			uint32_t dest;
-
-			if(!fetch_u32(state, &dest)) {
-
-				// #ERROR
-				// Unexpected end of code while fetching PUSH_FUNCTION's operand
-				report(error_buffer, error_buffer_size, "Unexpected end of code while fetching PUSH_FUNCTION's operand");
-				return -1;
-			}
-
-			if(dest >= state->executable_stack[state->call_depth-1]->code_length) {
-
-				// #ERROR
-				// PUSH_FUNCTION refers to an address outside of the code segment
-				report(error_buffer, error_buffer_size, "PUSH_FUNCTION refers to an address outside of the code segment");
-				return -1;
-			}
-
-			object_t *object = object_from_executable_and_offset(state, state->executable_stack[state->call_depth-1], dest);
-
-			if(object == 0) {
-
-				// #ERROR
-				// Failed to create object
-				report(error_buffer, error_buffer_size, "Failed to create PUSH_FUNCTION's value");
-				return -1;
-			}
-
-			state->stack[state->stack_item_count++] = object;
-			break;
-		}
-
-		case OPCODE_PUSH_VARIABLE:
-		{
-			char *variable_name;
-
-			if(!fetch_string(state, &variable_name)) {
-
-				// #ERROR
-				// Unexpected error of code or offset pointrs outside of the data segment
-				report(error_buffer, error_buffer_size, "Unexpected end of code while fetching PUSH_VARIABLE's operand or it's operand points outside of the data segment");
-				return -1;
-			}
-
-			object_t *object = dict_cselect(state, state->variable_maps[state->variable_maps_count-1], variable_name);
-
-			if(object == 0) {
-
-				// #ERROR
-				// Undefined variable was referenced
-				report(error_buffer, error_buffer_size, "PUSH_VARIABLE references an undefined variable");
-				return -1;
-			}
-
-			if(state->stack_item_count == state->stack_item_count_max) {
-
-				// #ERROR
-				// Out of stack
-				report(error_buffer, error_buffer_size, "PUSH_VARIABLE while out of stack");
-				return -1;
-			}
-
-			state->stack[state->stack_item_count++] = object;
-			break;
-		}
-
-		case OPCODE_POP:
-		{
-			int64_t count;
-			
-			if(!fetch_i64(state, &count)) {
-
-				// #ERROR
-				// Unexpected end of code while fetching POP's operand
-				report(error_buffer, error_buffer_size, "Unexpected end of code while fetching POP's operand");
-				return -1;
-			}
-
-			if(count < 0) {
-
-				// #ERROR
-				// POP's operand is negative
-				report(error_buffer, error_buffer_size, "POP's operand is negative");
-				return -1;	
-			}
-
-			if(count > state->stack_item_count) {
-
-				// #ERROR
-				// POP's operand is negative
-				report(error_buffer, error_buffer_size, "POPping more item than there are on the stack");
-				return -1;	
-			}
-
-			state->stack_item_count -= count;
-
-			break;
-		}
-
-		case OPCODE_ASSIGN:
-		{
-			char *variable_name;
-
-			if(!fetch_string(state, &variable_name)) {
-
-				// #ERROR
-				// Unexpected error of code or offset pointrs outside of the data segment
-				report(error_buffer, error_buffer_size, "Unexpected end of code while fetching PUSH_VARIABLE's operand or it's operand points outside of the data segment");
-				return -1;
-			}
-
-			if(state->variable_maps_count == 0) {
-
-				// #ERROR
-				// ASSIGN while the variable map stack is empty
-				report(error_buffer, error_buffer_size, "ASSIGN while the variable maps stack is empty");
-				return -1;
-			}
-
-			if(state->stack_item_count == 0) {
-
-				// #ERROR
-				// ASSIGN while the stack is empty
-				report(error_buffer, error_buffer_size, "ASSIGN while the stack is empty");
-				return -1;
-			}
-
-			if(!dict_cinsert(state, state->variable_maps[state->variable_maps_count-1], variable_name, state->stack[state->stack_item_count-1])) {
-
-				// #ERROR
-				// Failed to create the variable
-				report(error_buffer, error_buffer_size, "Failed to execute ASSIGN instrucion. Couldn't insert into the variable map");
-				return -1;
-			}
-
-			break;
-		}
-
-		case OPCODE_SELECT: 
-		{
-			if(state->stack_item_count < 2) {
-
-				// #ERROR
-				report(error_buffer, error_buffer_size, "SELECT on a stack with less than 2 items");
-				return -1;
-			}
-
-			object_t *container, *key, *item;
-
-			container = state->stack[state->stack_item_count-2];
-			key 	  = state->stack[state->stack_item_count-1];
-
-			item = object_select(state, container, key);
-
-			if(item == 0) {
-
-				// #ERROR
-				report(error_buffer, error_buffer_size, "Object doesn't contain item");
-				return -1;
-			}
-
-			state->stack[state->stack_item_count-1] = item;
-			break;
-		}
-
-		case OPCODE_INSERT: 
-		{
-			if(state->stack_item_count < 3) {
-
-				// #ERROR
-				report(error_buffer, error_buffer_size, "INSERT on a stack with less than 3 items");
-				return -1;
-			}
-
-			object_t *container, *key, *item;
-
-			container = state->stack[state->stack_item_count-3];
-			key 	  = state->stack[state->stack_item_count-2];
-			item   	  = state->stack[state->stack_item_count-1];
-
-			if(!object_insert(state, container, key, item)) {
-
-				// #ERROR
-				report(error_buffer, error_buffer_size, "Failed to insert item into object");
-				return -1;
-			}
-
-			break;
-		}
-
-		case OPCODE_SELECT_ATTRIBUTE: 
-		{
-			char *attribute_name;
-
-			if(!fetch_string(state, &attribute_name)) {
-
-				// #ERROR
-				// Unexpected error of code or offset pointrs outside of the data segment
-				report(error_buffer, error_buffer_size, "Unexpected end of code while fetching SELECT_ATTRIBUTE's operand or it's operand points outside of the data segment");
-				return -1;
-			}
-
-			if(state->stack_item_count == 0) {
-
-				// #ERROR
-				report(error_buffer, error_buffer_size, "SELECT_ATTRIBUTE on an empty stack");
-				return -1;
-			}
-
-			object_t *selected = object_select_attribute(state, state->stack[state->stack_item_count-1], attribute_name);
-
-			if(selected == 0) {
-
-				// #ERROR
-				report(error_buffer, error_buffer_size, "Failed to select attribute");
-				return -1;
-			}
-
-			state->stack[state->stack_item_count-1] = selected;
-			break;
-		}
-
-		
-		case OPCODE_INSERT_ATTRIBUTE: 
-		{
-			char *attribute_name;
-
-			if(!fetch_string(state, &attribute_name)) {
-
-				// #ERROR
-				// Unexpected error of code or offset pointrs outside of the data segment
-				report(error_buffer, error_buffer_size, "Unexpected end of code while fetching INSERT_ATTRIBUTE's operand or it's operand points outside of the data segment");
-				return -1;
-			}
-
-			if(state->stack_item_count < 2) {
-
-				// #ERROR
-				report(error_buffer, error_buffer_size, "INSERT_ATTRIBUTE on a stack with less than 2 items");
-				return -1;
-			}
-
-			if(!object_insert_attribute(state, state->stack[state->stack_item_count-2], attribute_name, state->stack[state->stack_item_count-1])) {
-
-				// #ERROR
-				report(error_buffer, error_buffer_size, "Failed to insert attribute");
-				return -1;
-			}
-
-			state->stack_item_count--;
-			break;
-		}
-
-		case OPCODE_VARIABLE_MAP_PUSH:
-		{
-			if(state->variable_maps_count == state->variable_maps_count_max) {
-
-				// #ERROR
-				// The variable set stack is full!
-				report(error_buffer, error_buffer_size, "VARIABLE_MAP_PUSH while out of variable map stack");
-				return -1;
-			}
-
-			object_t *dict = object_istanciate(state, (object_t*) &dict_type_object);
-
-			if(dict == 0) {
-
-				// #ERROR
-				// Failed to create variable map dict
-				report(error_buffer, error_buffer_size, "Failed to create variable map object");
-				return -1;
-			}
-
-			state->variable_maps[state->variable_maps_count++] = dict;
-
-			break;
-		}
-
-		case OPCODE_VARIABLE_MAP_POP:
-		{
-			if(state->variable_maps_count == 0) {
-
-				// #ERROR
-				// Popping variable map while the stack is empty
-				report(error_buffer, error_buffer_size, "VARIABLE_MAP_POP while the variable map stack is empty");
-				return -1;
-			}
-
-			state->variable_maps_count--;
-			break;
-		}
-
-		case OPCODE_BREAK: 
-		{
-			if(state->break_destinations_depth == 0) {
-
-				// #ERROR
-				report(error_buffer, error_buffer_size, "BREAK but no break destination was set");
-				return -1;
-			}
-			
-			state->program_counters[state->call_depth-1] = state->break_destinations[state->break_destinations_depth-1];
-			break;
-		}
-		
-		case OPCODE_BREAK_DESTINATION_PUSH: 
-		{
-			uint32_t dest;
-
-			if(!fetch_u32(state, &dest)) {
-
-				// #ERROR
-				// Unexpected end of code while fetching OPCODE_BREAK_DESTINATION_PUSH's operand
-				report(error_buffer, error_buffer_size, "Unexpected end of code while fetching OPCODE_BREAK_DESTINATION_PUSH's operand");
-				return -1;
-			}
-
-			if(dest >= state->executable_stack[state->call_depth-1]->code_length) {
-
-				// #ERROR
-				// OPCODE_BREAK_DESTINATION_PUSH refers to an address outside of the code segment
-				report(error_buffer, error_buffer_size, "OPCODE_BREAK_DESTINATION_PUSH refers to an address outside of the code segment");
-				return -1;
-			}
-
-			if(state->continue_destinations_depth == 16) {
-
-				// #ERROR
-				// break destination stack is full
-				report(error_buffer, error_buffer_size, "OPCODE_BREAK_DESTINATION_PUSH but the break destination stack is full");
-				return -1;
-			}
-
-			state->break_destinations[state->break_destinations_depth++] = dest;
-			break;
-		}
-		
-		case OPCODE_BREAK_DESTINATION_POP: 
-		{
-			if(state->break_destinations_depth == 0) {
-
-				// #ERROR
-				report(error_buffer, error_buffer_size, "OPCODE_BREAK_DESTINATION_POP but the break destination stack is empty");
-				return -1;
-			}
-
-			state->break_destinations_depth--;
-			break;
-		}
-
-		case OPCODE_CONTINUE: 
-		{
-			if(state->continue_destinations_depth == 0) {
-
-				// #ERROR
-				report(error_buffer, error_buffer_size, "CONTINUE but no break destination was set");
-				return -1;
-			}
-			
-			state->program_counters[state->call_depth-1] = state->continue_destinations[state->continue_destinations_depth-1];
-			break;
-		}
-		
-		case OPCODE_CONTINUE_DESTINATION_PUSH: 
-		{
-			uint32_t dest;
-
-			if(!fetch_u32(state, &dest)) {
-
-				// #ERROR
-				// Unexpected end of code while fetching OPCODE_CONTINUE_DESTINATION_PUSH's operand
-				report(error_buffer, error_buffer_size, "Unexpected end of code while fetching OPCODE_CONTINUE_DESTINATION_PUSH's operand");
-				return -1;
-			}
-
-			if(dest >= state->executable_stack[state->call_depth-1]->code_length) {
-
-				// #ERROR
-				// OPCODE_CONTINUE_DESTINATION_PUSH refers to an address outside of the code segment
-				report(error_buffer, error_buffer_size, "OPCODE_CONTINUE_DESTINATION_PUSH refers to an address outside of the code segment");
-				return -1;
-			}
-
-			if(state->continue_destinations_depth == 16) {
-
-				// #ERROR
-				// continue destination stack is full
-				report(error_buffer, error_buffer_size, "OPCODE_CONTINUE_DESTINATION_PUSH but the continue destination stack is full");
-				return -1;
-			}
-
-			state->continue_destinations[state->continue_destinations_depth++] = dest;
-			break;
-		}
-		
-		case OPCODE_CONTINUE_DESTINATION_POP:
-		{
-			if(state->continue_destinations_depth == 0) {
-
-				report(error_buffer, error_buffer_size, "OPCODE_CONTINUE_DESTINATION_POP but the continue destination stack is empty");
-				return -1;
-			}
-
-			state->continue_destinations_depth--;
-			break;
-		}
-
-		case OPCODE_CALL: 
-		{
-
-			if(state->call_depth == 16) {
-
-				report(error_buffer, error_buffer_size, "CALL but the maximum call depth was reached");
-				return -1;
-			}
-
-			int64_t argc;
-
-			if(!fetch_i64(state, &argc)) {
-
-				// #ERROR
-				// Unexpected end of code
-				report(error_buffer, error_buffer_size, "Unexpected end of code while fetching CALL's operand");
-				return -1;
-			}
-
-			if(state->stack_item_count < argc + 1) {
-
-				// #ERROR
-				// CALL on a stack with not enough items
-				report(error_buffer, error_buffer_size, "CALL on a stack with not enough items");
-				return -1;
-			}
-				
-			object_t *callable = state->stack[state->stack_item_count - argc - 1];
-
-			if(callable->type == (object_t*) &cfunction_type_object) {
-
-				object_t *result = ((object_cfunction_t*) callable)->routine(state, argc, state->stack + state->stack_item_count - argc);
-
-				if(result == 0) {
-
-					report(error_buffer, error_buffer_size, "C function returned NULL");
-					return -1;
-				}
-
-				state->stack_item_count -= argc + 1;
-				state->stack[state->stack_item_count++] = result;
-
-			} else if(callable->type == (object_t*) &function_type_object) {
-
-				state->argc = argc;
-
-				state->executable_stack[state->call_depth] = ((object_function_t*) callable)->executable;
-				state->program_counters[state->call_depth] = ((object_function_t*) callable)->offset;
-				state->call_depth++;
-
-			} else {
-
-				report(error_buffer, error_buffer_size, "CALL on something that is not callable");
-				return -1;
-			}
-
-			
-			break;		
-		}
-
-		case OPCODE_EXPECT:
-		{
-			int64_t argc;
-
-			if(!fetch_i64(state, &argc)) {
-
-				// #ERROR
-				// Unexpected end of code
-				report(error_buffer, error_buffer_size, "Unexpected end of code while fetching EXPECT's operand");
-				return -1;
-			}
-		
-			if(state->argc < 0) {
-
-				// #ERROR
-				report(error_buffer, error_buffer_size, "EXPECT but the argc wasn't previously set by a CALL instruction");
-				return -1;
-			}
-
-			if(argc != state->argc) {
-
-				// #ERROR
-				report(error_buffer, error_buffer_size, "Function call didn't provide the required number of arguments");
-				return -1;
-			}
-
-			state->argc = -1;
-			break;
-		}
-
-		case OPCODE_RETURN:
-		{
-			if(state->call_depth == 0) {
-				report(error_buffer, error_buffer_size, "RETURN but the call depth is 0");
-				return -1;
-			}
-
-			state->call_depth--;
-			break;
-		}
-
-		case OPCODE_JUMP_ABSOLUTE: 
-		{
-		
-			uint32_t dest;
-
-			if(!fetch_u32(state, &dest)) {
-
-				// #ERROR
-				// Unexpected end of code while fetching JUMP_ABSOLUTE's operand
-				report(error_buffer, error_buffer_size, "Unexpected end of code while fetching JUMP_ABSOLUTE's operand");
-				return -1;
-			}
-
-			if(dest >= state->executable_stack[state->call_depth-1]->code_length) {
-
-				// #ERROR
-				// JUMP_ABSOLUTE refers to an address outside of the code segment
-				report(error_buffer, error_buffer_size, "JUMP_ABSOLUTE refers to an address outside of the code segment");
-				return -1;
-			}
-
-			state->program_counters[state->call_depth-1] = dest;
-			break;
-		}
-		
-		case OPCODE_JUMP_IF_FALSE_AND_POP:
-		{
-			uint32_t dest;
-
-			if(!fetch_u32(state, &dest)) {
-
-				// #ERROR
-				// Unexpected end of code while fetching JUMP_IF_FALSE_AND_POP's operand
-				report(error_buffer, error_buffer_size, "Unexpected end of code while fetching JUMP_IF_FALSE_AND_POP's operand");
-				return -1;
-			}
-
-			if(dest >= state->executable_stack[state->call_depth-1]->code_length) {
-
-				// #ERROR
-				// JUMP_IF_FALSE_AND_POP refers to an address outside of the code segment
-				report(error_buffer, error_buffer_size, "JUMP_IF_FALSE_AND_POP refers to an address outside of the code segment");
-				return -1;
-			}
-
-			if(state->stack_item_count == 0) {
-
-				// #ERROR
-				// JUMP_IF_FALSE_AND_POP on an empty stack
-				report(error_buffer, error_buffer_size, "JUMP_IF_FALSE_AND_POP on an empty stack");
-				return -1;
-			}
-
-			if(!object_test(state, state->stack[--state->stack_item_count]))
-				state->program_counters[state->call_depth-1] = dest;
-		
-			break;
-		}
-		
-		case OPCODE_ADD:
-		{
-			if(state->stack_item_count < 2) {
-
-				// #ERROR
-				// ADD operation on a stack with less than 2 elements
-				report(error_buffer, error_buffer_size, "ADD while the stack has less than 2 items");
-				return -1;
-			}
-
-			object_t *left, *right, *result;
-
-			left  = state->stack[--state->stack_item_count];
-			right = state->stack[--state->stack_item_count];
-			result = object_add(state, left, right);
-
-			if(result == 0) {
-
-				// #ERROR
-				// Failed to execute ADD operation
-				report(error_buffer, error_buffer_size, "Failed to execute ADD");
-				return -1;
-			}
-
-			state->stack[state->stack_item_count++] = result;
-			break;
-		}
-
-		#warning "Implement operation instructions other than ADD"
-		case OPCODE_SUB: assert(0); break;
-		case OPCODE_MUL: assert(0); break;
-		case OPCODE_DIV: assert(0); break;
-		case OPCODE_MOD: assert(0); break;
-		case OPCODE_POW: assert(0); break;
-		case OPCODE_NEG: assert(0); break;
-		case OPCODE_LSS: assert(0); break;
-		case OPCODE_GRT: assert(0); break;
-		case OPCODE_LEQ: assert(0); break;
-		case OPCODE_GEQ: assert(0); break;
-		case OPCODE_EQL: assert(0); break;
-		case OPCODE_NQL: assert(0); break;
-		case OPCODE_AND: assert(0); break;
-		case OPCODE_OR:  assert(0); break;
-		case OPCODE_NOT: assert(0); break;
-		case OPCODE_SHL: assert(0); break;
-		case OPCODE_SHR: assert(0); break;
-		case OPCODE_BITWISE_AND: assert(0); break;
-		case OPCODE_BITWISE_OR:  assert(0); break;
-		case OPCODE_BITWISE_XOR: assert(0); break;
-		case OPCODE_BITWISE_NOT: assert(0); break;
-
-		default:
-		// #ERROR
-		// Unexpected opcode
-		report(error_buffer, error_buffer_size, "Unknown opcode");
-		return -1;
-
-	}
-
-	if(gc_requires_collection(state))
-		if(!gc_collect(state)) {
-
-			// #ERROR Out of memory
-			report(error_buffer, error_buffer_size, "Out of memory");
-			return -1;
-		}
-
-	return 1;
 }

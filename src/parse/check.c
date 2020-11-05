@@ -1,7 +1,7 @@
 
 #include <string.h>
 #include <alloca.h>
-#include "noja.h"
+#include "../noja.h"
 
 #define FAILED fprintf(stderr, ">> Failed at %s:%d\n", __FILE__, __LINE__);
 
@@ -16,8 +16,7 @@ typedef struct {
 	int block_depth;
 
 	char *source;
-	char *error_buffer;
-	int   error_buffer_size;
+	string_builder_t *output_builder;
 
 } checking_context_t;
 
@@ -73,7 +72,10 @@ static int node_check(checking_context_t *ctx, node_t *node)
 				// #ERROR
 				// break statement outside of a loop
 
-				report(ctx->error_buffer, ctx->error_buffer_size, "Semantic error at line %d, offset %d: Found break statement outside of a loop", get_lineno_of_offset(ctx->source, node->offset), node->offset);
+				string_builder_append(ctx->output_builder, 
+					"Semantic error at line ${integer}, offset ${integer}: Found break statement outside of a loop", 
+					get_lineno_of_offset(ctx->source, node->offset), node->offset);
+				
 				return 0;
 			}
 			return 1;
@@ -88,7 +90,10 @@ static int node_check(checking_context_t *ctx, node_t *node)
 				// #ERROR
 				// continue statement outside of a loop
 
-				report(ctx->error_buffer, ctx->error_buffer_size, "Semantic error at line %d, offset %d: Found continue statement outside of a loop", get_lineno_of_offset(ctx->source, node->offset), node->offset);
+				string_builder_append(ctx->output_builder, 
+					"Semantic error at line ${integer}, offset ${integer}: Found continue statement outside of a loop", 
+					get_lineno_of_offset(ctx->source, node->offset), node->offset);
+
 				return 0;
 			}
 			return 1;
@@ -103,7 +108,10 @@ static int node_check(checking_context_t *ctx, node_t *node)
 				// #ERROR
 				// return statement outside of a function
 
-				report(ctx->error_buffer, ctx->error_buffer_size, "Semantic error at line %d, offset %d: Found return statement outsize of a function", get_lineno_of_offset(ctx->source, node->offset), node->offset);
+				string_builder_append(ctx->output_builder, 
+					"Semantic error at line ${integer}, offset ${integer}: Found return statement outsize of a function", 
+					get_lineno_of_offset(ctx->source, node->offset), node->offset);
+
 				return 0;
 			}
 			return 1;
@@ -225,7 +233,10 @@ static int node_check(checking_context_t *ctx, node_t *node)
 									// #ERROR
 									// Two arguments have the same name
 
-									report(ctx->error_buffer, ctx->error_buffer_size, "Semantic error at line %d, offset %d: Arguments %d and %d have the same name \"%s\"", get_lineno_of_offset(ctx->source, argument->offset), argument->offset, i, names_count, name, -1);
+									string_builder_append(ctx->output_builder, 
+										"Semantic error at line ${integer}, offset ${integer}: Arguments ${integer} and ${integer} have the same name \"${zero-terminated-string}\"", 
+										get_lineno_of_offset(ctx->source, argument->offset), argument->offset, i, names_count, name);
+
 									return 0;
 								}
 							}
@@ -329,7 +340,9 @@ static int node_check(checking_context_t *ctx, node_t *node)
 						// #ERROR
 						// Increment or decrement of something that is not a variable
 						
-						report(ctx->error_buffer, ctx->error_buffer_size, "Semantic error at line %d, offset %d: Found increment or decrement of something that is not a variable", get_lineno_of_offset(ctx->source, node->offset), node->offset);
+						string_builder_append(ctx->output_builder, 
+							"Semantic error at line ${integer}, offset ${integer}: Found increment or decrement of something that is not a variable", 
+							get_lineno_of_offset(ctx->source, node->offset), node->offset);
 						return 0;
 					}
 					
@@ -364,7 +377,9 @@ static int node_check(checking_context_t *ctx, node_t *node)
 						// #ERROR
 						// Assignment to something that is not a assignable
 
-						report(ctx->error_buffer, ctx->error_buffer_size, "Semantic error at line %d, offset %d: Found assignment to something that is not a variable", get_lineno_of_offset(ctx->source, node->offset), node->offset);
+						string_builder_append(ctx->output_builder, 
+							"Semantic error at line ${integer}, offset ${integer}: Found increment or decrement of something that is not a variable", 
+							get_lineno_of_offset(ctx->source, node->offset), node->offset);
 						return 0;
 					}
 
@@ -396,14 +411,13 @@ static int node_check(checking_context_t *ctx, node_t *node)
 	return 0;
 }
 
-int check(node_t *node, char *source, char *error_buffer, int error_buffer_size)
+int check(node_t *node, char *source, string_builder_t *output_builder)
 {
 	checking_context_t ctx;
 
 	ctx.source = source;
 	ctx.block_depth = 0;
-	ctx.error_buffer = error_buffer;
-	ctx.error_buffer_size = error_buffer_size;
+	ctx.output_builder = output_builder;
 
 	if(!node_check(&ctx, node))
 		return 0;

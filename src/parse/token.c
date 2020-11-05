@@ -4,39 +4,39 @@
 #include <stdlib.h>
 #include "token.h"
 
-int64_t token_to_int(token_t token, char *text)
+int64_t token_to_int(token_t token, const char *text)
 {
 	assert(token.kind == TOKEN_KIND_VALUE_INT);
 
 	int64_t value;
 
+	char *buffer = alloca(token.length + 1);
 
-	char c = text[token.offset + token.length];
-	text[token.offset + token.length] = '\0';
+	memcpy(buffer, text + token.offset, token.length);
+	buffer[token.length] = '\0';
 
-	value = strtoll(text + token.offset, 0, 10);
+	value = strtoll(buffer, 0, 10);
 
-	text[token.offset + token.length] = c;
 	return value;
 }
 
-double token_to_float(token_t token, char *text)
+double token_to_float(token_t token, const char *text)
 {
 	assert(token.kind == TOKEN_KIND_VALUE_FLOAT);
 
 	double value;
 
+	char *buffer = alloca(token.length + 1);
 
-	char c = text[token.offset + token.length];
-	text[token.offset + token.length] = '\0';
+	memcpy(buffer, text + token.offset, token.length);
+	buffer[token.length] = '\0';
 
 	value = strtod(text + token.offset, 0);
-
-	text[token.offset + token.length] = c;
+	
 	return value;
 }
 
-int token_to_string(pool_t *pool, token_t token, char *text, char **e_result, int *e_length)
+int token_to_string(pool_t *pool, token_t token, const char *text, char **e_result, int *e_length)
 {
 	assert(token.kind == TOKEN_KIND_VALUE_STRING || token.kind == TOKEN_KIND_IDENTIFIER);
 
@@ -76,7 +76,6 @@ int token_to_string(pool_t *pool, token_t token, char *text, char **e_result, in
 
 	return 1;
 }
-
 
 void token_array_init(token_array_t *array)
 {
@@ -126,9 +125,10 @@ void token_array_foreach(token_array_t *array, void *userdata, int (*callback)(v
 	}
 }
 
-void token_array_print(token_array_t *array, char *source, FILE *fp)
+/*
+void token_array_print(token_array_t *array, const char *source, FILE *fp)
 {
-	struct fp_and_source { FILE *fp; char *source; };
+	struct fp_and_source { FILE *fp; const char *source; };
 
 	int callback(void *data, int index, token_t token) {
 
@@ -152,6 +152,7 @@ void token_array_print(token_array_t *array, char *source, FILE *fp)
 
 	token_array_foreach(array, (void*) &data, callback);
 }
+*/
 
 void token_array_deinit(token_array_t *array)
 {
@@ -176,7 +177,7 @@ void token_iterator_init(token_iterator_t *iterator, token_array_t *array)
 	iterator->count = array->count;
 }
 
-int __token_iterator_next(token_iterator_t *iterator, char *file, int line, const char *func, char *source)
+int __token_iterator_next(token_iterator_t *iterator, char *file, int line, const char *func, const char *source)
 {
 	iterator->relative_offset++;
 	iterator->absolute_offset++;
@@ -210,7 +211,7 @@ int __token_iterator_next(token_iterator_t *iterator, char *file, int line, cons
 	return 1;
 }
 
-int __token_iterator_prev(token_iterator_t *iterator, char *file, int line, const char *func, char *source)
+int __token_iterator_prev(token_iterator_t *iterator, char *file, int line, const char *func, const char *source)
 {
 	iterator->relative_offset--;
 	iterator->absolute_offset--;

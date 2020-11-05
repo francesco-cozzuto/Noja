@@ -30,7 +30,7 @@ static int string_builder_append_byte(string_builder_t *builder, char c)
 {
 	if(builder->tail_used == BYTES_PER_CHUNK) {
 
-		builder->tail->content[BYTES_PER_CHUNK] = '\0';
+		builder->tail->content[builder->tail_used] = '\0';
 
 		string_builder_chunk_t *chunk = malloc(sizeof(string_builder_chunk_t));
 
@@ -50,6 +50,7 @@ static int string_builder_append_byte(string_builder_t *builder, char c)
 
 static int string_builder_append_plain_string(string_builder_t *builder, char *string, int length)
 {
+
 	if(length < 0)
 		length = strlen(string);
 
@@ -82,6 +83,14 @@ int string_builder_append(string_builder_t *builder, const char *fmt, ...)
 	va_list args;
 	va_start(args, fmt);
 
+	int result = string_builder_append_p(builder, fmt, args);
+
+	va_end(args);
+	return result;
+}
+
+int string_builder_append_p(string_builder_t *builder, const char *fmt, va_list args)
+{
 	char c;
 	int i = 0;
 
@@ -105,8 +114,6 @@ int string_builder_append(string_builder_t *builder, const char *fmt, ...)
 					if(keyword_length < 128-1 && c != ' ' && c != '\t' && c != '\n')
 						keyword[keyword_length++] = c;
 				keyword[keyword_length] = '\0';
-
-				i--;
 
 				if(!strcmp(keyword, "integer")) {
 
@@ -158,18 +165,12 @@ int string_builder_append(string_builder_t *builder, const char *fmt, ...)
 		}
 	}
 
-	va_end(args);
 	return 1;
 }
 
-char *string_builder_serialize(string_builder_t *builder)
+void string_builder_serialize_to_buffer(string_builder_t *builder, char *dest)
 {
 	builder->tail->content[builder->tail_used] = '\0';
-
-	char *result = malloc(builder->length + 1);
-
-	if(result == 0)
-		return 0;
 
 	string_builder_chunk_t *chunk = &builder->head;
 
@@ -177,14 +178,21 @@ char *string_builder_serialize(string_builder_t *builder)
 
 	while(chunk) {
 
-		strcpy(result + written, chunk->content);
+		strcpy(dest + written, chunk->content);
+
+		if(!chunk->next) {
+			
+			written += builder->tail_used;
+
+		} else {
+		
+			written += BYTES_PER_CHUNK;
+		}
 
 		chunk = chunk->next;
 	}
 
-	result[written] = '\0';
-
-	return result;
+	dest[written] = '\0';
 }
 
 void string_builder_serialize_to_stream(string_builder_t *builder, FILE *fp)

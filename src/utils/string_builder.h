@@ -1,4 +1,5 @@
 
+#include <stdarg.h>
 #include <stdio.h>
 
 #define BYTES_PER_CHUNK 4096-1
@@ -19,5 +20,6 @@ struct string_builder_t {
 void  string_builder_init(string_builder_t *builder);
 void  string_builder_deinit(string_builder_t *builder);
 int   string_builder_append(string_builder_t *builder, const char *fmt, ...);
-char *string_builder_serialize(string_builder_t *builder);
+int   string_builder_append_p(string_builder_t *builder, const char *fmt, va_list args);
+void  string_builder_serialize_to_buffer(string_builder_t *builder, char *dest);
 void  string_builder_serialize_to_stream(string_builder_t *builder, FILE *fp);

@@ -3,8 +3,8 @@
 #include <stdio.h>
 
 #include "utils/pool.h"
+#include "utils/string_builder.h"
 #include "ast.h"
-#include "token.h"
 
 enum {
 
@@ -95,6 +95,9 @@ struct overflow_allocation_t {
 
 typedef struct {
 
+	int failed;
+	string_builder_t *output_builder;
+
 	char *heap;
 	uint32_t heap_size;
 	uint32_t heap_used;
@@ -103,6 +106,8 @@ typedef struct {
 	object_t **stack;
 	uint32_t stack_item_count;
 	uint32_t stack_item_count_max;
+
+	object_t *builtins_map;
 
 	object_t **variable_maps;
 	uint32_t variable_maps_count;
@@ -233,8 +238,6 @@ extern object_type_t string_type_object;
 extern object_type_t function_type_object;
 extern object_type_t cfunction_type_object;
 
-int insert_builtins(state_t *state, object_t *dest, char *error_buffer, int error_buffer_size);
-
 object_t *dict_cselect(state_t *state, object_t *self, const char *name);
 int 	  dict_cinsert(state_t *state, object_t *self, const char *name, object_t *value);
 object_t *array_cselect(state_t *state, object_t *self, int64_t index);
@@ -255,13 +258,11 @@ int 	  object_insert(state_t *state, object_t *self, object_t *key, object_t *it
 object_t *object_select_attribute(state_t *state, object_t *self, const char *name);
 int 	  object_insert_attribute(state_t *state, object_t *self, const char *name, object_t *value);
 
-int tokenize(char *source, int source_length, token_array_t *e_token_array);
-int parse(token_array_t *array, char *source, pool_t **e_pool, node_t **e_node);
-int check(node_t *node, char *source, char *error_buffer, int error_buffer_size);
+int parse(const char *source, int source_length, pool_t **e_pool, node_t **e_node, string_builder_t *output_builder);
 executable_t *generate(node_t *node);
 
-int run_text(const char *text, int length, char *error_buffer, int error_buffer_size);
-int run_file(const char *path, char *error_buffer, int error_buffer_size);
+int run_text(const char *text, int length, char **error_text);
+int run_file(const char *path, char **error_text);
 
 int get_lineno_of_offset(const char *text, int offset);
 void report(char *error_buffer, int error_buffer_size, const char *format, ...);

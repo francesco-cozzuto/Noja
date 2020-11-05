@@ -61,7 +61,7 @@ static builtin_interface_t builtin_routines[] = {
 
 static int builtin_count = sizeof(builtin_names) / sizeof(char*);
 
-int insert_builtins(state_t *state, object_t *dest, char *error_buffer, int error_buffer_size)
+int insert_builtins(state_t *state, object_t *dest)
 {
 	for(int i = 0; i < builtin_count; i++) {
 

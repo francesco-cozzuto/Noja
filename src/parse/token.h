@@ -1,7 +1,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include "utils/pool.h"
+#include "../utils/pool.h"
 
 typedef struct {
 	int kind;
@@ -92,20 +92,20 @@ enum {
 
 void token_array_init(token_array_t *array);
 int  token_array_push(token_array_t *array, token_t token);
-void token_array_print(token_array_t *array, char *source, FILE *fp);
+void token_array_print(token_array_t *array, const char *source, FILE *fp);
 void token_array_foreach(token_array_t *array, void *userdata, int (*callback)(void *data, int index, token_t token));
 void token_array_deinit(token_array_t *array);
 
 
 void token_iterator_init(token_iterator_t *iterator, token_array_t *array);
-int __token_iterator_next(token_iterator_t *iterator, char *file, int line, const char *func, char *source);
-int __token_iterator_prev(token_iterator_t *iterator, char *file, int line, const char *func, char *source);
+int __token_iterator_next(token_iterator_t *iterator, char *file, int line, const char *func, const char *source);
+int __token_iterator_prev(token_iterator_t *iterator, char *file, int line, const char *func, const char *source);
 #define token_iterator_next(iterator) __token_iterator_next(iterator, __FILE__, __LINE__, __func__, source)
 #define token_iterator_prev(iterator) __token_iterator_prev(iterator, __FILE__, __LINE__, __func__, source)
 //int  token_iterator_next(token_iterator_t *iterator);
 //int  token_iterator_prev(token_iterator_t *iterator);
 token_t token_iterator_current(token_iterator_t *iterator);
 
-int64_t token_to_int(token_t token, char *text);
-double 	token_to_float(token_t token, char *text);
-int 	token_to_string(pool_t *pool, token_t token, char *text, char **e_result, int *e_length);
+int64_t token_to_int(token_t token, const char *text);
+double 	token_to_float(token_t token, const char *text);
+int 	token_to_string(pool_t *pool, token_t token, const char *text, char **e_result, int *e_length);

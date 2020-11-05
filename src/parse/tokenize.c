@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include "noja.h"
+#include "token.h"
 
 #warning "Implement comments"
 
