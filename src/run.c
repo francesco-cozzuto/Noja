@@ -1038,12 +1038,12 @@ static inline int step(state_t *state, char *error_buffer, int error_buffer_size
 		case OPCODE_EQL: assert(0); break;
 		case OPCODE_NQL: assert(0); break;
 		case OPCODE_AND: assert(0); break;
-		case OPCODE_OR: assert(0); break;
+		case OPCODE_OR:  assert(0); break;
 		case OPCODE_NOT: assert(0); break;
 		case OPCODE_SHL: assert(0); break;
 		case OPCODE_SHR: assert(0); break;
 		case OPCODE_BITWISE_AND: assert(0); break;
-		case OPCODE_BITWISE_OR: assert(0); break;
+		case OPCODE_BITWISE_OR:  assert(0); break;
 		case OPCODE_BITWISE_XOR: assert(0); break;
 		case OPCODE_BITWISE_NOT: assert(0); break;
 
