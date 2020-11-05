@@ -2,7 +2,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "utils/pool.h"
 #include "utils/string_builder.h"
 #include "ast.h"
 
@@ -258,12 +257,8 @@ int 	  object_insert(state_t *state, object_t *self, object_t *key, object_t *it
 object_t *object_select_attribute(state_t *state, object_t *self, const char *name);
 int 	  object_insert_attribute(state_t *state, object_t *self, const char *name, object_t *value);
 
-int parse(const char *source, int source_length, ast_t *ast, string_builder_t *output_builder);
-executable_t *generate(ast_t ast);
-
 int run_text(const char *text, int length, char **error_text);
 int run_file(const char *path, char **error_text);
 
-int get_lineno_of_offset(const char *text, int offset);
-void report(char *error_buffer, int error_buffer_size, const char *format, ...);
-
+int parse(const char *source, int source_length, ast_t *ast, string_builder_t *output_builder);
+executable_t *generate(ast_t ast);

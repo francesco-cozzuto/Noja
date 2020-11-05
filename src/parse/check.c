@@ -73,8 +73,8 @@ static int node_check(checking_context_t *ctx, node_t *node)
 				// break statement outside of a loop
 
 				string_builder_append(ctx->output_builder, 
-					"Semantic error at line ${integer}, offset ${integer}: Found break statement outside of a loop", 
-					get_lineno_of_offset(ctx->source, node->offset), node->offset);
+					"Semantic error at offset ${integer}: Found break statement outside of a loop", 
+					node->offset);
 				
 				return 0;
 			}
@@ -91,8 +91,8 @@ static int node_check(checking_context_t *ctx, node_t *node)
 				// continue statement outside of a loop
 
 				string_builder_append(ctx->output_builder, 
-					"Semantic error at line ${integer}, offset ${integer}: Found continue statement outside of a loop", 
-					get_lineno_of_offset(ctx->source, node->offset), node->offset);
+					"Semantic error at offset ${integer}: Found continue statement outside of a loop", 
+					node->offset);
 
 				return 0;
 			}
@@ -109,8 +109,8 @@ static int node_check(checking_context_t *ctx, node_t *node)
 				// return statement outside of a function
 
 				string_builder_append(ctx->output_builder, 
-					"Semantic error at line ${integer}, offset ${integer}: Found return statement outsize of a function", 
-					get_lineno_of_offset(ctx->source, node->offset), node->offset);
+					"Semantic error at offset ${integer}: Found return statement outsize of a function", 
+					node->offset);
 
 				return 0;
 			}
@@ -234,8 +234,8 @@ static int node_check(checking_context_t *ctx, node_t *node)
 									// Two arguments have the same name
 
 									string_builder_append(ctx->output_builder, 
-										"Semantic error at line ${integer}, offset ${integer}: Arguments ${integer} and ${integer} have the same name \"${zero-terminated-string}\"", 
-										get_lineno_of_offset(ctx->source, argument->offset), argument->offset, i, names_count, name);
+										"Semantic error at offset ${integer}: Arguments ${integer} and ${integer} have the same name \"${zero-terminated-string}\"", 
+										argument->offset, i, names_count, name);
 
 									return 0;
 								}
@@ -341,8 +341,8 @@ static int node_check(checking_context_t *ctx, node_t *node)
 						// Increment or decrement of something that is not a variable
 						
 						string_builder_append(ctx->output_builder, 
-							"Semantic error at line ${integer}, offset ${integer}: Found increment or decrement of something that is not a variable", 
-							get_lineno_of_offset(ctx->source, node->offset), node->offset);
+							"Semantic error at offset ${integer}: Found increment or decrement of something that is not a variable", 
+							node->offset);
 						return 0;
 					}
 					
@@ -378,8 +378,8 @@ static int node_check(checking_context_t *ctx, node_t *node)
 						// Assignment to something that is not a assignable
 
 						string_builder_append(ctx->output_builder, 
-							"Semantic error at line ${integer}, offset ${integer}: Found increment or decrement of something that is not a variable", 
-							get_lineno_of_offset(ctx->source, node->offset), node->offset);
+							"Semantic error at offset ${integer}: Found increment or decrement of something that is not a variable", 
+							node->offset);
 						return 0;
 					}
 

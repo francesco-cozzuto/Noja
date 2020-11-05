@@ -148,6 +148,7 @@ static const char *get_opcode_name(int opcode)
 object_t *builtin_disassemble(state_t *state, int argc, object_t **argv)
 {
 	(void) state;
+	(void) argv;
 
 	if(argc != 0)
 

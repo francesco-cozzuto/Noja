@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <setjmp.h>
 #include "noja.h"
 
 #define BYTES_PER_DATA_CHUNK 4096
@@ -63,11 +64,13 @@ struct generating_context_t {
 				   *tail_function;
 
 	offset_gap_t *tail_call_gap;
+
+	jmp_buf env;
 };
 
 static void throw(generating_context_t *ctx)
 {
-	assert(0);
+	longjmp(ctx->env, 1);
 }
 
 label_t function_text_get_label_here(function_text_t *function_text)
@@ -227,6 +230,78 @@ function_text_t *function_text_create(generating_context_t *ctx)
 	return ft;
 }
 
+static void release_resources(generating_context_t ctx)
+{
+	// free gaps
+	{
+		offset_gap_t *gap = ctx.tail_call_gap;
+
+		while(gap) {
+
+			offset_gap_t *prev_gap = gap->prev;
+
+			free(gap);
+
+			gap = prev_gap;
+		}
+
+		ctx.tail_call_gap = 0;
+	}
+
+	// free data chunks
+
+	{
+		data_chunk_t *chunk = ctx.head_data.next;
+
+		while(chunk) {
+
+			data_chunk_t *next_chunk = chunk->next;
+
+			free(chunk);
+
+			chunk = next_chunk;
+		}
+	}
+
+	// free functions
+
+	{
+
+		function_text_t *ft = &ctx.head_function;
+		int i = 0;
+
+		while(ft) {
+
+			// free function
+
+			function_text_t *next_ft = ft->next;
+
+			{
+				// free chunks
+
+				function_text_chunk_t *c = ft->head.next;
+			
+				while(c) {
+
+					function_text_chunk_t *next_c = c->next;
+
+					free(c);
+
+					c = next_c;
+				}
+			}
+
+			// free the function if it's not the first one
+
+			if(i > 0)
+				free(ft);
+
+			ft = next_ft;
+			i++;
+		}
+	}
+}
+
 static void node_compile(function_text_t *ft, node_t *node);
 
 executable_t *generate(ast_t ast)
@@ -244,6 +319,12 @@ executable_t *generate(ast_t ast)
 	ctx.head_function.length = 0;
 	ctx.tail_function = &ctx.head_function;
 	ctx.tail_call_gap = 0;
+
+	if(setjmp(ctx.env)) {
+
+		release_resources(ctx);
+		return 0;
+	}
 
 	node_compile(&ctx.head_function, ast.root);
 
@@ -265,7 +346,7 @@ executable_t *generate(ast_t ast)
 		}
 	}
 
-	// fill function address gaps
+	// fill address gaps
 
 	{
 		offset_gap_t *gap = ctx.tail_call_gap;
