@@ -158,6 +158,37 @@ int dict_cinsert(state_t *state, object_t *self, const char *key, object_t *valu
 
 	object_dict_t *d = (object_dict_t*) self;
 
+	// Check if the key was already inserted
+
+	{
+		int x, p, i, mask;
+
+		mask = d->map_size - 1;
+
+		x = hash(key);
+		p = x;
+
+		i = x & mask;
+
+		while(1) {
+
+			if(d->map[i] == -1)
+
+				// The item isn't here
+				break;
+
+			if(!strcmp(d->item_keys[d->map[i]], key)) {
+
+				// Found the item! It's already contained!
+
+				d->item_values[d->map[i]] = value;
+				return 1;
+			}
+
+			p >>= 5;
+			i = (i*5 + p + 1) & mask;
+		}
+	}
 
 	// ensure there is enough space for the field
 
