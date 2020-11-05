@@ -262,6 +262,9 @@ int step(state_t *state)
 
 			object_t *object = dict_cselect(state, state->variable_maps[state->variable_maps_count-1], variable_name);
 
+			if(object == 0 && state->variable_maps_count > 1)
+				object = dict_cselect(state, state->variable_maps[0], variable_name);
+
 			if(object == 0)
 				object = dict_cselect(state, state->builtins_map, variable_name);
 
@@ -362,8 +365,8 @@ int step(state_t *state)
 
 			object_t *container, *key, *item;
 
-			container = state->stack[state->stack_item_count-2];
-			key 	  = state->stack[state->stack_item_count-1];
+			key 	  = state->stack[--state->stack_item_count];
+			container = state->stack[--state->stack_item_count];
 
 			item = object_select(state, container, key);
 
@@ -374,7 +377,7 @@ int step(state_t *state)
 				return 0;
 			}
 
-			state->stack[state->stack_item_count-1] = item;
+			state->stack[state->stack_item_count++] = item;
 			break;
 		}
 
@@ -449,14 +452,19 @@ int step(state_t *state)
 				return 0;
 			}
 
-			if(!object_insert_attribute(state, state->stack[state->stack_item_count-2], attribute_name, state->stack[state->stack_item_count-1])) {
+			object_t *container, *item;
+
+			item      = state->stack[--state->stack_item_count];
+			container = state->stack[--state->stack_item_count];
+
+			if(!object_insert_attribute(state, container, attribute_name, item)) {
 
 				// #ERROR
 				fail(state, "Failed to insert attribute");
 				return 0;
 			}
 
-			state->stack_item_count--;
+			state->stack[state->stack_item_count++] = object_select_attribute(state, container, attribute_name);
 			break;
 		}
 
@@ -768,8 +776,9 @@ int step(state_t *state)
 
 			object_t *left, *right, *result;
 
-			left  = state->stack[--state->stack_item_count];
 			right = state->stack[--state->stack_item_count];
+			left  = state->stack[--state->stack_item_count];
+			
 			result = object_add(state, left, right);
 
 			if(result == 0) {
@@ -784,27 +793,535 @@ int step(state_t *state)
 			break;
 		}
 
-		#warning "Implement operation instructions other than ADD"
-		case OPCODE_SUB: assert(0); break;
-		case OPCODE_MUL: assert(0); break;
-		case OPCODE_DIV: assert(0); break;
-		case OPCODE_MOD: assert(0); break;
-		case OPCODE_POW: assert(0); break;
+		#warning "Implement unary operation instructions"
+		
+		case OPCODE_SUB: 
+		{
+			if(state->stack_item_count < 2) {
+
+				// #ERROR
+				// SUB operation on a stack with less than 2 elements
+				fail(state, "SUB while the stack has less than 2 items");
+				return 0;
+			}
+
+			object_t *left, *right, *result;
+
+			right = state->stack[--state->stack_item_count];
+			left  = state->stack[--state->stack_item_count];
+			
+			result = object_sub(state, left, right);
+
+			if(result == 0) {
+
+				// #ERROR
+				// Failed to execute SUB operation
+				fail(state, "Failed to execute SUB");
+				return 0;
+			}
+
+			state->stack[state->stack_item_count++] = result;
+			break;
+		}
+
+		case OPCODE_MUL:
+		{
+			if(state->stack_item_count < 2) {
+
+				// #ERROR
+				// MUL operation on a stack with less than 2 elements
+				fail(state, "MUL while the stack has less than 2 items");
+				return 0;
+			}
+
+			object_t *left, *right, *result;
+
+			right = state->stack[--state->stack_item_count];
+			left  = state->stack[--state->stack_item_count];
+			
+			result = object_mul(state, left, right);
+
+			if(result == 0) {
+
+				// #ERROR
+				// Failed to execute MUL operation
+				fail(state, "Failed to execute MUL");
+				return 0;
+			}
+
+			state->stack[state->stack_item_count++] = result;
+			break;
+		}
+
+		case OPCODE_DIV:
+		{
+			if(state->stack_item_count < 2) {
+
+				// #ERROR
+				// DIV operation on a stack with less than 2 elements
+				fail(state, "DIV while the stack has less than 2 items");
+				return 0;
+			}
+
+			object_t *left, *right, *result;
+
+			right = state->stack[--state->stack_item_count];
+			left  = state->stack[--state->stack_item_count];
+			
+			result = object_div(state, left, right);
+
+			if(result == 0) {
+
+				// #ERROR
+				// Failed to execute DIV operation
+				fail(state, "Failed to execute DIV");
+				return 0;
+			}
+
+			state->stack[state->stack_item_count++] = result;
+			break;
+		}
+
+		case OPCODE_MOD:
+		{
+			if(state->stack_item_count < 2) {
+
+				// #ERROR
+				// MOD operation on a stack with less than 2 elements
+				fail(state, "MOD while the stack has less than 2 items");
+				return 0;
+			}
+
+			object_t *left, *right, *result;
+
+			right = state->stack[--state->stack_item_count];
+			left  = state->stack[--state->stack_item_count];
+			
+			result = object_mod(state, left, right);
+
+			if(result == 0) {
+
+				// #ERROR
+				// Failed to execute MOD operation
+				fail(state, "Failed to execute MOD");
+				return 0;
+			}
+
+			state->stack[state->stack_item_count++] = result;
+			break;
+		}
+
+		case OPCODE_POW:
+		{
+			if(state->stack_item_count < 2) {
+
+				// #ERROR
+				// POW operation on a stack with less than 2 elements
+				fail(state, "POW while the stack has less than 2 items");
+				return 0;
+			}
+
+			object_t *left, *right, *result;
+
+			right = state->stack[--state->stack_item_count];
+			left  = state->stack[--state->stack_item_count];
+			
+			result = object_pow(state, left, right);
+
+			if(result == 0) {
+
+				// #ERROR
+				// Failed to execute POW operation
+				fail(state, "Failed to execute POW");
+				return 0;
+			}
+
+			state->stack[state->stack_item_count++] = result;
+			break;
+		}
+
 		case OPCODE_NEG: assert(0); break;
-		case OPCODE_LSS: assert(0); break;
-		case OPCODE_GRT: assert(0); break;
-		case OPCODE_LEQ: assert(0); break;
-		case OPCODE_GEQ: assert(0); break;
-		case OPCODE_EQL: assert(0); break;
-		case OPCODE_NQL: assert(0); break;
-		case OPCODE_AND: assert(0); break;
-		case OPCODE_OR:  assert(0); break;
+
+		case OPCODE_LSS:
+		{
+			if(state->stack_item_count < 2) {
+
+				// #ERROR
+				// LSS operation on a stack with less than 2 elements
+				fail(state, "LSS while the stack has less than 2 items");
+				return 0;
+			}
+
+			object_t *left, *right, *result;
+
+			right = state->stack[--state->stack_item_count];
+			left  = state->stack[--state->stack_item_count];
+			
+			result = object_lss(state, left, right);
+
+			if(result == 0) {
+
+				// #ERROR
+				// Failed to execute LSS operation
+				fail(state, "Failed to execute LSS");
+				return 0;
+			}
+
+			state->stack[state->stack_item_count++] = result;
+			break;
+		}
+
+		case OPCODE_GRT: 
+		{
+			if(state->stack_item_count < 2) {
+
+				// #ERROR
+				// GRT operation on a stack with less than 2 elements
+				fail(state, "GRT while the stack has less than 2 items");
+				return 0;
+			}
+
+			object_t *left, *right, *result;
+
+			right = state->stack[--state->stack_item_count];
+			left  = state->stack[--state->stack_item_count];
+			
+			result = object_grt(state, left, right);
+
+			if(result == 0) {
+
+				// #ERROR
+				// Failed to execute GRT operation
+				fail(state, "Failed to execute GRT");
+				return 0;
+			}
+
+			state->stack[state->stack_item_count++] = result;
+			break;
+		}
+
+		case OPCODE_LEQ:
+		{
+			if(state->stack_item_count < 2) {
+
+				// #ERROR
+				// LEQ operation on a stack with less than 2 elements
+				fail(state, "LEQ while the stack has less than 2 items");
+				return 0;
+			}
+
+			object_t *left, *right, *result;
+
+			right = state->stack[--state->stack_item_count];
+			left  = state->stack[--state->stack_item_count];
+			
+			result = object_leq(state, left, right);
+
+			if(result == 0) {
+
+				// #ERROR
+				// Failed to execute LEQ operation
+				fail(state, "Failed to execute LEQ");
+				return 0;
+			}
+
+			state->stack[state->stack_item_count++] = result;
+			break;
+		}
+
+		case OPCODE_GEQ:
+		{
+			if(state->stack_item_count < 2) {
+
+				// #ERROR
+				// GEQ operation on a stack with less than 2 elements
+				fail(state, "GEQ while the stack has less than 2 items");
+				return 0;
+			}
+
+			object_t *left, *right, *result;
+
+			right = state->stack[--state->stack_item_count];
+			left  = state->stack[--state->stack_item_count];
+			
+			result = object_geq(state, left, right);
+
+			if(result == 0) {
+
+				// #ERROR
+				// Failed to execute GEQ operation
+				fail(state, "Failed to execute GEQ");
+				return 0;
+			}
+
+			state->stack[state->stack_item_count++] = result;
+			break;
+		}
+
+		case OPCODE_EQL:
+		{
+			if(state->stack_item_count < 2) {
+
+				// #ERROR
+				// EQL operation on a stack with less than 2 elements
+				fail(state, "EQL while the stack has less than 2 items");
+				return 0;
+			}
+
+			object_t *left, *right, *result;
+
+			right = state->stack[--state->stack_item_count];
+			left  = state->stack[--state->stack_item_count];
+			
+			result = object_eql(state, left, right);
+
+			if(result == 0) {
+
+				// #ERROR
+				// Failed to execute EQL operation
+				fail(state, "Failed to execute EQL");
+				return 0;
+			}
+
+			state->stack[state->stack_item_count++] = result;
+			break;
+		}
+
+		case OPCODE_NQL:
+		{
+			if(state->stack_item_count < 2) {
+
+				// #ERROR
+				// NQL operation on a stack with less than 2 elements
+				fail(state, "NQL while the stack has less than 2 items");
+				return 0;
+			}
+
+			object_t *left, *right, *result;
+
+			right = state->stack[--state->stack_item_count];
+			left  = state->stack[--state->stack_item_count];
+			
+			result = object_nql(state, left, right);
+
+			if(result == 0) {
+
+				// #ERROR
+				// Failed to execute NQL operation
+				fail(state, "Failed to execute NQL");
+				return 0;
+			}
+
+			state->stack[state->stack_item_count++] = result;
+			break;
+		}
+
+		case OPCODE_AND:
+		{
+			if(state->stack_item_count < 2) {
+
+				// #ERROR
+				// AND operation on a stack with less than 2 elements
+				fail(state, "AND while the stack has less than 2 items");
+				return 0;
+			}
+
+			object_t *left, *right, *result;
+
+			right = state->stack[--state->stack_item_count];
+			left  = state->stack[--state->stack_item_count];
+			
+			result = object_and(state, left, right);
+
+			if(result == 0) {
+
+				// #ERROR
+				// Failed to execute AND operation
+				fail(state, "Failed to execute AND");
+				return 0;
+			}
+
+			state->stack[state->stack_item_count++] = result;
+			break;
+		}
+
+		case OPCODE_OR: 
+		{
+			if(state->stack_item_count < 2) {
+
+				// #ERROR
+				// OR operation on a stack with less than 2 elements
+				fail(state, "OR while the stack has less than 2 items");
+				return 0;
+			}
+
+			object_t *left, *right, *result;
+
+			right = state->stack[--state->stack_item_count];
+			left  = state->stack[--state->stack_item_count];
+			
+			result = object_or(state, left, right);
+
+			if(result == 0) {
+
+				// #ERROR
+				// Failed to execute OR operation
+				fail(state, "Failed to execute OR");
+				return 0;
+			}
+
+			state->stack[state->stack_item_count++] = result;
+			break;
+		}
+
 		case OPCODE_NOT: assert(0); break;
-		case OPCODE_SHL: assert(0); break;
-		case OPCODE_SHR: assert(0); break;
-		case OPCODE_BITWISE_AND: assert(0); break;
-		case OPCODE_BITWISE_OR:  assert(0); break;
-		case OPCODE_BITWISE_XOR: assert(0); break;
+
+		case OPCODE_SHL:
+		{
+			if(state->stack_item_count < 2) {
+
+				// #ERROR
+				// SHL operation on a stack with less than 2 elements
+				fail(state, "SHL while the stack has less than 2 items");
+				return 0;
+			}
+
+			object_t *left, *right, *result;
+
+			right = state->stack[--state->stack_item_count];
+			left  = state->stack[--state->stack_item_count];
+			
+			result = object_shl(state, left, right);
+
+			if(result == 0) {
+
+				// #ERROR
+				// Failed to execute SHL operation
+				fail(state, "Failed to execute SHL");
+				return 0;
+			}
+
+			state->stack[state->stack_item_count++] = result;
+			break;
+		}
+
+		case OPCODE_SHR:
+		{
+			if(state->stack_item_count < 2) {
+
+				// #ERROR
+				// SHR operation on a stack with less than 2 elements
+				fail(state, "SHR while the stack has less than 2 items");
+				return 0;
+			}
+
+			object_t *left, *right, *result;
+
+			right = state->stack[--state->stack_item_count];
+			left  = state->stack[--state->stack_item_count];
+			
+			result = object_shr(state, left, right);
+
+			if(result == 0) {
+
+				// #ERROR
+				// Failed to execute SHR operation
+				fail(state, "Failed to execute SHR");
+				return 0;
+			}
+
+			state->stack[state->stack_item_count++] = result;
+			break;
+		}
+
+		case OPCODE_BITWISE_AND: 
+		{
+			if(state->stack_item_count < 2) {
+
+				// #ERROR
+				// BITWISE_AND operation on a stack with less than 2 elements
+				fail(state, "BITWISE_AND while the stack has less than 2 items");
+				return 0;
+			}
+
+			object_t *left, *right, *result;
+
+			right = state->stack[--state->stack_item_count];
+			left  = state->stack[--state->stack_item_count];
+			
+			result = object_bitwise_and(state, left, right);
+
+			if(result == 0) {
+
+				// #ERROR
+				// Failed to execute BITWISE_AND operation
+				fail(state, "Failed to execute BITWISE_AND");
+				return 0;
+			}
+
+			state->stack[state->stack_item_count++] = result;
+			break;
+		}
+
+		case OPCODE_BITWISE_OR:  
+		{
+			if(state->stack_item_count < 2) {
+
+				// #ERROR
+				// BITWISE_OR operation on a stack with less than 2 elements
+				fail(state, "BITWISE_OR while the stack has less than 2 items");
+				return 0;
+			}
+
+			object_t *left, *right, *result;
+
+			right = state->stack[--state->stack_item_count];
+			left  = state->stack[--state->stack_item_count];
+			
+			result = object_bitwise_or(state, left, right);
+
+			if(result == 0) {
+
+				// #ERROR
+				// Failed to execute BITWISE_OR operation
+				fail(state, "Failed to execute BITWISE_OR");
+				return 0;
+			}
+
+			state->stack[state->stack_item_count++] = result;
+			break;
+		}
+
+		case OPCODE_BITWISE_XOR: 
+		{
+			if(state->stack_item_count < 2) {
+
+				// #ERROR
+				// BITWISE_XOR operation on a stack with less than 2 elements
+				fail(state, "BITWISE_XOR while the stack has less than 2 items");
+				return 0;
+			}
+
+			object_t *left, *right, *result;
+
+			right = state->stack[--state->stack_item_count];
+			left  = state->stack[--state->stack_item_count];
+			
+			result = object_bitwise_xor(state, left, right);
+
+			if(result == 0) {
+
+				// #ERROR
+				// Failed to execute BITWISE_XOR operation
+				fail(state, "Failed to execute BITWISE_XOR");
+				return 0;
+			}
+
+			state->stack[state->stack_item_count++] = result;
+			break;
+		}
+
+
 		case OPCODE_BITWISE_NOT: assert(0); break;
 
 		default:
@@ -815,9 +1332,24 @@ int step(state_t *state)
 
 	}
 
+	/*
+	printf("=== Stack view (%d) ===\n", state->program_counters[state->call_depth-1]);
+
+	for(size_t i = 0; i < state->stack_item_count; i++) {
+
+		printf("%ld: [", i);
+		object_print(state, state->stack[i], stdout);
+		printf("]\n");
+
+	}
+
+	printf("==================\n");
+	
+	getc(stdin);
+	*/
+
 	return 1;
 }
-
 
 static void fetch_u32(state_t *state, uint32_t *value)
 {

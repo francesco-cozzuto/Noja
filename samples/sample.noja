@@ -1,57 +1,11 @@
 
-a = 5;
+factorial = function(n) {
 
-a;
+	if n == 0 || n == 1 
 
-if a 2;
+		return 1;
 
-i = 0;
-
-
-# This is a comment
-# This is another comment
-
-print();
-
-while 0 {
-	
-	print(i);
-
-	i = i + 1;
-}
-
-(1 + 2);
-
-while a {
-	
-	3; 
-
-	break;
-}
-
-print(1);
-print(1, 2, 3);
-
-print(typename_of(34));
-
-f = function(a, b, c) {
-		
-	print("hello");
+	return n * factorial(n - 1); 
 };
 
-f(1, 2, 3);
-
-[1, 2, 3];
-
-c = {"A": 1, "B": 2, "C": 3};
-
-a = [1, 2, 3];
-
-a[1];
-
-c["C"];
-
-c.hello = "wassuuupppp";
-
-print(c.hello);
-#here is a comment
+print("The factorial of ", 10, " is ", factorial(10));

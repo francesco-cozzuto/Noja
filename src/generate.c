@@ -468,6 +468,7 @@ static void node_compile(function_text_t *ft, node_t *node)
 			node_return_t *x = (node_return_t*) node;
 
 			node_compile(ft, x->expression);
+			function_text_append_u32(ft, OPCODE_VARIABLE_MAP_POP);
 			function_text_append_u32(ft, OPCODE_RETURN);
 			break;
 		}
@@ -488,6 +489,11 @@ static void node_compile(function_text_t *ft, node_t *node)
 
 				node_compile(ft, x->if_block);
 
+				if(x->if_block->kind == NODE_KIND_EXPRESSION) {
+					function_text_append_u32(ft, OPCODE_POP);
+					function_text_append_i64(ft, 1);
+				}
+
 				function_text_append_u32(ft, OPCODE_JUMP_ABSOLUTE);
 
 				label_t B = function_text_get_label_here(ft);
@@ -499,6 +505,11 @@ static void node_compile(function_text_t *ft, node_t *node)
 				function_text_write_u32_from_label(A, C);
 
 				node_compile(ft, x->else_block);
+
+				if(x->else_block->kind == NODE_KIND_EXPRESSION) {
+					function_text_append_u32(ft, OPCODE_POP);
+					function_text_append_i64(ft, 1);
+				}
 
 				function_text_write_u32_from_label(B, C);
 
@@ -513,6 +524,11 @@ static void node_compile(function_text_t *ft, node_t *node)
 				function_text_append_u32(ft, 0);
 
 				node_compile(ft, x->if_block);
+
+				if(x->if_block->kind == NODE_KIND_EXPRESSION) {
+					function_text_append_u32(ft, OPCODE_POP);
+					function_text_append_i64(ft, 1);
+				}
 
 				label_t B = function_text_get_label_here(ft);
 
@@ -550,6 +566,11 @@ static void node_compile(function_text_t *ft, node_t *node)
 
 			#warning "Handle the case where a while-block or if-else block returns, since the continue and break stacks need to be popped"
 			node_compile(ft, x->block); // #TODO Handle the case where this block returns! The continue and break destinations need to be popped!
+
+			if(x->block->kind == NODE_KIND_EXPRESSION) {
+				function_text_append_u32(ft, OPCODE_POP);
+				function_text_append_i64(ft, 1);
+			}
 
 			function_text_append_u32(ft, OPCODE_JUMP_ABSOLUTE);
 			
@@ -686,6 +707,8 @@ static void node_compile(function_text_t *ft, node_t *node)
 						function_text_append_u32(sub_ft, OPCODE_EXPECT);
 						function_text_append_i64(sub_ft, x->argument_count);
 
+						function_text_append_u32(sub_ft, OPCODE_VARIABLE_MAP_PUSH);
+
 						// Iterate it backwards
 
 						for(int j = i-1; j >= 0; j--) {
@@ -703,6 +726,12 @@ static void node_compile(function_text_t *ft, node_t *node)
 
 					node_compile(sub_ft, x->body);
 
+					if(x->body->kind == NODE_KIND_EXPRESSION) {
+						function_text_append_u32(ft, OPCODE_POP);
+						function_text_append_i64(ft, 1);
+					}
+
+					function_text_append_u32(sub_ft, OPCODE_VARIABLE_MAP_POP);
 					function_text_append_u32(sub_ft, OPCODE_PUSH_NULL);
 					function_text_append_u32(sub_ft, OPCODE_RETURN);
 					break;
@@ -782,25 +811,112 @@ static void node_compile(function_text_t *ft, node_t *node)
 				break;
 
 				case EXPRESSION_KIND_SUB:
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_tail);
+				function_text_append_u32(ft, OPCODE_SUB);
+				break;
+
 				case EXPRESSION_KIND_MUL:
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_tail);
+				function_text_append_u32(ft, OPCODE_MUL);
+				break;
+
 				case EXPRESSION_KIND_DIV:
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_tail);
+				function_text_append_u32(ft, OPCODE_DIV);
+				break;
+
 				case EXPRESSION_KIND_MOD:
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_tail);
+				function_text_append_u32(ft, OPCODE_MOD);
+				break;
+
 				case EXPRESSION_KIND_POW:
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_tail);
+				function_text_append_u32(ft, OPCODE_POW);
+				break;
+
 				case EXPRESSION_KIND_LSS:
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_tail);
+				function_text_append_u32(ft, OPCODE_LSS);
+				break;
+
 				case EXPRESSION_KIND_GRT:
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_tail);
+				function_text_append_u32(ft, OPCODE_GRT);
+				break;
+
 				case EXPRESSION_KIND_LEQ:
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_tail);
+				function_text_append_u32(ft, OPCODE_LEQ);
+				break;
+
 				case EXPRESSION_KIND_GEQ:
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_tail);
+				function_text_append_u32(ft, OPCODE_GEQ);
+				break;
+
 				case EXPRESSION_KIND_EQL:
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_tail);
+				function_text_append_u32(ft, OPCODE_EQL);
+				break;
+
 				case EXPRESSION_KIND_NQL:
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_tail);
+				function_text_append_u32(ft, OPCODE_NQL);
+				break;
+
 				case EXPRESSION_KIND_AND:
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_tail);
+				function_text_append_u32(ft, OPCODE_AND);
+				break;
+
 				case EXPRESSION_KIND_OR:
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_tail);
+				function_text_append_u32(ft, OPCODE_OR);
+				break;
+
 				case EXPRESSION_KIND_BITWISE_AND:
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_tail);
+				function_text_append_u32(ft, OPCODE_BITWISE_AND);
+				break;
+
 				case EXPRESSION_KIND_BITWISE_OR:
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_tail);
+				function_text_append_u32(ft, OPCODE_BITWISE_OR);
+				break;
+
 				case EXPRESSION_KIND_BITWISE_XOR:
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_tail);
+				function_text_append_u32(ft, OPCODE_BITWISE_XOR);
+				break;
+
 				case EXPRESSION_KIND_SHL:
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_tail);
+				function_text_append_u32(ft, OPCODE_SHL);
+				break;
+
 				case EXPRESSION_KIND_SHR:
-				#warning "Implement binary operation compilation other than ADD"
-				assert(0);
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(ft, ((node_expr_operation_t*) node)->operand_tail);
+				function_text_append_u32(ft, OPCODE_SHR);
+				break;
 
 				case EXPRESSION_KIND_PRE_INC:
 				case EXPRESSION_KIND_PRE_DEC:

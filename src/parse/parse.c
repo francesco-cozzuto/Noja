@@ -1304,7 +1304,7 @@ node_t *parse_or_expression(pool_t *pool, token_iterator_t *iterator, const char
 	token_t token = token_iterator_current(iterator);
 
 	switch(token.kind) {
-		case TOKEN_KIND_OPERATOR_AND:
+		case TOKEN_KIND_OPERATOR_OR:
 		{
 			if(!token_iterator_next(iterator)) {
 

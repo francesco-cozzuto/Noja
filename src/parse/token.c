@@ -205,7 +205,7 @@ int __token_iterator_next(token_iterator_t *iterator, char *file, int line, cons
 		for(int i = 0; i < token.length; i++)
 			printf("%c", source[token.offset + i]);
 		printf("] [%d, %d] from %s:%d in %s\n", token.offset, token.length, file, line, func);
-		*/
+		*/	
 	}
 	
 	return 1;
@@ -232,8 +232,9 @@ int __token_iterator_prev(token_iterator_t *iterator, char *file, int line, cons
 	(void) file;
 	(void) line;
 	(void) func;
-	/*
+/*	
 	token_t token = iterator->chunk->tokens[iterator->relative_offset];
+
 	printf(">> Back at [");
 		for(int i = 0; i < token.length; i++)
 			printf("%c", source[token.offset + i]);

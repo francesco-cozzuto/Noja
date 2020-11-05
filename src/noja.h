@@ -150,6 +150,25 @@ typedef struct {
 	object_t *(*on_sub)(state_t *state, object_t *self, object_t *right);
 	object_t *(*on_mul)(state_t *state, object_t *self, object_t *right);
 	object_t *(*on_div)(state_t *state, object_t *self, object_t *right);
+	object_t *(*on_mod)(state_t *state, object_t *self, object_t *right);
+	object_t *(*on_pow)(state_t *state, object_t *self, object_t *right);
+	object_t *(*on_lss)(state_t *state, object_t *self, object_t *right);
+	object_t *(*on_grt)(state_t *state, object_t *self, object_t *right);
+	object_t *(*on_leq)(state_t *state, object_t *self, object_t *right);
+	object_t *(*on_geq)(state_t *state, object_t *self, object_t *right);
+
+	object_t *(*on_eql)(state_t *state, object_t *self, object_t *right);
+	object_t *(*on_nql)(state_t *state, object_t *self, object_t *right);
+	
+	object_t *(*on_and)(state_t *state, object_t *self, object_t *right);
+	object_t *(*on_or)(state_t *state, object_t *self, object_t *right);
+
+	object_t *(*on_bitwise_and)(state_t *state, object_t *self, object_t *right);
+	object_t *(*on_bitwise_or)(state_t *state, object_t *self, object_t *right);
+	object_t *(*on_bitwise_xor)(state_t *state, object_t *self, object_t *right);
+
+	object_t *(*on_shl)(state_t *state, object_t *self, object_t *right);
+	object_t *(*on_shr)(state_t *state, object_t *self, object_t *right);
 
 	uint8_t (*on_test)(state_t *state, object_t *self);
 
@@ -250,7 +269,32 @@ object_t *object_from_cfunction(state_t *state, object_t *(*routine)(state_t *st
 object_t *object_from_executable_and_offset(state_t *state, executable_t *executable, uint32_t offset);
 object_t *object_istanciate(state_t *state, object_t *type);
 void 	  object_print(state_t *state, object_t *self, FILE *fp);
+
 object_t *object_add(state_t *state, object_t *self, object_t *right);
+object_t *object_sub(state_t *state, object_t *self, object_t *right);
+object_t *object_mul(state_t *state, object_t *self, object_t *right);
+object_t *object_div(state_t *state, object_t *self, object_t *right);
+object_t *object_mod(state_t *state, object_t *self, object_t *right);
+object_t *object_pow(state_t *state, object_t *self, object_t *right);
+
+object_t *object_lss(state_t *state, object_t *self, object_t *right);
+object_t *object_grt(state_t *state, object_t *self, object_t *right);
+object_t *object_leq(state_t *state, object_t *self, object_t *right);
+object_t *object_geq(state_t *state, object_t *self, object_t *right);
+
+object_t *object_eql(state_t *state, object_t *self, object_t *right);
+object_t *object_nql(state_t *state, object_t *self, object_t *right);
+
+object_t *object_and(state_t *state, object_t *self, object_t *right);
+object_t *object_or (state_t *state, object_t *self, object_t *right);
+
+object_t *object_bitwise_and(state_t *state, object_t *self, object_t *right);
+object_t *object_bitwise_or (state_t *state, object_t *self, object_t *right);
+object_t *object_bitwise_xor(state_t *state, object_t *self, object_t *right);
+
+object_t *object_shl(state_t *state, object_t *self, object_t *right);
+object_t *object_shr(state_t *state, object_t *self, object_t *right);
+
 uint8_t   object_test(state_t *state, object_t *object);
 object_t *object_select(state_t *state, object_t *self, object_t *key);
 int 	  object_insert(state_t *state, object_t *self, object_t *key, object_t *item);

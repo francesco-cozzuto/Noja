@@ -198,9 +198,262 @@ object_t *object_add(state_t *state, object_t *self, object_t *right)
 	if(t->on_add == 0) {
 
 		// #ERROR
-		// Undefined ADD operation
+		// Undefined operation
 		return 0;
 	}
 
 	return t->on_add(state, self, right);
+}
+
+object_t *object_sub(state_t *state, object_t *self, object_t *right)
+{
+	object_type_t *t = (object_type_t*) self->type;
+
+	if(t->on_sub == 0) {
+
+		// #ERROR
+		// Undefined operation
+		return 0;
+	}
+
+	return t->on_sub(state, self, right);
+}
+
+object_t *object_mul(state_t *state, object_t *self, object_t *right)
+{
+	object_type_t *t = (object_type_t*) self->type;
+
+	if(t->on_mul == 0) {
+
+		// #ERROR
+		// Undefined operation
+		return 0;
+	}
+
+	return t->on_mul(state, self, right);
+}
+
+object_t *object_div(state_t *state, object_t *self, object_t *right)
+{
+	object_type_t *t = (object_type_t*) self->type;
+
+	if(t->on_div == 0) {
+
+		// #ERROR
+		// Undefined operation
+		return 0;
+	}
+
+	return t->on_div(state, self, right);
+}
+
+object_t *object_mod(state_t *state, object_t *self, object_t *right)
+{
+	object_type_t *t = (object_type_t*) self->type;
+
+	if(t->on_mod == 0) {
+
+		// #ERROR
+		// Undefined operation
+		return 0;
+	}
+
+	return t->on_mod(state, self, right);
+}
+
+object_t *object_pow(state_t *state, object_t *self, object_t *right)
+{
+	object_type_t *t = (object_type_t*) self->type;
+
+	if(t->on_pow == 0) {
+
+		// #ERROR
+		// Undefined operation
+		return 0;
+	}
+
+	return t->on_pow(state, self, right);
+}
+
+
+object_t *object_lss(state_t *state, object_t *self, object_t *right)
+{
+	object_type_t *t = (object_type_t*) self->type;
+
+	if(t->on_lss == 0) {
+
+		// #ERROR
+		// Undefined operation
+		return 0;
+	}
+
+	return t->on_lss(state, self, right);
+}
+
+object_t *object_grt(state_t *state, object_t *self, object_t *right)
+{
+	object_type_t *t = (object_type_t*) self->type;
+
+	if(t->on_grt == 0) {
+
+		// #ERROR
+		// Undefined operation
+		return 0;
+	}
+
+	return t->on_grt(state, self, right);
+}
+
+object_t *object_leq(state_t *state, object_t *self, object_t *right)
+{
+	object_type_t *t = (object_type_t*) self->type;
+
+	if(t->on_leq == 0) {
+
+		// #ERROR
+		// Undefined operation
+		return 0;
+	}
+
+	return t->on_leq(state, self, right);
+}
+
+object_t *object_geq(state_t *state, object_t *self, object_t *right)
+{
+	object_type_t *t = (object_type_t*) self->type;
+
+	if(t->on_geq == 0) {
+
+		// #ERROR
+		// Undefined operation
+		return 0;
+	}
+
+	return t->on_geq(state, self, right);
+}
+
+object_t *object_eql(state_t *state, object_t *self, object_t *right)
+{
+	object_type_t *t = (object_type_t*) self->type;
+
+	if(t->on_eql == 0) {
+
+		// #ERROR
+		// Undefined operation
+		return 0;
+	}
+
+	return t->on_eql(state, self, right);
+}
+
+object_t *object_nql(state_t *state, object_t *self, object_t *right)
+{
+	object_type_t *t = (object_type_t*) self->type;
+
+	if(t->on_nql == 0) {
+
+		// #ERROR
+		// Undefined operation
+		return 0;
+	}
+
+	return t->on_nql(state, self, right);
+}
+
+object_t *object_and(state_t *state, object_t *self, object_t *right)
+{
+	object_type_t *t = (object_type_t*) self->type;
+
+	if(t->on_and == 0) {
+
+		// #ERROR
+		// Undefined operation
+		return 0;
+	}
+
+	return t->on_and(state, self, right);
+}
+
+object_t *object_or(state_t *state, object_t *self, object_t *right)
+{
+	object_type_t *t = (object_type_t*) self->type;
+
+	if(t->on_or == 0) {
+
+		// #ERROR
+		// Undefined operation
+		return 0;
+	}
+
+	return t->on_or(state, self, right);
+}
+
+object_t *object_bitwise_and(state_t *state, object_t *self, object_t *right)
+{
+	object_type_t *t = (object_type_t*) self->type;
+
+	if(t->on_bitwise_and == 0) {
+
+		// #ERROR
+		// Undefined operation
+		return 0;
+	}
+
+	return t->on_bitwise_and(state, self, right);
+}
+
+object_t *object_bitwise_or(state_t *state, object_t *self, object_t *right)
+{
+	object_type_t *t = (object_type_t*) self->type;
+
+	if(t->on_bitwise_or == 0) {
+
+		// #ERROR
+		// Undefined operation
+		return 0;
+	}
+
+	return t->on_bitwise_or(state, self, right);
+}
+
+object_t *object_bitwise_xor(state_t *state, object_t *self, object_t *right)
+{
+	object_type_t *t = (object_type_t*) self->type;
+
+	if(t->on_bitwise_xor == 0) {
+
+		// #ERROR
+		// Undefined operation
+		return 0;
+	}
+
+	return t->on_bitwise_xor(state, self, right);
+}
+
+object_t *object_shl(state_t *state, object_t *self, object_t *right)
+{
+	object_type_t *t = (object_type_t*) self->type;
+
+	if(t->on_shl == 0) {
+
+		// #ERROR
+		// Undefined operation
+		return 0;
+	}
+
+	return t->on_shl(state, self, right);
+}
+
+object_t *object_shr(state_t *state, object_t *self, object_t *right)
+{
+	object_type_t *t = (object_type_t*) self->type;
+
+	if(t->on_shr == 0) {
+
+		// #ERROR
+		// Undefined operation
+		return 0;
+	}
+
+	return t->on_shr(state, self, right);
 }

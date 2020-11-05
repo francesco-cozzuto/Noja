@@ -1,8 +1,31 @@
 
+#include <math.h>
 #include "../noja.h"
 
 static void int_print(state_t *state, object_t *self, FILE *fp);
+
 static object_t *int_add(state_t *state, object_t *self, object_t *right);
+
+static object_t *int_sub(state_t *state, object_t *self, object_t *right);
+static object_t *int_mul(state_t *state, object_t *self, object_t *right);
+static object_t *int_div(state_t *state, object_t *self, object_t *right);
+static object_t *int_mod(state_t *state, object_t *self, object_t *right);
+static object_t *int_pow(state_t *state, object_t *self, object_t *right);
+static object_t *int_lss(state_t *state, object_t *self, object_t *right);
+static object_t *int_grt(state_t *state, object_t *self, object_t *right);
+static object_t *int_leq(state_t *state, object_t *self, object_t *right);
+static object_t *int_geq(state_t *state, object_t *self, object_t *right);
+static object_t *int_eql(state_t *state, object_t *self, object_t *right);
+static object_t *int_nql(state_t *state, object_t *self, object_t *right);
+static object_t *int_and(state_t *state, object_t *self, object_t *right);
+static object_t *int_or(state_t *state, object_t *self, object_t *right);
+static object_t *int_bitwise_and(state_t *state, object_t *self, object_t *right);
+static object_t *int_bitwise_or(state_t *state, object_t *self, object_t *right);
+static object_t *int_bitwise_xor(state_t *state, object_t *self, object_t *right);
+static object_t *int_shl(state_t *state, object_t *self, object_t *right);
+static object_t *int_shr(state_t *state, object_t *self, object_t *right);
+
+
 static uint8_t int_test(state_t *state, object_t *self);
 
 object_type_t int_type_object = {
@@ -19,9 +42,24 @@ object_type_t int_type_object = {
 	.on_insert_attribute = 0,
 	.on_print = int_print,
 	.on_add = int_add,
-	.on_sub = 0,
-	.on_mul = 0,
-	.on_div = 0,
+	.on_sub = int_sub,
+	.on_mul = int_mul,
+	.on_div = int_div,
+	.on_mod = int_mod,
+	.on_pow = int_pow,
+	.on_lss = int_lss,
+	.on_grt = int_grt,
+	.on_leq = int_leq,
+	.on_geq = int_geq,
+	.on_eql = int_eql,
+	.on_nql = int_nql,
+	.on_and = int_and,
+	.on_or  = int_or,
+	.on_bitwise_and = int_bitwise_and,
+	.on_bitwise_or  = int_bitwise_or,
+	.on_bitwise_xor = int_bitwise_xor,
+	.on_shl = int_shl,
+	.on_shr = int_shr,
 	.on_test = int_test,
 };
 
@@ -48,6 +86,336 @@ static object_t *int_add(state_t *state, object_t *self, object_t *right)
 	object_int_t *r = (object_int_t*) right;
 
 	return object_from_cint(state, x->value + r->value);
+}
+
+static object_t *int_sub(state_t *state, object_t *self, object_t *right)
+{
+	(void) state;
+
+	object_int_t *x = (object_int_t*) self;
+
+	if(right->type != (object_t*) &int_type_object) {
+
+		// #ERROR
+		// Unexpected type in sub operation
+		return 0;
+	}
+
+	object_int_t *r = (object_int_t*) right;
+
+	return object_from_cint(state, x->value - r->value);
+}
+
+static object_t *int_mul(state_t *state, object_t *self, object_t *right)
+{
+	(void) state;
+
+	object_int_t *x = (object_int_t*) self;
+
+	if(right->type != (object_t*) &int_type_object) {
+
+		// #ERROR
+		// Unexpected type in mul operation
+		return 0;
+	}
+
+	object_int_t *r = (object_int_t*) right;
+
+	return object_from_cint(state, x->value * r->value);
+}
+
+static object_t *int_div(state_t *state, object_t *self, object_t *right)
+{
+	(void) state;
+
+	object_int_t *x = (object_int_t*) self;
+
+	if(right->type != (object_t*) &int_type_object) {
+
+		// #ERROR
+		// Unexpected type in div operation
+		return 0;
+	}
+
+	object_int_t *r = (object_int_t*) right;
+
+	if(r->value == 0)
+
+		// #ERROR
+		// Division by zero
+		return 0;
+
+	return object_from_cint(state, x->value / r->value);
+}
+
+static object_t *int_mod(state_t *state, object_t *self, object_t *right)
+{
+	(void) state;
+
+	object_int_t *x = (object_int_t*) self;
+
+	if(right->type != (object_t*) &int_type_object) {
+
+		// #ERROR
+		// Unexpected type in mod operation
+		return 0;
+	}
+
+	object_int_t *r = (object_int_t*) right;
+
+	return object_from_cint(state, x->value % r->value);
+}
+
+static object_t *int_pow(state_t *state, object_t *self, object_t *right)
+{
+	(void) state;
+
+	object_int_t *x = (object_int_t*) self;
+
+	if(right->type != (object_t*) &int_type_object) {
+
+		// #ERROR
+		// Unexpected type in pow operation
+		return 0;
+	}
+
+	object_int_t *r = (object_int_t*) right;
+
+	return object_from_cint(state, pow(x->value, r->value));
+}
+
+static object_t *int_lss(state_t *state, object_t *self, object_t *right)
+{
+	(void) state;
+
+	object_int_t *x = (object_int_t*) self;
+
+	if(right->type != (object_t*) &int_type_object) {
+
+		// #ERROR
+		// Unexpected type
+		return 0;
+	}
+
+	object_int_t *r = (object_int_t*) right;
+
+	return object_from_cint(state, x->value < r->value);
+}
+
+static object_t *int_grt(state_t *state, object_t *self, object_t *right)
+{
+	(void) state;
+
+	object_int_t *x = (object_int_t*) self;
+
+	if(right->type != (object_t*) &int_type_object) {
+
+		// #ERROR
+		// Unexpected type
+		return 0;
+	}
+
+	object_int_t *r = (object_int_t*) right;
+
+	return object_from_cint(state, x->value > r->value);
+}
+
+static object_t *int_leq(state_t *state, object_t *self, object_t *right)
+{
+	(void) state;
+
+	object_int_t *x = (object_int_t*) self;
+
+	if(right->type != (object_t*) &int_type_object) {
+
+		// #ERROR
+		// Unexpected type
+		return 0;
+	}
+
+	object_int_t *r = (object_int_t*) right;
+
+	return object_from_cint(state, x->value <= r->value);
+}
+
+static object_t *int_geq(state_t *state, object_t *self, object_t *right)
+{
+	(void) state;
+
+	object_int_t *x = (object_int_t*) self;
+
+	if(right->type != (object_t*) &int_type_object) {
+
+		// #ERROR
+		// Unexpected type
+		return 0;
+	}
+
+	object_int_t *r = (object_int_t*) right;
+
+	return object_from_cint(state, x->value >= r->value);
+}
+
+static object_t *int_eql(state_t *state, object_t *self, object_t *right)
+{
+	(void) state;
+
+	object_int_t *x = (object_int_t*) self;
+
+	if(right->type != (object_t*) &int_type_object) {
+
+		// #ERROR
+		// Unexpected type
+		return 0;
+	}
+
+	object_int_t *r = (object_int_t*) right;
+
+	return object_from_cint(state, x->value == r->value);
+}
+
+static object_t *int_nql(state_t *state, object_t *self, object_t *right)
+{
+	(void) state;
+
+	object_int_t *x = (object_int_t*) self;
+
+	if(right->type != (object_t*) &int_type_object) {
+
+		// #ERROR
+		// Unexpected type
+		return 0;
+	}
+
+	object_int_t *r = (object_int_t*) right;
+
+	return object_from_cint(state, x->value != r->value);
+}
+
+static object_t *int_and(state_t *state, object_t *self, object_t *right)
+{
+	(void) state;
+
+	object_int_t *x = (object_int_t*) self;
+
+	if(right->type != (object_t*) &int_type_object) {
+
+		// #ERROR
+		// Unexpected type
+		return 0;
+	}
+
+	object_int_t *r = (object_int_t*) right;
+
+	return object_from_cint(state, x->value && r->value);
+}
+
+static object_t *int_or(state_t *state, object_t *self, object_t *right)
+{
+	(void) state;
+
+	object_int_t *x = (object_int_t*) self;
+
+	if(right->type != (object_t*) &int_type_object) {
+
+		// #ERROR
+		// Unexpected type
+		return 0;
+	}
+
+	object_int_t *r = (object_int_t*) right;
+
+	return object_from_cint(state, x->value || r->value);
+}
+
+static object_t *int_bitwise_and(state_t *state, object_t *self, object_t *right)
+{
+	(void) state;
+
+	object_int_t *x = (object_int_t*) self;
+
+	if(right->type != (object_t*) &int_type_object) {
+
+		// #ERROR
+		// Unexpected type
+		return 0;
+	}
+
+	object_int_t *r = (object_int_t*) right;
+
+	return object_from_cint(state, x->value & r->value);
+}
+
+static object_t *int_bitwise_or(state_t *state, object_t *self, object_t *right)
+{
+	(void) state;
+
+	object_int_t *x = (object_int_t*) self;
+
+	if(right->type != (object_t*) &int_type_object) {
+
+		// #ERROR
+		// Unexpected type
+		return 0;
+	}
+
+	object_int_t *r = (object_int_t*) right;
+
+	return object_from_cint(state, x->value | r->value);
+}
+
+static object_t *int_bitwise_xor(state_t *state, object_t *self, object_t *right)
+{
+	(void) state;
+
+	object_int_t *x = (object_int_t*) self;
+
+	if(right->type != (object_t*) &int_type_object) {
+
+		// #ERROR
+		// Unexpected type
+		return 0;
+	}
+
+	object_int_t *r = (object_int_t*) right;
+
+	return object_from_cint(state, x->value ^ r->value);
+}
+
+static object_t *int_shl(state_t *state, object_t *self, object_t *right)
+{
+	(void) state;
+
+	object_int_t *x = (object_int_t*) self;
+
+	if(right->type != (object_t*) &int_type_object) {
+
+		// #ERROR
+		// Unexpected type
+		return 0;
+	}
+
+	object_int_t *r = (object_int_t*) right;
+
+	return object_from_cint(state, x->value << r->value);
+}
+
+static object_t *int_shr(state_t *state, object_t *self, object_t *right)
+{
+	(void) state;
+
+	object_int_t *x = (object_int_t*) self;
+
+	if(right->type != (object_t*) &int_type_object) {
+
+		// #ERROR
+		// Unexpected type
+		return 0;
+	}
+
+	object_int_t *r = (object_int_t*) right;
+
+	return object_from_cint(state, x->value >> r->value);
 }
 
 static uint8_t int_test(state_t *state, object_t *self)
