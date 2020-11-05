@@ -538,7 +538,47 @@ node_t *parse_postfix_expression(pool_t *pool, token_iterator_t *iterator, char 
 		#warning "Parse postfix expressions (array subscriptions, function calls and dot selections)"
 
 		switch(token.kind) {
-			case '[': assert(0); break;
+			
+			case '[': 
+			{
+				if(!token_iterator_next(iterator)) {
+
+					FAILED;
+					
+					// #ERROR
+					// Unexpected end of source while parsing index selection
+					return 0;
+				}
+
+				node_t *index = parse_expression(pool, iterator, source);
+
+				if(index == 0)
+					return 0;
+
+				if(!token_iterator_next(iterator)) {
+
+					FAILED;
+					
+					// #ERROR
+					// Unexpected end of source after index selection expression. Was expecred []]
+					return 0;
+				}
+
+				token = token_iterator_current(iterator);
+
+				if(token.kind != ']') {
+
+					FAILED;
+
+					// #ERROR
+					// Unexpected token. Was expected []] after index selection expression
+					return 0;
+				}
+
+				node = node_index_selection_create(pool, node->offset, token.offset + token.length - node->offset, node, index);
+				break;
+			}
+
 			case '(': assert(0); break;
 			case '.': assert(0); break;
 			case TOKEN_KIND_OPERATOR_INC: node = node_post_inc_create(pool, node->offset, token.offset + token.length - node->offset, node); break;

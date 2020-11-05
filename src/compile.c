@@ -14,21 +14,25 @@ executable_t *compile(char *source, int length, char *error_buffer, int error_bu
 		// Failed to tokenize
 		return 0;
 
+	printf("tokenized\n");
+
 	if(!parse(&tokens, source, &pool, &node))
 
 		// Failed to parse
 		return 0;
 
+	printf("parsed\n");
 
 	if(!check(node, source, error_buffer, error_buffer_size))
 
 		// There was a semantic error!
 		return 0;
 
+	printf("checked\n");
 
 	executable_t *executable = generate(node);
 
-	pool_destroy(pool);;
+	pool_destroy(pool);
 	token_array_deinit(&tokens);
 
 	return executable;

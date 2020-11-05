@@ -79,7 +79,7 @@ object_t *array_cselect(state_t *state, object_t *self, int64_t index)
 
 	object_array_t *a = (object_array_t*) self;
 
-	if(index < 0 || index > a->item_used)
+	if(index < 0 || index > a->item_used-1)
 		return 0;
 
 	return a->items[index];

@@ -279,6 +279,7 @@ static int node_check(checking_context_t *ctx, node_t *node)
 				case EXPRESSION_KIND_BITWISE_XOR:
 				case EXPRESSION_KIND_SHL:
 				case EXPRESSION_KIND_SHR:
+				case EXPRESSION_KIND_INDEX_SELECTION:
 				{
 					node_expr_operation_t *x = (node_expr_operation_t*) node;
 
@@ -340,6 +341,7 @@ static int node_check(checking_context_t *ctx, node_t *node)
 					node_expr_t *l = (node_expr_t*) x->operand_head;
 
 					#warning "Handle the case where the left node kind of an assignment is a dot selection or an array subscription"
+					
 					if(l->kind != EXPRESSION_KIND_IDENTIFIER) {
 						FAILED;
 

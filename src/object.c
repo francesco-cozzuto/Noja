@@ -52,8 +52,9 @@ object_t *object_from_executable_and_offset(state_t *state, executable_t *execut
 
 object_t *object_select(state_t *state, object_t *self, object_t *key)
 {
-	object_type_t *type = (object_type_t*) self->type;
 
+	object_type_t *type = (object_type_t*) self->type;
+	
 	if(type->on_select == 0)
 		return 0;
 

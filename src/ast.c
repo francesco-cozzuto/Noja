@@ -218,6 +218,11 @@ node_t *node_assign_shr_create(pool_t *pool, int offset, int length, node_t *lef
 	return node_binary_operation_create(pool, offset, length, EXPRESSION_KIND_ASSIGN_SHR, left_operand, right_operand);
 }
 
+node_t *node_index_selection_create(pool_t *pool, int offset, int length, node_t *left_operand, node_t *right_operand)
+{
+	return node_binary_operation_create(pool, offset, length, EXPRESSION_KIND_INDEX_SELECTION, left_operand, right_operand);
+}
+
 node_t *node_int_create(pool_t *pool, int offset, int length, int64_t value)
 {
 	node_expr_int_t *node = pool_request(pool, sizeof(node_expr_int_t));
