@@ -70,6 +70,9 @@ typedef struct {
 	object_t *(*on_select)(state_t *state, object_t *self, object_t *key);
 	int       (*on_insert)(state_t *state, object_t *self, object_t *key, object_t *value);
 
+	object_t *(*on_select_attribute)(state_t *state, object_t *self, const char *name);
+	int       (*on_insert_attribute)(state_t *state, object_t *self, const char *name, object_t *value);
+
 	void (*on_print)(state_t *state, object_t *self, FILE *fp);
 
 	object_t *(*on_add)(state_t *state, object_t *self, object_t *right);
@@ -179,6 +182,8 @@ object_t *object_add(state_t *state, object_t *self, object_t *right);
 uint8_t   object_test(state_t *state, object_t *object);
 object_t *object_select(state_t *state, object_t *self, object_t *key);
 int 	  object_insert(state_t *state, object_t *self, object_t *key, object_t *item);
+object_t *object_select_attribute(state_t *state, object_t *self, const char *name);
+int 	  object_insert_attribute(state_t *state, object_t *self, const char *name, object_t *value);
 
 
 int  state_init(state_t *state, executable_t *executable);

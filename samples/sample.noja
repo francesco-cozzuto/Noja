@@ -5,12 +5,11 @@ a;
 
 if a 2;
 
-i = 10;
+i = 0;
 
 while i {
 	
 	print(3 + 2);
-	continue;
 }
 
 (1 + 2);
@@ -30,7 +29,6 @@ print(typename_of(34));
 f = function(a, b, c) {
 		
 	print("hello");
-	f(a);
 };
 
 f(1, 2, 3);

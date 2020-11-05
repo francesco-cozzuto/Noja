@@ -553,16 +553,67 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 		}
 
 		case OPCODE_SELECT_ATTRIBUTE: 
-		fetch_string(state, 0); 
-		assert(0); 
-		#warning "Implement OPCODE_SELECT_ATTRIBUTE"
-		break;
+		{
+			char *attribute_name;
+
+			if(!fetch_string(state, &attribute_name)) {
+
+				// #ERROR
+				// Unexpected error of code or offset pointrs outside of the data segment
+				report(error_buffer, error_buffer_size, "Unexpected end of code while fetching SELECT_ATTRIBUTE's operand or it's operand points outside of the data segment");
+				return -1;
+			}
+
+			if(state->stack_item_count == 0) {
+
+				// #ERROR
+				report(error_buffer, error_buffer_size, "SELECT_ATTRIBUTE on an empty stack");
+				return -1;
+			}
+
+			object_t *selected = object_select_attribute(state, state->stack[state->stack_item_count-1], attribute_name);
+
+			if(selected == 0) {
+
+				// #ERROR
+				report(error_buffer, error_buffer_size, "Failed to select attribute");
+				return -1;
+			}
+
+			state->stack[state->stack_item_count-1] = selected;
+			break;
+		}
+
 		
 		case OPCODE_INSERT_ATTRIBUTE: 
-		fetch_string(state, 0); 
-		assert(0); 
-		#warning "Implement OPCODE_INSERT_ATTRIBUTE"
-		break;
+		{
+			char *attribute_name;
+
+			if(!fetch_string(state, &attribute_name)) {
+
+				// #ERROR
+				// Unexpected error of code or offset pointrs outside of the data segment
+				report(error_buffer, error_buffer_size, "Unexpected end of code while fetching INSERT_ATTRIBUTE's operand or it's operand points outside of the data segment");
+				return -1;
+			}
+
+			if(state->stack_item_count < 2) {
+
+				// #ERROR
+				report(error_buffer, error_buffer_size, "INSERT_ATTRIBUTE on a stack with less than 2 items");
+				return -1;
+			}
+
+			if(!object_insert_attribute(state, state->stack[state->stack_item_count-2], attribute_name, state->stack[state->stack_item_count-1])) {
+
+				// #ERROR
+				report(error_buffer, error_buffer_size, "Failed to insert attribute");
+				return -1;
+			}
+
+			state->stack_item_count--;
+			break;
+		}
 
 		case OPCODE_VARIABLE_MAP_PUSH:
 		{

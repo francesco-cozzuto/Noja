@@ -71,6 +71,49 @@ int object_insert(state_t *state, object_t *self, object_t *key, object_t *item)
 	return type->on_insert(state, self, key, item);
 }
 
+object_t *object_select_attribute(state_t *state, object_t *self, const char *name)
+{
+	object_type_t *type = (object_type_t*) self->type;
+
+	if(type->on_select_attribute) {
+
+		object_t *selected = type->on_select_attribute(state, self, name);
+	
+		if(selected != 0)
+			return selected;
+	}
+
+	if(type->methods == 0)
+		return 0;
+
+	return dict_cselect(state, type->methods, name);
+}
+
+int object_insert_attribute(state_t *state, object_t *self, const char *name, object_t *value)
+{
+	object_type_t *type = (object_type_t*) self->type;
+
+	if(type->on_insert_attribute) {
+
+		if(type->on_insert_attribute(state, self, name, value))
+			return 1;
+	}
+
+	if(type->methods == 0) {
+
+		object_t *dict = object_istanciate(state, (object_t*) &dict_type_object);
+
+		if(dict == 0)
+			return 0;
+
+		type->methods = dict;
+	}
+
+	return dict_cinsert(state, type->methods, name, value);
+}
+
+
+
 uint8_t object_test(state_t *state, object_t *object)
 {
 	object_type_t *type = (object_type_t*) object->type;
