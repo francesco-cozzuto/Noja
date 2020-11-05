@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "pool.h"
+#include "utils/pool.h"
 #include "ast.h"
 #include "token.h"
 
@@ -268,8 +268,9 @@ int tokenize(char *source, int source_length, token_array_t *e_token_array);
 int parse(token_array_t *array, char *source, pool_t **e_pool, node_t **e_node);
 int check(node_t *node, char *source, char *error_buffer, int error_buffer_size);
 executable_t *generate(node_t *node);
-executable_t *compile(char *source, int length, char *error_buffer, int error_buffer_size);
-executable_t *compile_from_file(char *path, char *error_buffer, int error_buffer_size);
+
+int run_text(const char *text, int length, char *error_buffer, int error_buffer_size);
+int run_file(const char *path, char *error_buffer, int error_buffer_size);
 
 int get_lineno_of_offset(const char *text, int offset);
 void report(char *error_buffer, int error_buffer_size, const char *format, ...);

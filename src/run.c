@@ -4,6 +4,74 @@
 #include <string.h>
 #include "noja.h"
 
+int run_text(const char *text, int length, char *error_buffer, int error_buffer_size)
+{
+	executable_t *executable;
+	token_array_t tokens;
+	state_t state;
+	pool_t *pool;
+	node_t *node;
+
+
+	if(!tokenize(text, length, &tokens)) 
+
+		return 0;
+
+
+	if(!parse(&tokens, text, &pool, &node)) {
+
+		token_array_deinit(&tokens);
+		return 0;
+	}
+
+	token_array_deinit(&tokens);
+
+
+	if(!check(node, text, error_buffer, error_buffer_size)) {
+
+		pool_destroy(pool);
+		return 0;
+	}
+
+	executable = generate(node);
+
+	assert(executable);
+
+
+	if(!state_init(&state, executable)) {
+
+		pool_destroy(pool);
+		return 0;
+	}
+
+	int result;
+
+	while((result = step(&state, error_buffer, error_buffer_size)) > 0);
+
+	state_deinit(&state);
+	free(executable);
+	pool_destroy(pool);
+
+	return result >= 0;	
+}
+
+int run_file(const char *path, char *error_buffer, int error_buffer_size)
+{
+	char *text;
+	int length;
+
+	if(!load_text(path, &text, &length))
+
+		// Failed to load file contents
+		return 0;
+
+	int result = run_text(text, length, error_buffer, error_buffer_size);
+
+	free(text);
+
+	return result;
+}
+
 int gc_requires_collection(state_t *state)
 {
 	return state->overflow_allocations != 0;
