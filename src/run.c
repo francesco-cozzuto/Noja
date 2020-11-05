@@ -1,6 +1,7 @@
 
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 #include "noja.h"
 #include "bytecode.h"
 
@@ -310,10 +311,40 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 		}
 
 		case OPCODE_PUSH_STRING:
-		fetch_string(state, 0);
-		assert(0);
-		#warning "Implement OPCODE_PUSH_STRING"
-		break;
+		{
+
+			if(state->stack_item_count == state->stack_item_count_max) {
+
+				// #ERROR
+				// PUSH_STRING on a full stack
+				report(error_buffer, error_buffer_size, "PUSH_STRING while out of stack");
+				return -1;
+			}
+
+			char *value;
+
+			if(!fetch_string(state, &value)) {
+
+				// #ERROR
+				// Unexpected end of code or PUSH_STRING's operand points outsize of the data segment
+				report(error_buffer, error_buffer_size, "Unexpected end of code or PUSH_STRING's operand points outsize of the data segment");
+				return -1;
+			}
+
+			object_t *object = object_from_cstring_ref(state, value, strlen(value));
+
+			if(object == 0) {
+
+				// #ERROR
+				// Failed to create object
+				report(error_buffer, error_buffer_size, "Failed to create PUSH_STRING's value");
+				return -1;
+			}
+
+			state->stack[state->stack_item_count++] = object;
+
+			break;
+		}
 		
 		case OPCODE_PUSH_FUNCTION:
 		{
