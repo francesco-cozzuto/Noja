@@ -625,6 +625,21 @@ static void node_compile(function_text_t *ft, node_t *node)
 					break;	
 				}
 
+				case EXPRESSION_KIND_DOT_SELECTION:
+				{
+					node_expr_operation_t *x = (node_expr_operation_t*) node;
+
+					node_expr_t *l, *r;
+
+					l = (node_expr_t*) x->operand_head;
+					r = (node_expr_t*) x->operand_tail;
+
+					node_compile(ft, (node_t*) l);
+					function_text_append_u32(ft, OPCODE_SELECT_ATTRIBUTE);
+					function_text_append_string(ft, ((node_expr_identifier_t*) r)->content);
+					break;	
+				}
+
 				case EXPRESSION_KIND_IDENTIFIER:
 				function_text_append_u32(ft, OPCODE_PUSH_VARIABLE);
 				function_text_append_string(ft, ((node_expr_identifier_t*) node)->content);

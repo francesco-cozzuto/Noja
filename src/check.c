@@ -279,6 +279,7 @@ static int node_check(checking_context_t *ctx, node_t *node)
 				case EXPRESSION_KIND_BITWISE_XOR:
 				case EXPRESSION_KIND_SHL:
 				case EXPRESSION_KIND_SHR:
+				case EXPRESSION_KIND_DOT_SELECTION:
 				case EXPRESSION_KIND_INDEX_SELECTION:
 				{
 					node_expr_operation_t *x = (node_expr_operation_t*) node;
