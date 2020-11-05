@@ -53,7 +53,7 @@ int inspect(state_t *state)
 
 		} else if(!strcmp(argv[0], "pc")) {
 
-			fprintf(stdout, "The current program counter is %d\n", state->program_counters[state->program_counters_depth-1]);
+			fprintf(stdout, "The current program counter is %d\n", state->program_counters[state->call_depth-1]);
 
 		} else if(!strcmp(argv[0], "continue")) {
 

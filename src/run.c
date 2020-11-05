@@ -38,8 +38,6 @@ int state_init(state_t *state, executable_t *executable)
 		return 0;
 	}
 
-	state->executable = executable;
-
 	state->heap_size = 4096;
 	state->heap_used = 0;
 	state->overflow_allocations = 0;
@@ -49,12 +47,15 @@ int state_init(state_t *state, executable_t *executable)
 
 	state->continue_destinations_depth = 0;
 	state->break_destinations_depth = 0;
-	state->program_counters_depth = 1;
+	state->executable_stack[0] = executable;
 	state->program_counters[0] = 0;
+	state->call_depth = 1;
 
 	state->variable_maps[0] = object_istanciate(state, (object_t*) &dict_type_object);
 	state->variable_maps_count = 1;
 	state->variable_maps_count_max = 128;
+
+	state->argc = -1;
 
 	assert(state->variable_maps[0]);
 
@@ -75,59 +76,59 @@ static int stack_is_full(state_t *state)
 
 static int fetch_u32(state_t *state, uint32_t *value)
 {
-	if(state->program_counters[state->program_counters_depth-1] + sizeof(uint32_t) > state->executable->code_length)
+	if(state->program_counters[state->call_depth-1] + sizeof(uint32_t) > state->executable_stack[state->call_depth-1]->code_length)
 		return 0;
 
 	if(value)
-		*value = *(uint32_t*) (state->executable->code + state->program_counters[state->program_counters_depth-1]);
+		*value = *(uint32_t*) (state->executable_stack[state->call_depth-1]->code + state->program_counters[state->call_depth-1]);
 
-	state->program_counters[state->program_counters_depth-1] += sizeof(uint32_t);
+	state->program_counters[state->call_depth-1] += sizeof(uint32_t);
 
 	return 1;
 }
 
 static int fetch_i64(state_t *state, int64_t *value)
 {
-	if(state->program_counters[state->program_counters_depth-1] + sizeof(int64_t) > state->executable->code_length)
+	if(state->program_counters[state->call_depth-1] + sizeof(int64_t) > state->executable_stack[state->call_depth-1]->code_length)
 		return 0;
 
 	if(value)
-		*value = *(int64_t*) (state->executable->code + state->program_counters[state->program_counters_depth-1]);
+		*value = *(int64_t*) (state->executable_stack[state->call_depth-1]->code + state->program_counters[state->call_depth-1]);
 
-	state->program_counters[state->program_counters_depth-1] += sizeof(int64_t);
+	state->program_counters[state->call_depth-1] += sizeof(int64_t);
 
 	return 1;
 }
 
 static int fetch_f64(state_t *state, double *value)
 {
-	if(state->program_counters[state->program_counters_depth-1] + sizeof(double) > state->executable->code_length)
+	if(state->program_counters[state->call_depth-1] + sizeof(double) > state->executable_stack[state->call_depth-1]->code_length)
 		return 0;
 
 	if(value)
-		*value = *(double*) (state->executable->code + state->program_counters[state->program_counters_depth-1]);
+		*value = *(double*) (state->executable_stack[state->call_depth-1]->code + state->program_counters[state->call_depth-1]);
 
-	state->program_counters[state->program_counters_depth-1] += sizeof(double);
+	state->program_counters[state->call_depth-1] += sizeof(double);
 
 	return 1;
 }
 
 static int fetch_string(state_t *state, char **value)
 {
-	if(state->program_counters[state->program_counters_depth-1] + sizeof(uint32_t) > state->executable->code_length)
+	if(state->program_counters[state->call_depth-1] + sizeof(uint32_t) > state->executable_stack[state->call_depth-1]->code_length)
 		
 		return 0;
 
-	uint32_t offset = *(uint32_t*) (state->executable->code + state->program_counters[state->program_counters_depth-1]);
+	uint32_t offset = *(uint32_t*) (state->executable_stack[state->call_depth-1]->code + state->program_counters[state->call_depth-1]);
 
-	if(offset >= state->executable->data_length)
+	if(offset >= state->executable_stack[state->call_depth-1]->data_length)
 
 		return 0;
 
 	if(value)
-		*value = state->executable->data + offset;
+		*value = state->executable_stack[state->call_depth-1]->data + offset;
 
-	state->program_counters[state->program_counters_depth-1] += sizeof(uint32_t);
+	state->program_counters[state->call_depth-1] += sizeof(uint32_t);
 
 	return 1;
 }
@@ -151,7 +152,7 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 		break;
 
 		case OPCODE_QUIT:
-		state->program_counters[state->program_counters_depth-1] -= sizeof(uint32_t);
+		state->program_counters[state->call_depth-1] -= sizeof(uint32_t);
 		return 0;
 			
 		case OPCODE_PUSH_NULL:
@@ -366,7 +367,7 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 				return -1;
 			}
 
-			if(dest >= state->executable->code_length) {
+			if(dest >= state->executable_stack[state->call_depth-1]->code_length) {
 
 				// #ERROR
 				// PUSH_FUNCTION refers to an address outside of the code segment
@@ -374,7 +375,7 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 				return -1;
 			}
 
-			object_t *object = object_from_executable_and_offset(state, state->executable, dest);
+			object_t *object = object_from_executable_and_offset(state, state->executable_stack[state->call_depth-1], dest);
 
 			if(object == 0) {
 
@@ -606,7 +607,7 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 				return -1;
 			}
 			
-			state->program_counters[state->program_counters_depth-1] = state->break_destinations[state->break_destinations_depth-1];
+			state->program_counters[state->call_depth-1] = state->break_destinations[state->break_destinations_depth-1];
 			break;
 		}
 		
@@ -622,7 +623,7 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 				return -1;
 			}
 
-			if(dest >= state->executable->code_length) {
+			if(dest >= state->executable_stack[state->call_depth-1]->code_length) {
 
 				// #ERROR
 				// OPCODE_BREAK_DESTINATION_PUSH refers to an address outside of the code segment
@@ -664,7 +665,7 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 				return -1;
 			}
 			
-			state->program_counters[state->program_counters_depth-1] = state->continue_destinations[state->continue_destinations_depth-1];
+			state->program_counters[state->call_depth-1] = state->continue_destinations[state->continue_destinations_depth-1];
 			break;
 		}
 		
@@ -680,7 +681,7 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 				return -1;
 			}
 
-			if(dest >= state->executable->code_length) {
+			if(dest >= state->executable_stack[state->call_depth-1]->code_length) {
 
 				// #ERROR
 				// OPCODE_CONTINUE_DESTINATION_PUSH refers to an address outside of the code segment
@@ -713,21 +714,88 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 		}
 
 		case OPCODE_CALL: 
-		fetch_u32(state, 0); 
-		assert(0);
-		#warning "Implement OPCODE_CALL"
-		break;
+		{
+
+			if(state->call_depth == 16) {
+
+				report(error_buffer, error_buffer_size, "CALL but the maximum call depth was reached");
+				return -1;
+			}
+
+			int64_t argc;
+
+			if(!fetch_i64(state, &argc)) {
+
+				// #ERROR
+				// Unexpected end of code
+				report(error_buffer, error_buffer_size, "Unexpected end of code while fetching CALL's operand");
+				return -1;
+			}
+
+			if(state->stack_item_count < argc + 1) {
+
+				// #ERROR
+				// CALL on a stack with not enough items
+				report(error_buffer, error_buffer_size, "CALL on a stack with not enough items");
+				return -1;
+			}
+				
+			state->argc = argc;
+
+			object_t *callable = state->stack[state->stack_item_count - argc - 1];
+
+			if(callable->type != (object_t*) &function_type_object) {
+
+				report(error_buffer, error_buffer_size, "CALL on something that is not a function");
+				return -1;
+			}
+
+			state->executable_stack[state->call_depth] = ((object_function_t*) callable)->executable;
+			state->program_counters[state->call_depth] = ((object_function_t*) callable)->offset;
+			state->call_depth++;
+			break;		
+		}
 
 		case OPCODE_EXPECT:
-		fetch_i64(state, 0);
-		assert(0);
-		#warning "Implement OPCODE_EXPECT"
-		break;
+		{
+			int64_t argc;
+
+			if(!fetch_i64(state, &argc)) {
+
+				// #ERROR
+				// Unexpected end of code
+				report(error_buffer, error_buffer_size, "Unexpected end of code while fetching EXPECT's operand");
+				return -1;
+			}
+		
+			if(state->argc < 0) {
+
+				// #ERROR
+				report(error_buffer, error_buffer_size, "EXPECT but the argc wasn't previously set by a CALL instruction");
+				return -1;
+			}
+
+			if(argc != state->argc) {
+
+				// #ERROR
+				report(error_buffer, error_buffer_size, "Function call didn't provide the required number of arguments");
+				return -1;
+			}
+
+			state->argc = -1;
+			break;
+		}
 
 		case OPCODE_RETURN:
-		assert(0);
-		#warning "Implement OPCODE_RETURN"
-		break;
+		{
+			if(state->call_depth == 0) {
+				report(error_buffer, error_buffer_size, "RETURN but the call depth is 0");
+				return -1;
+			}
+
+			state->call_depth--;
+			break;
+		}
 
 		case OPCODE_JUMP_ABSOLUTE: 
 		{
@@ -742,7 +810,7 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 				return -1;
 			}
 
-			if(dest >= state->executable->code_length) {
+			if(dest >= state->executable_stack[state->call_depth-1]->code_length) {
 
 				// #ERROR
 				// JUMP_ABSOLUTE refers to an address outside of the code segment
@@ -750,7 +818,7 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 				return -1;
 			}
 
-			state->program_counters[state->program_counters_depth-1] = dest;
+			state->program_counters[state->call_depth-1] = dest;
 			break;
 		}
 		
@@ -766,7 +834,7 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 				return -1;
 			}
 
-			if(dest >= state->executable->code_length) {
+			if(dest >= state->executable_stack[state->call_depth-1]->code_length) {
 
 				// #ERROR
 				// JUMP_IF_FALSE_AND_POP refers to an address outside of the code segment
@@ -783,7 +851,7 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 			}
 
 			if(!object_test(state, state->stack[--state->stack_item_count]))
-				state->program_counters[state->program_counters_depth-1] = dest;
+				state->program_counters[state->call_depth-1] = dest;
 		
 			break;
 		}

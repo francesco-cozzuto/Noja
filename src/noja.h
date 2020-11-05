@@ -28,8 +28,6 @@ struct overflow_allocation_t {
 
 typedef struct {
 
-	executable_t *executable;
-	
 	char *heap;
 	uint32_t heap_size;
 	uint32_t heap_used;
@@ -49,8 +47,11 @@ typedef struct {
 	uint32_t continue_destinations[16];
 	uint32_t continue_destinations_depth;
 
-	uint32_t program_counters[1024];
-	uint32_t program_counters_depth;
+	executable_t *executable_stack[16];
+	uint32_t program_counters[16];
+	uint32_t call_depth;
+
+	int64_t argc;
 
 } state_t;
 
