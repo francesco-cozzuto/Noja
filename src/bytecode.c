@@ -43,8 +43,6 @@ static const char *operand_types[] = {
 	[OPCODE_JUMP_ABSOLUTE] = "a",
 	[OPCODE_JUMP_IF_FALSE_AND_POP] = "a",
 
-	[OPCODE_PRINT] = "",
-
 	[OPCODE_ADD] = "",
 	[OPCODE_SUB] = "",
 	[OPCODE_MUL] = "",
@@ -117,8 +115,6 @@ const char *get_opcode_name(int opcode)
 
 		case OPCODE_JUMP_ABSOLUTE: return "JUMP_ABSOLUTE";
 		case OPCODE_JUMP_IF_FALSE_AND_POP: return "JUMP_IF_FALSE_AND_POP";
-
-		case OPCODE_PRINT: return "PRINT";
 
 		case OPCODE_ADD: return "ADD";
 		case OPCODE_SUB: return "SUB";

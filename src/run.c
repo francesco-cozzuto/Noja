@@ -928,18 +928,6 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 		
 			break;
 		}
-
-		case OPCODE_PRINT:
-		{
-			if(state->stack_item_count == 0) {
-
-				report(error_buffer, error_buffer_size, "OPCODE_PRINT while the stack is empty");
-				return -1;
-			}
-
-			object_print(state, state->stack[state->stack_item_count-1], stdout);
-			break;
-		}
 		
 		case OPCODE_ADD:
 		{
