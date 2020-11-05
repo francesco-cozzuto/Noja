@@ -446,7 +446,6 @@ static void node_compile(function_text_t *ft, node_t *node)
 		{
 			node_while_t *x = (node_while_t*) node;
 
-
 			function_text_append_u32(ft, OPCODE_CONTINUE_DESTINATION_PUSH);
 
 			label_t A = function_text_get_label_here(ft);
@@ -472,7 +471,10 @@ static void node_compile(function_text_t *ft, node_t *node)
 			node_compile(ft, x->block); // #TODO Handle the case where this block returns! The continue and break destinations need to be popped!
 
 			function_text_append_u32(ft, OPCODE_JUMP_ABSOLUTE);
+			
 			label_t T = function_text_get_label_here(ft);
+			function_text_append_u32(ft, 0);
+
 			function_text_write_u32_from_label(T, G);
 
 			label_t D = function_text_get_label_here(ft);
