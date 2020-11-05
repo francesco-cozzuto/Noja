@@ -68,6 +68,7 @@ enum {
 
 	EXPRESSION_KIND_INDEX_SELECTION,
 	EXPRESSION_KIND_DOT_SELECTION,
+	EXPRESSION_KIND_CALL,
 };
 
 typedef struct node_t node_t;
@@ -203,6 +204,7 @@ node_t *node_assign_shl_create(pool_t *pool, int offset, int length, node_t *lef
 node_t *node_assign_shr_create(pool_t *pool, int offset, int length, node_t *left_operand, node_t *right_operand);
 node_t *node_dot_selection_create(pool_t *pool, int offset, int length, node_t *left_operand, node_t *right_operand);
 node_t *node_index_selection_create(pool_t *pool, int offset, int length, node_t *left_operand, node_t *right_operand);
+node_t *node_call_create(pool_t *pool, int offset, int length, node_t *arg_head, node_t *arg_tail, int argc);
 node_t *node_int_create(pool_t *pool, int offset, int length, int64_t value);
 node_t *node_float_create(pool_t *pool, int offset, int length, double value);
 node_t *node_string_create(pool_t *pool, int offset, int length, char *content, int content_length);

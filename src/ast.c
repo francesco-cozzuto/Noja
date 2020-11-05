@@ -228,6 +228,11 @@ node_t *node_dot_selection_create(pool_t *pool, int offset, int length, node_t *
 	return node_binary_operation_create(pool, offset, length, EXPRESSION_KIND_DOT_SELECTION, left_operand, right_operand);
 }
 
+node_t *node_call_create(pool_t *pool, int offset, int length, node_t *arg_head, node_t *arg_tail, int argc)
+{
+	return node_operation_create(pool, offset, length, EXPRESSION_KIND_CALL, arg_head, arg_tail, argc);
+}
+
 node_t *node_int_create(pool_t *pool, int offset, int length, int64_t value)
 {
 	node_expr_int_t *node = pool_request(pool, sizeof(node_expr_int_t));

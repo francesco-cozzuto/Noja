@@ -260,6 +260,23 @@ static int node_check(checking_context_t *ctx, node_t *node)
 					return 1;
 				}
 
+				case EXPRESSION_KIND_CALL:
+				{
+					node_expr_operation_t *x = (node_expr_operation_t*) node;
+
+					node_t *arg = x->operand_head;
+
+					while(arg) {
+
+						if(!node_check(ctx, arg))
+							return 0;
+
+						arg = arg->next;
+					}
+
+					return 1;
+				}
+
 				case EXPRESSION_KIND_ADD:
 				case EXPRESSION_KIND_SUB:
 				case EXPRESSION_KIND_MUL:

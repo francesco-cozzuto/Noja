@@ -99,10 +99,10 @@ void token_array_deinit(token_array_t *array);
 
 
 void token_iterator_init(token_iterator_t *iterator, token_array_t *array);
-int __token_iterator_next(token_iterator_t *iterator, char *file, int line, const char *func);
-int __token_iterator_prev(token_iterator_t *iterator, char *file, int line, const char *func);
-#define token_iterator_next(iterator) __token_iterator_next(iterator, __FILE__, __LINE__, __func__)
-#define token_iterator_prev(iterator) __token_iterator_prev(iterator, __FILE__, __LINE__, __func__)
+int __token_iterator_next(token_iterator_t *iterator, char *file, int line, const char *func, char *source);
+int __token_iterator_prev(token_iterator_t *iterator, char *file, int line, const char *func, char *source);
+#define token_iterator_next(iterator) __token_iterator_next(iterator, __FILE__, __LINE__, __func__, source)
+#define token_iterator_prev(iterator) __token_iterator_prev(iterator, __FILE__, __LINE__, __func__, source)
 //int  token_iterator_next(token_iterator_t *iterator);
 //int  token_iterator_prev(token_iterator_t *iterator);
 token_t token_iterator_current(token_iterator_t *iterator);

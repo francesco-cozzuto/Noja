@@ -579,7 +579,83 @@ node_t *parse_postfix_expression(pool_t *pool, token_iterator_t *iterator, char 
 				break;
 			}
 
-			case '(': assert(0); break;
+			case '(': 
+			{
+				// Check if the call is without arguments
+
+				if(!token_iterator_next(iterator)) {
+
+					FAILED;
+					
+					// #ERROR
+					// Unexpected end of source while parsing call expression
+					return 0;
+				}
+
+				token = token_iterator_current(iterator);
+
+				if(token.kind == ')') {
+
+					// Call with no arguments
+					node = node_call_create(pool, node->offset, token.offset + token.length - node->offset, node, node, 0);
+					break;
+				}
+
+				token_iterator_prev(iterator);
+
+				node_t *arg_head, *arg_tail;
+				int argc = 0;
+
+				arg_head = node;
+				arg_tail = node;
+
+				while(1) {
+
+					if(!token_iterator_next(iterator)) {
+
+						FAILED;
+					
+						// #ERROR
+						// Unexpected end of source while parsing call expression
+						return 0;
+					}
+
+					node_t *arg = parse_expression(pool, iterator, source);
+
+					if(arg == 0)
+						return 0;
+
+					arg_tail->next = arg;
+					arg_tail = arg;
+					argc++;
+
+					if(!token_iterator_next(iterator)) {
+
+						FAILED;
+					
+						// #ERROR
+						// Unexpected end of source while parsing call expression
+						return 0;
+					}
+
+					token = token_iterator_current(iterator);
+
+					if(token.kind == ')')
+						break;
+
+					if(token.kind != ',') {
+
+						FAILED;
+
+						// #ERROR
+						// Unexpected token in call expression. Was expected [,] or [)]
+						return 0;
+					}
+				}
+
+				node = node_call_create(pool, node->offset, token.offset + token.length - node->offset, arg_head, arg_tail, argc);
+				break;
+			}
 			
 			case '.':
 			{
