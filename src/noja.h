@@ -255,15 +255,6 @@ int 	  object_insert(state_t *state, object_t *self, object_t *key, object_t *it
 object_t *object_select_attribute(state_t *state, object_t *self, const char *name);
 int 	  object_insert_attribute(state_t *state, object_t *self, const char *name, object_t *value);
 
-
-int  state_init(state_t *state, executable_t *executable);
-void state_deinit(state_t *state);
-int  step(state_t *state, char *error_buffer, int error_buffer_size);
-
-int 	gc_requires_collection(state_t *state);
-void   *gc_allocate(state_t *state, uint32_t size);
-int 	gc_collect(state_t *state);
-
 int tokenize(char *source, int source_length, token_array_t *e_token_array);
 int parse(token_array_t *array, char *source, pool_t **e_pool, node_t **e_node);
 int check(node_t *node, char *source, char *error_buffer, int error_buffer_size);
@@ -274,7 +265,4 @@ int run_file(const char *path, char *error_buffer, int error_buffer_size);
 
 int get_lineno_of_offset(const char *text, int offset);
 void report(char *error_buffer, int error_buffer_size, const char *format, ...);
-int read_line(FILE *src, char **e_buffer, int *e_length);
-int tokenize_buffer(char *buffer, char ***e_tokens, int *e_token_count);
-int load_text(const char *path, char **e_content, int *e_length);
 

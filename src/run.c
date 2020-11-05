@@ -3,6 +3,11 @@
 #include <assert.h>
 #include <string.h>
 #include "noja.h"
+#include "utils/basic.h"
+
+static int state_init(state_t *state, executable_t *executable);
+static void state_deinit(state_t *state);
+static inline int step(state_t *state, char *error_buffer, int error_buffer_size);
 
 int run_text(const char *text, int length, char *error_buffer, int error_buffer_size)
 {
@@ -82,7 +87,7 @@ int gc_collect(state_t *state)
 	return 1;
 }
 
-int state_init(state_t *state, executable_t *executable)
+static int state_init(state_t *state, executable_t *executable)
 {
 	state->heap = malloc(4096);
 
@@ -134,16 +139,11 @@ int state_init(state_t *state, executable_t *executable)
 	return 1;
 }
 
-void state_deinit(state_t *state)
+static void state_deinit(state_t *state)
 {
 	free(state->heap);
 	free(state->stack);
 	free(state->variable_maps);
-}
-
-static int stack_is_full(state_t *state)
-{
-	return state->stack_item_count == state->stack_item_count_max;
 }
 
 static int fetch_u32(state_t *state, uint32_t *value)
@@ -205,7 +205,7 @@ static int fetch_string(state_t *state, char **value)
 	return 1;
 }
 
-int step(state_t *state, char *error_buffer, int error_buffer_size)
+static inline int step(state_t *state, char *error_buffer, int error_buffer_size)
 {
 	(void) error_buffer;
 	(void) error_buffer_size;
@@ -229,7 +229,7 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 			
 		case OPCODE_PUSH_NULL:
 
-		if(stack_is_full(state)) {
+		if(state->stack_item_count == state->stack_item_count_max) {
 
 			// #ERROR
 			// The stack is full!
@@ -242,7 +242,7 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 		
 		case OPCODE_PUSH_TRUE:
 
-		if(stack_is_full(state)) {
+		if(state->stack_item_count == state->stack_item_count_max) {
 
 			// #ERROR
 			// The stack is full!
@@ -255,7 +255,7 @@ int step(state_t *state, char *error_buffer, int error_buffer_size)
 
 		case OPCODE_PUSH_FALSE:
 		
-		if(stack_is_full(state)) {
+		if(state->stack_item_count == state->stack_item_count_max) {
 
 			// #ERROR
 			// The stack is full!

@@ -218,7 +218,7 @@ int dict_cinsert(state_t *state, object_t *self, const char *key, object_t *valu
 		d->item_keys   = new_keys;
 		d->item_values = new_values;
 
-		d->item_used *= 2;
+		d->item_size *= 2;
 	}
 
 	

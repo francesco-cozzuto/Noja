@@ -76,3 +76,172 @@ int token_to_string(pool_t *pool, token_t token, char *text, char **e_result, in
 
 	return 1;
 }
+
+
+void token_array_init(token_array_t *array)
+{
+	array->head.prev = 0;
+	array->head.next = 0;
+	array->head.used = 0;
+	array->tail = &array->head;
+	array->count = 0;
+}
+
+int token_array_push(token_array_t *array, token_t token)
+{
+	if(array->tail->used == TOKENS_PER_CHUNK) {
+
+		token_chunk_t *chunk = malloc(sizeof(token_chunk_t));
+
+		if(chunk == 0)
+			return 0;
+
+		chunk->prev = array->tail;
+		chunk->next = 0;
+		chunk->used = 0;
+
+		array->tail->next = chunk;
+		array->tail = chunk;
+	}
+
+	array->tail->tokens[array->tail->used++] = token;
+	array->count++;
+
+	return 1;
+}
+
+void token_array_foreach(token_array_t *array, void *userdata, int (*callback)(void *data, int index, token_t token))
+{
+	token_chunk_t *chunk = &array->head;
+
+	int i = 0;
+
+	while(chunk) {
+
+		for(int j = 0; j < chunk->used; j++, i++)
+			if(!callback(userdata, i, chunk->tokens[j]))
+				return;
+
+		chunk = chunk->next;
+	}
+}
+
+void token_array_print(token_array_t *array, char *source, FILE *fp)
+{
+	struct fp_and_source { FILE *fp; char *source; };
+
+	int callback(void *data, int index, token_t token) {
+
+		(void) index;
+
+		FILE *fp = ((struct fp_and_source*) data)->fp;
+		char *source = ((struct fp_and_source*) data)->source;
+
+		char t = source[token.offset + token.length];
+		source[token.offset + token.length] = '\0';
+
+		fprintf(fp, ">> token [%s], offset %d, length %d, kind %d, \n", source + token.offset, token.offset, token.length, token.kind);
+
+		source[token.offset + token.length] = t;
+		return 1;
+	}
+
+	struct fp_and_source data;
+	data.fp = fp;
+	data.source = source;
+
+	token_array_foreach(array, (void*) &data, callback);
+}
+
+void token_array_deinit(token_array_t *array)
+{
+	token_chunk_t *chunk = array->head.next;
+
+	while(chunk) {
+
+		token_chunk_t *next = chunk->next;
+
+		free(chunk);
+
+		chunk = next;
+	}
+}
+
+
+void token_iterator_init(token_iterator_t *iterator, token_array_t *array)
+{
+	iterator->chunk = &array->head;
+	iterator->absolute_offset = 0;
+	iterator->relative_offset = 0;
+	iterator->count = array->count;
+}
+
+int __token_iterator_next(token_iterator_t *iterator, char *file, int line, const char *func, char *source)
+{
+	iterator->relative_offset++;
+	iterator->absolute_offset++;
+
+	if(iterator->absolute_offset == iterator->count) {
+
+		iterator->relative_offset--;
+		iterator->absolute_offset--;
+		return 0;
+	}
+
+	if(iterator->relative_offset == iterator->chunk->used) {
+
+		iterator->chunk = iterator->chunk->next;
+		iterator->relative_offset = 0;
+	}
+
+	{
+		(void) file;
+		(void) line;
+		(void) func;
+		/*
+		token_t token = iterator->chunk->tokens[iterator->relative_offset];
+		printf(">> Now at [");
+		for(int i = 0; i < token.length; i++)
+			printf("%c", source[token.offset + i]);
+		printf("] [%d, %d] from %s:%d in %s\n", token.offset, token.length, file, line, func);
+		*/
+	}
+	
+	return 1;
+}
+
+int __token_iterator_prev(token_iterator_t *iterator, char *file, int line, const char *func, char *source)
+{
+	iterator->relative_offset--;
+	iterator->absolute_offset--;
+
+	if(iterator->absolute_offset == -1) {
+
+		iterator->relative_offset++;
+		iterator->absolute_offset++;
+		return 0;
+	}
+
+	if(iterator->relative_offset == -1) {
+
+		iterator->chunk = iterator->chunk->prev;
+		iterator->relative_offset = 0;
+	}
+
+	(void) file;
+	(void) line;
+	(void) func;
+	/*
+	token_t token = iterator->chunk->tokens[iterator->relative_offset];
+	printf(">> Back at [");
+		for(int i = 0; i < token.length; i++)
+			printf("%c", source[token.offset + i]);
+		printf("] [%d, %d] from %s:%d in %s\n", token.offset, token.length, file, line, func);
+	*/
+	return 1;
+}
+
+token_t token_iterator_current(token_iterator_t *iterator)
+{
+	return iterator->chunk->tokens[iterator->relative_offset];
+}

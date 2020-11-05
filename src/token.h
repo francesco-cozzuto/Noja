@@ -9,7 +9,7 @@ typedef struct {
 	int length;
 } token_t;
 
-#define TOKENS_PER_CHUNK 1028
+#define TOKENS_PER_CHUNK 1024
 
 typedef struct token_chunk_t token_chunk_t;
 struct token_chunk_t {

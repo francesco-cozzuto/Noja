@@ -103,49 +103,6 @@ static char is_operator_character(char c)
 
 static int get_operator_kind(char *string, int length)
 {
-	/*
-			=
-
-			+
-			-
-			*
-			/
-			%
-			**
-		
-			<
-			>
-			<=
-			>=
-			==
-			!=
-
-			&&
-			||
-			!
-
-			&
-			|
-			^
-			~
-			>>
-			<<
-
-			++
-			--
-	
-			+=
-			-=
-			*=
-			/=
-			%=
-
-			&=
-			|=
-			^=
-			>>=
-			<<=
-	*/
 
 	#define MATCH(e) (sizeof(e)-1 == length && !strncmp(e, string, length))
 
