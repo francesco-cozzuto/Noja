@@ -279,6 +279,18 @@ static int tokenize_one(char *source, int source_length, int *current_offset, to
 
 	e_token->offset = (*current_offset)-1;
 
+	if(c == '#') {
+
+		// skip comment lines
+
+		while((c = read_character(source, source_length, current_offset)) != '\n' && c != '\0');
+			
+		if(c == '\0')
+			return 0;
+		
+		return tokenize_one(source, source_length, current_offset, e_token);
+	}
+
 	if(is_alpha(c) || c == '_') {
 
 		while(is_alpha(c = read_character(source, source_length, current_offset)) || is_digit(c) || c == '_');
