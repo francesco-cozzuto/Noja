@@ -2304,7 +2304,7 @@ int parse(const char *source, int source_length, ast_t *e_ast, string_builder_t 
 	}
 
 	if(!check(result, source, source_length, output_builder)) {
-		
+
 		pool_destroy(pool);
 		return 0;
 	}

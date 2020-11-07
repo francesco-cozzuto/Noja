@@ -1904,7 +1904,7 @@ int step(state_t *state)
 
 	}
 
-	
+	/*
 	FILE *fp = fopen("log.txt", "a+");
 	
 	fprintf(fp, "=== Stack view (%d) ===\n", u32_top(&state->offset_stack));
@@ -1914,7 +1914,7 @@ int step(state_t *state)
 	fprintf(fp, "==================\n");
 
 	fclose(fp);
-	
+	*/
 
 	
 
