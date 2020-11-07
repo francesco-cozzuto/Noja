@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include "../utils/pool.h"
 
+#warning "Add true, false and null tokens"
+
 typedef struct {
 	int kind;
 	int offset;

@@ -20,6 +20,8 @@ int run_text_inner(const char *text, int length, string_builder_t *output_builde
 	if(!parse(text, length, &ast, output_builder))
 		return 0;
 
+	//ast_print(ast, stdout);
+
 	executable = generate(ast);
 
 	ast_delete(ast);
@@ -76,6 +78,28 @@ int run_file(const char *path, char **error_text)
 	return result;
 }
 
+int array_setup(state_t *state);
+int bool_setup(state_t *state);
+int dict_setup(state_t *state);
+int int_setup(state_t *state);
+int function_setup(state_t *state);
+int cfunction_setup(state_t *state);
+int null_setup(state_t *state);
+int string_setup(state_t *state);
+int type_setup(state_t *state);
+int float_setup(state_t *state);
+
+int array_methods_setup(state_t *state);
+int bool_methods_setup(state_t *state);
+int dict_methods_setup(state_t *state);
+int int_methods_setup(state_t *state);
+int function_methods_setup(state_t *state);
+int cfunction_methods_setup(state_t *state);
+int null_methods_setup(state_t *state);
+int string_methods_setup(state_t *state);
+int type_methods_setup(state_t *state);
+int float_methods_setup(state_t *state);
+
 static int state_init(state_t *state, executable_t *executable, string_builder_t *output_builder)
 {
 	state->heap = malloc(4096);
@@ -115,12 +139,34 @@ static int state_init(state_t *state, executable_t *executable, string_builder_t
 	state->program_counters[0] = 0;
 	state->call_depth = 1;
 
-	state->variable_maps[0] = object_istanciate(state, (object_t*) &dict_type_object);
+	assert(cfunction_setup(state));
+	assert(dict_setup(state));
+	assert(array_setup(state));
+	assert(bool_setup(state));
+	assert(int_setup(state));
+	assert(function_setup(state));
+	assert(null_setup(state));
+	assert(string_setup(state));
+	assert(type_setup(state));
+	assert(float_setup(state));
+
+	assert(cfunction_methods_setup(state));
+	assert(dict_methods_setup(state));
+	assert(array_methods_setup(state));
+	assert(bool_methods_setup(state));
+	assert(int_methods_setup(state));
+	assert(function_methods_setup(state));
+	assert(null_methods_setup(state));
+	assert(string_methods_setup(state));
+	assert(type_methods_setup(state));
+	assert(float_methods_setup(state));
+
+	state->variable_maps[0] = object_istanciate(state, (object_t*) &state->type_object_dict);
 	state->variable_maps_count = 1;
 	state->variable_maps_count_max = 128;
 	assert(state->variable_maps[0]);
 
-	state->builtins_map = object_istanciate(state, (object_t*) &dict_type_object);
+	state->builtins_map = object_istanciate(state, (object_t*) &state->type_object_dict);
 	assert(state->builtins_map);
 
 	if(!insert_builtins(state, state->builtins_map))

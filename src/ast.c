@@ -572,6 +572,11 @@ node_t *node_get_next(node_t *node)
 /* === Ast printers === */
 /* ==================== */
 
+void ast_print(ast_t ast, FILE *fp)
+{
+	node_print(ast.root, fp);
+}
+
 void node_print(node_t *node, FILE *fp)
 {
 	switch(node->kind) {
@@ -792,6 +797,7 @@ void node_print(node_t *node, FILE *fp)
 				case EXPRESSION_KIND_ASSIGN_BITWISE_XOR:if(!operation_text) operation_text = "^="; /* FALLTHROUGH */
 				case EXPRESSION_KIND_ASSIGN_SHL:if(!operation_text) operation_text = ">>="; /* FALLTHROUGH */
 				case EXPRESSION_KIND_ASSIGN_SHR:if(!operation_text) operation_text = "<<="; /* FALLTHROUGH */
+				case EXPRESSION_KIND_DOT_SELECTION:if(!operation_text) operation_text = "."; /* FALLTHROUGH */
 				{
 					node_expr_operation_t *oper = (node_expr_operation_t*) node;
 
@@ -801,6 +807,46 @@ void node_print(node_t *node, FILE *fp)
 					node_print(oper->operand_tail, fp);
 					fprintf(fp, ")");
 				}
+				break;
+
+				case EXPRESSION_KIND_INDEX_SELECTION:
+				{
+					node_expr_operation_t *oper = (node_expr_operation_t*) node;
+
+					fprintf(fp, "(");
+					node_print(oper->operand_head, fp);
+					fprintf(fp, "[");
+					node_print(oper->operand_tail, fp);
+					fprintf(fp, "])");
+				}
+				break;
+
+				case EXPRESSION_KIND_CALL:if(!operation_text) operation_text = "."; /* FALLTHROUGH */
+				{
+					node_expr_operation_t *oper = (node_expr_operation_t*) node;
+
+					fprintf(fp, "(");
+					node_print(oper->operand_head, fp);
+					fprintf(fp, "(");
+
+					node_t *arg = oper->operand_head->next;
+
+					while(arg) {
+
+						node_print(arg, fp);
+
+						arg = arg->next;
+
+						if(arg)
+							fprintf(fp, ", ");
+					}
+					
+					fprintf(fp, "))");
+				}
+				break;
+
+				default:
+				fprintf(fp, "<???>");
 				break;
 			}
 			break;
@@ -824,5 +870,9 @@ void node_print(node_t *node, FILE *fp)
 			
 			break;
 		}
+
+		default:
+		fprintf(fp, "<???>");
+		break;
 	}
 }

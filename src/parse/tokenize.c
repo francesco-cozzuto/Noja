@@ -292,7 +292,9 @@ static int tokenize_one(char *source, int source_length, int *current_offset, to
 	if(is_alpha(c) || c == '_') {
 
 		while(is_alpha(c = read_character(source, source_length, current_offset)) || is_digit(c) || c == '_');
-		(*current_offset)--;
+
+		if(c != '\0')
+			(*current_offset)--;
 
 		e_token->length = (*current_offset) - e_token->offset;
 
@@ -303,7 +305,12 @@ static int tokenize_one(char *source, int source_length, int *current_offset, to
 
 		while(is_digit(c = read_character(source, source_length, current_offset)));
 
-		if(c == '.') {
+		char n = read_character(source, source_length, current_offset);
+
+		if(n != '\0')
+			(*current_offset)--;
+
+		if(c == '.' && is_digit(n)) {
 
 			while(is_digit(c = read_character(source, source_length, current_offset)));
 
@@ -315,7 +322,8 @@ static int tokenize_one(char *source, int source_length, int *current_offset, to
 
 		}
 
-		(*current_offset)--;
+		if(c != '\0')
+			(*current_offset)--;
 
 		e_token->length = (*current_offset) - e_token->offset;
 
@@ -331,25 +339,27 @@ static int tokenize_one(char *source, int source_length, int *current_offset, to
 	} else if(is_operator_character(c)) {
 
 		e_token->kind = get_operator_kind(source + e_token->offset, 1);
-
+		
 		while(1) {
 
 			// check if the operator can be one character longer
 
-			read_character(source, source_length, current_offset);
+			if(read_character(source, source_length, current_offset) == '\0')
+				break;
 
 			int kind = get_operator_kind(source + e_token->offset, (*current_offset) - e_token->offset);
 
-			if(kind == -1)
+			if(kind == -1) {
+
+				(*current_offset)--;
 				break; // it can't
+			}
 
 			// it can!
 
 			e_token->kind = kind;
 
 		}
-
-		(*current_offset)--;
 
 		e_token->length = (*current_offset) - e_token->offset;
 

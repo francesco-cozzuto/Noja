@@ -622,24 +622,18 @@ static void node_compile(function_text_t *ft, node_t *node)
 
 					node_t *item = x->item_head;
 
-					function_text_append_u32(ft, OPCODE_PUSH_ARRAY);
-
 					int i = 0;
 
 					while(item) {
 
-						function_text_append_u32(ft, OPCODE_PUSH_INT);
-						function_text_append_i64(ft, i);
 						node_compile(ft, item);
-						function_text_append_u32(ft, OPCODE_INSERT);
-
-						function_text_append_u32(ft, OPCODE_POP);
-						function_text_append_i64(ft, 2);
-
 
 						i++;
 						item = item->next;
 					}
+
+					function_text_append_u32(ft, OPCODE_BUILD_ARRAY);
+					function_text_append_i64(ft, i);
 					break;
 				}
 				
@@ -649,8 +643,6 @@ static void node_compile(function_text_t *ft, node_t *node)
 
 					node_t *item = x->item_head;
 
-					function_text_append_u32(ft, OPCODE_PUSH_DICT);
-
 					int i = 0;
 
 					while(item) {
@@ -659,15 +651,13 @@ static void node_compile(function_text_t *ft, node_t *node)
 
 						node_compile(ft, x->key);
 						node_compile(ft, x->value);
-						function_text_append_u32(ft, OPCODE_INSERT);
-
-						function_text_append_u32(ft, OPCODE_POP);
-						function_text_append_i64(ft, 2);
-
 
 						i++;
 						item = item->next;
 					}
+
+					function_text_append_u32(ft, OPCODE_BUILD_DICT);
+					function_text_append_i64(ft, i);
 					break;
 				}
 
@@ -771,8 +761,30 @@ static void node_compile(function_text_t *ft, node_t *node)
 				{
 					node_expr_operation_t *x = (node_expr_operation_t*) node;
 
-					node_t *arg = x->operand_head;
-					
+					int argc = x->operand_count;
+
+					node_t *called = x->operand_head;
+					node_t *arg    = called->next;
+
+					if(((node_expr_t*) called)->kind == EXPRESSION_KIND_DOT_SELECTION) {
+
+						node_t *container;
+						node_t *identifier;
+
+						container = ((node_expr_operation_t*) called)->operand_head;
+						identifier = ((node_expr_operation_t*) called)->operand_tail;
+
+						node_compile(ft, container);
+						function_text_append_u32(ft, OPCODE_SELECT_ATTRIBUTE_AND_REPUSH);
+						function_text_append_string(ft, ((node_expr_identifier_t*) identifier)->content);
+
+						argc++;
+
+					} else {
+
+						node_compile(ft, called);
+					}
+
 					while(arg) {
 						node_compile(ft, arg);
 						arg = arg->next;
@@ -780,7 +792,7 @@ static void node_compile(function_text_t *ft, node_t *node)
 
 					#warning "Align OPCODE_CALL's operand"
 					function_text_append_u32(ft, OPCODE_CALL);
-					function_text_append_i64(ft, x->operand_count);
+					function_text_append_i64(ft, argc);
 					break;	
 				}
 

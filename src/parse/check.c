@@ -3,7 +3,7 @@
 #include <alloca.h>
 #include "../noja.h"
 
-#define FAILED fprintf(stderr, ">> Failed at %s:%d\n", __FILE__, __LINE__);
+#define FAILED //fprintf(stderr, ">> Failed at %s:%d\n", __FILE__, __LINE__);
 
 enum {
 	BLOCK_FUNC,
@@ -15,10 +15,56 @@ typedef struct {
 	int block_types[128];
 	int block_depth;
 
-	char *source;
+	const char *source;
+	int source_length;
+
 	string_builder_t *output_builder;
 
 } checking_context_t;
+
+void find_line_range(const char *source, int source_length, int offset, int *prev_line_offset, int *line_offset, int *next_line_offset, int *line_no);
+void print_line(string_builder_t *output_builder, const char *source, int source_length, int offset);
+
+static void print_node_start_location(string_builder_t *output_builder, const char *source, int source_length, node_t *node)
+{
+	int prev_line_offset,
+		next_line_offset,
+		line_offset,
+		line_no;
+
+	find_line_range(source, source_length, node->offset, &prev_line_offset, &line_offset, &next_line_offset, &line_no);
+
+	string_builder_append(output_builder, "\n [line] | [code]\n");
+
+	if(prev_line_offset > -1) {
+
+		char buffer[128];
+		sprintf(buffer, "  %-5d | ", line_no - 1);
+
+		string_builder_append(output_builder, "${zero-terminated-string}", buffer);
+		print_line(output_builder, source, source_length, prev_line_offset);
+		string_builder_append(output_builder, "\n");
+	}
+
+	{
+		char buffer[128];
+		sprintf(buffer, "  %-5d | ", line_no);
+
+		string_builder_append(output_builder, "${zero-terminated-string}", buffer);
+		print_line(output_builder, source, source_length, line_offset);
+		string_builder_append(output_builder, " <- here\n");
+	}
+
+	if(next_line_offset > -1) {
+
+		char buffer[128];
+		sprintf(buffer, "  %-5d | ", line_no + 1);
+
+		string_builder_append(output_builder, "${zero-terminated-string}", buffer);
+		print_line(output_builder, source, source_length, next_line_offset);
+		string_builder_append(output_builder, "\n");
+	}
+}
 
 static int inside_loop(checking_context_t *ctx)
 {
@@ -72,10 +118,9 @@ static int node_check(checking_context_t *ctx, node_t *node)
 				// #ERROR
 				// break statement outside of a loop
 
-				string_builder_append(ctx->output_builder, 
-					"Semantic error at offset ${integer}: Found break statement outside of a loop", 
-					node->offset);
-				
+				string_builder_append(ctx->output_builder, "Found break statement outside of a loop");
+				print_node_start_location(ctx->output_builder, ctx->source, ctx->source_length, node);
+
 				return 0;
 			}
 			return 1;
@@ -90,9 +135,8 @@ static int node_check(checking_context_t *ctx, node_t *node)
 				// #ERROR
 				// continue statement outside of a loop
 
-				string_builder_append(ctx->output_builder, 
-					"Semantic error at offset ${integer}: Found continue statement outside of a loop", 
-					node->offset);
+				string_builder_append(ctx->output_builder, "Found continue statement outside of a loop");
+				print_node_start_location(ctx->output_builder, ctx->source, ctx->source_length, node);
 
 				return 0;
 			}
@@ -108,10 +152,8 @@ static int node_check(checking_context_t *ctx, node_t *node)
 				// #ERROR
 				// return statement outside of a function
 
-				string_builder_append(ctx->output_builder, 
-					"Semantic error at offset ${integer}: Found return statement outsize of a function", 
-					node->offset);
-
+				string_builder_append(ctx->output_builder, "Found return statement outsize of a function");
+				print_node_start_location(ctx->output_builder, ctx->source, ctx->source_length, node);
 				return 0;
 			}
 			return 1;
@@ -234,8 +276,8 @@ static int node_check(checking_context_t *ctx, node_t *node)
 									// Two arguments have the same name
 
 									string_builder_append(ctx->output_builder, 
-										"Semantic error at offset ${integer}: Arguments ${integer} and ${integer} have the same name \"${zero-terminated-string}\"", 
-										argument->offset, i, names_count, name);
+										"Arguments ${integer} and ${integer} have the same name \"${zero-terminated-string}\"", i, names_count, name);
+									print_node_start_location(ctx->output_builder, ctx->source, ctx->source_length, argument);
 
 									return 0;
 								}
@@ -340,9 +382,8 @@ static int node_check(checking_context_t *ctx, node_t *node)
 						// #ERROR
 						// Increment or decrement of something that is not a variable
 						
-						string_builder_append(ctx->output_builder, 
-							"Semantic error at offset ${integer}: Found increment or decrement of something that is not a variable", 
-							node->offset);
+						string_builder_append(ctx->output_builder, "Found increment or decrement of something that is not a variable");
+						print_node_start_location(ctx->output_builder, ctx->source, ctx->source_length, node);
 						return 0;
 					}
 					
@@ -377,9 +418,8 @@ static int node_check(checking_context_t *ctx, node_t *node)
 						// #ERROR
 						// Assignment to something that is not a assignable
 
-						string_builder_append(ctx->output_builder, 
-							"Semantic error at offset ${integer}: Found increment or decrement of something that is not a variable", 
-							node->offset);
+						string_builder_append(ctx->output_builder, "Found increment or decrement of something that is not a variable");
+						print_node_start_location(ctx->output_builder, ctx->source, ctx->source_length, node);
 						return 0;
 					}
 
@@ -411,11 +451,12 @@ static int node_check(checking_context_t *ctx, node_t *node)
 	return 0;
 }
 
-int check(node_t *node, char *source, string_builder_t *output_builder)
+int check(node_t *node, const char *source, int source_length, string_builder_t *output_builder)
 {
 	checking_context_t ctx;
 
 	ctx.source = source;
+	ctx.source_length = source_length;
 	ctx.block_depth = 0;
 	ctx.output_builder = output_builder;
 

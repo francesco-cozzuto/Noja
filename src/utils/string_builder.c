@@ -26,7 +26,7 @@ void string_builder_deinit(string_builder_t *builder)
 	}
 }
 
-static int string_builder_append_byte(string_builder_t *builder, char c)
+int string_builder_append_byte(string_builder_t *builder, char c)
 {
 	if(builder->tail_used == BYTES_PER_CHUNK) {
 

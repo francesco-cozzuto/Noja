@@ -9,7 +9,7 @@ enum {
 
 object_t *object_from_cint(state_t *state, int64_t value)
 {
-	object_t *o = object_istanciate(state, (object_t*) &int_type_object);
+	object_t *o = object_istanciate(state, (object_t*) &state->type_object_int);
 
 	if(o == 0)
 		return 0;
@@ -23,7 +23,7 @@ object_t *object_from_cint(state_t *state, int64_t value)
 
 object_t *object_from_cfloat(state_t *state, double value)
 {
-	object_t *o = object_istanciate(state, (object_t*) &float_type_object);
+	object_t *o = object_istanciate(state, (object_t*) &state->type_object_float);
 
 	if(o == 0)
 		return 0;
@@ -37,7 +37,7 @@ object_t *object_from_cfloat(state_t *state, double value)
 
 object_t *object_from_executable_and_offset(state_t *state, executable_t *executable, uint32_t offset)
 {
-	object_t *o = object_istanciate(state, (object_t*) &function_type_object);
+	object_t *o = object_istanciate(state, (object_t*) &state->type_object_function);
 
 	if(o == 0)
 		return 0;
@@ -101,11 +101,11 @@ int object_insert_attribute(state_t *state, object_t *self, const char *name, ob
 
 	if(type->methods == 0) {
 
-		object_t *dict = object_istanciate(state, (object_t*) &dict_type_object);
+		object_t *dict = object_istanciate(state, (object_t*) &state->type_object_dict);
 
 		if(dict == 0)
 			return 0;
-
+		
 		type->methods = dict;
 	}
 

@@ -1,4 +1,5 @@
 
+#include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -16,10 +17,12 @@ enum {
 	OPCODE_PUSH_INT,
 	OPCODE_PUSH_FLOAT,
 	OPCODE_PUSH_STRING,
-	OPCODE_PUSH_ARRAY,
-	OPCODE_PUSH_DICT,
 	OPCODE_PUSH_FUNCTION,
 	OPCODE_PUSH_VARIABLE,
+	OPCODE_SELECT_ATTRIBUTE_AND_REPUSH,
+
+	OPCODE_BUILD_ARRAY,
+	OPCODE_BUILD_DICT,
 
 	OPCODE_POP,
 
@@ -72,6 +75,7 @@ enum {
 	
 };
 
+typedef struct state_t state_t;
 typedef struct object_t object_t;
 
 struct object_t {
@@ -81,50 +85,9 @@ struct object_t {
 };
 
 typedef struct {
-
-	char *data, *code;
-	uint32_t data_length, code_length;
-} executable_t;
-
-typedef struct overflow_allocation_t overflow_allocation_t;
-struct overflow_allocation_t {
-	overflow_allocation_t *prev;
-	char body[];
-};
-
-typedef struct {
-
-	int failed;
-	string_builder_t *output_builder;
-
-	char *heap;
-	uint32_t heap_size;
-	uint32_t heap_used;
-	overflow_allocation_t *overflow_allocations;
-
-	object_t **stack;
-	uint32_t stack_item_count;
-	uint32_t stack_item_count_max;
-
-	object_t *builtins_map;
-
-	object_t **variable_maps;
-	uint32_t variable_maps_count;
-	uint32_t variable_maps_count_max;
-
-	uint32_t break_destinations[16];
-	uint32_t break_destinations_depth;
-
-	uint32_t continue_destinations[16];
-	uint32_t continue_destinations_depth;
-
-	executable_t *executable_stack[16];
-	uint32_t program_counters[16];
-	uint32_t call_depth;
-
-	int64_t argc;
-
-} state_t;
+	object_t super;
+	uint8_t value;
+} object_bool_t;
 
 typedef struct {
 
@@ -173,6 +136,67 @@ typedef struct {
 	uint8_t (*on_test)(state_t *state, object_t *self);
 
 } object_type_t;
+
+typedef struct {
+
+	char *data, *code;
+	uint32_t data_length, code_length;
+} executable_t;
+
+typedef struct overflow_allocation_t overflow_allocation_t;
+struct overflow_allocation_t {
+	overflow_allocation_t *prev;
+	char body[];
+};
+
+struct state_t {
+
+	object_t null_object;
+	object_bool_t true_object;
+	object_bool_t false_object; 
+
+	object_type_t type_object_int;
+	object_type_t type_object_dict;
+	object_type_t type_object_bool;
+	object_type_t type_object_null;
+	object_type_t type_object_type;
+	object_type_t type_object_array;
+	object_type_t type_object_float;
+	object_type_t type_object_string;
+	object_type_t type_object_function;
+	object_type_t type_object_cfunction;
+
+	int failed;
+	string_builder_t *output_builder;
+
+	char *heap;
+	uint32_t heap_size;
+	uint32_t heap_used;
+	overflow_allocation_t *overflow_allocations;
+
+	object_t **stack;
+	uint32_t stack_item_count;
+	uint32_t stack_item_count_max;
+
+	object_t *builtins_map;
+
+	object_t **variable_maps;
+	uint32_t variable_maps_count;
+	uint32_t variable_maps_count_max;
+
+	uint32_t break_destinations[16];
+	uint32_t break_destinations_depth;
+
+	uint32_t continue_destinations[16];
+	uint32_t continue_destinations_depth;
+
+	executable_t *executable_stack[16];
+	uint32_t program_counters[16];
+	uint32_t call_depth;
+
+	int64_t argc;
+
+};
 
 typedef struct {
 
@@ -228,11 +252,6 @@ typedef struct {
 
 typedef struct {
 	object_t super;
-	uint8_t value;
-} object_bool_t;
-
-typedef struct {
-	object_t super;
 	executable_t *executable;
 	uint32_t offset;
 } object_function_t;
@@ -242,19 +261,12 @@ typedef struct {
 	object_t *(*routine)(state_t *state, int argc, object_t **argv);
 } object_cfunction_t;
 
-extern object_t object_null;
-extern object_bool_t object_true;
-extern object_bool_t object_false;
-extern object_type_t int_type_object;
-extern object_type_t null_type_object;
-extern object_type_t bool_type_object;
-extern object_type_t dict_type_object;
-extern object_type_t type_type_object;
-extern object_type_t array_type_object;
-extern object_type_t float_type_object;
-extern object_type_t string_type_object;
-extern object_type_t function_type_object;
-extern object_type_t cfunction_type_object;
+typedef struct {
+	object_t super;
+	object_t *dict;
+} object_module_t;
+
+typedef object_t *(*builtin_interface_t)(state_t *state, int argc, object_t **argv);
 
 object_t *dict_cselect(state_t *state, object_t *self, const char *name);
 int 	  dict_cinsert(state_t *state, object_t *self, const char *name, object_t *value);

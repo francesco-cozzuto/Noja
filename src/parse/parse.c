@@ -3,17 +3,157 @@
 #include "token.h"
 #include "../noja.h"
 
+void find_line_range(const char *source, int source_length, int offset, int *prev_line_offset, int *line_offset, int *next_line_offset, int *line_no)
+{
+	int i = 0, curr_line_no = 1;
+
+	*line_no = 1;
+	*prev_line_offset = -1;
+	*line_offset = -1;
+	*next_line_offset = -1;
+
+	while(i < offset) {
+
+		if(source[i] == '\n' && i + 1 < source_length) {
+
+			*prev_line_offset = *line_offset;
+			*line_offset = i + 1;
+
+			curr_line_no++;
+		}
+
+		i++;
+	}
+
+	// now serch for the offset of the next line
+
+	while(i < source_length) {
+
+		if(source[i] == '\n' && i + 1 < source_length) {
+			*next_line_offset = i + 1;
+			break;
+		}
+
+		i++;
+	}
+
+	*line_no = curr_line_no;
+}
+
+void print_line(string_builder_t *output_builder, const char *source, int source_length, int offset)
+{
+	int i = 0;
+	char c;
+
+	while(1) {
+
+		if(offset + i == source_length)
+			break;
+
+		c = source[offset + i];
+
+		if(c == '\n')
+			break;
+
+		string_builder_append_byte(output_builder, c);
+
+		i++;
+	}
+}
+
+static void print_unexpected_token_location(string_builder_t *output_builder, const char *source, int source_length, token_t token)
+{
+	int prev_line_offset,
+		next_line_offset,
+		line_offset,
+		line_no;
+
+	find_line_range(source, source_length, token.offset, &prev_line_offset, &line_offset, &next_line_offset, &line_no);
+
+	string_builder_append(output_builder, "\n [line] | [code]\n");
+
+	if(prev_line_offset > -1) {
+
+		char buffer[128];
+		sprintf(buffer, "  %-5d | ", line_no - 1);
+
+		string_builder_append(output_builder, "${zero-terminated-string}", buffer);
+		print_line(output_builder, source, source_length, prev_line_offset);
+		string_builder_append(output_builder, "\n");
+	}
+
+	{
+		char buffer[128];
+		sprintf(buffer, "  %-5d | ", line_no);
+
+		string_builder_append(output_builder, "${zero-terminated-string}", buffer);
+		print_line(output_builder, source, source_length, line_offset);
+		string_builder_append(output_builder, " <- here\n");
+	}
+
+	if(next_line_offset > -1) {
+
+		char buffer[128];
+		sprintf(buffer, "  %-5d | ", line_no + 1);
+
+		string_builder_append(output_builder, "${zero-terminated-string}", buffer);
+		print_line(output_builder, source, source_length, next_line_offset);
+		string_builder_append(output_builder, "\n");
+	}
+}
+
+static void print_missing_semicolon_location(string_builder_t *output_builder, const char *source, int source_length, token_t token)
+{
+	int prev_line_offset,
+		next_line_offset,
+		line_offset,
+		line_no;
+
+	find_line_range(source, source_length, token.offset, &prev_line_offset, &line_offset, &next_line_offset, &line_no);
+
+	string_builder_append(output_builder, "\n [line] | [code]\n");
+
+	if(prev_line_offset > -1) {
+
+		char buffer[128];
+		sprintf(buffer, "  %-5d | ", line_no - 1);
+
+		string_builder_append(output_builder, "${zero-terminated-string}", buffer);
+		print_line(output_builder, source, source_length, prev_line_offset);
+		string_builder_append(output_builder, "\n");
+	}
+
+	{
+		char buffer[128];
+		sprintf(buffer, "  %-5d | ", line_no);
+
+		string_builder_append(output_builder, "${zero-terminated-string}", buffer);
+		print_line(output_builder, source, source_length, line_offset);
+		string_builder_append(output_builder, " <- here\n");
+	}
+
+	if(next_line_offset > -1) {
+
+		char buffer[128];
+		sprintf(buffer, "  %-5d | ", line_no + 1);
+
+		string_builder_append(output_builder, "${zero-terminated-string}", buffer);
+		print_line(output_builder, source, source_length, next_line_offset);
+		string_builder_append(output_builder, "\n");
+	}
+}
+
 int tokenize(const char *source, int source_length, token_array_t *e_token_array);
-int check(node_t *node, const char *source, string_builder_t *output_builder);
+int check(node_t *node, const char *source, int source_length, string_builder_t *output_builder);
 
-node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, const char *source);
-node_t *parse_expression(pool_t *pool, token_iterator_t *iterator, const char *source);
+node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, const char *source, int source_length, string_builder_t *output_builder);
+node_t *parse_expression(pool_t *pool, token_iterator_t *iterator, const char *source, int source_length, string_builder_t *output_builder);
 
-#define FAILED fprintf(stderr, ">> Failed at %s:%d\n", __FILE__, __LINE__);
+#define FAILED //fprintf(stderr, ">> Failed at %s:%d\n", __FILE__, __LINE__);
 
 #warning "Implement parsing error reporting"
 
-node_t *parse_function_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
+node_t *parse_function_expression(pool_t *pool, token_iterator_t *iterator, const char *source, int source_length, string_builder_t *output_builder)
 {
 	token_t token = token_iterator_current(iterator);
 
@@ -23,6 +163,9 @@ node_t *parse_function_expression(pool_t *pool, token_iterator_t *iterator, cons
 
 		// #ERROR
 		// Unexpected token. Was expected a function expression
+
+		string_builder_append(output_builder, "Unexpected token [${string-with-length}]. Was expected a function expression", source + token.offset, token.length);
+		print_unexpected_token_location(output_builder, source, source_length, token);
 		return 0;
 	}
 
@@ -46,6 +189,9 @@ node_t *parse_function_expression(pool_t *pool, token_iterator_t *iterator, cons
 
 		// #ERROR
 		// Unexpected token after function keyword. Was expected [(]
+
+		string_builder_append(output_builder, "Unexpected token [${string-with-length}] in function expression, after the function keyword. Was expected an argument list", source + token.offset, token.length);
+		print_unexpected_token_location(output_builder, source, source_length, token);
 	}
 
 	if(!token_iterator_next(iterator)) {
@@ -92,6 +238,9 @@ node_t *parse_function_expression(pool_t *pool, token_iterator_t *iterator, cons
 
 				// #ERROR
 				// Unexpected token while parsing function arguments. Was expected an identifier as argument name
+
+				string_builder_append(output_builder, "Unexpected token [${string-with-length}] inside function argument list. Was expected an identifier", source + token.offset, token.length);
+				print_unexpected_token_location(output_builder, source, source_length, token);
 				return 0;
 			}
 
@@ -137,6 +286,9 @@ node_t *parse_function_expression(pool_t *pool, token_iterator_t *iterator, cons
 
 				// #ERROR
 				// Unexpected token after argument identifier. Was expected [,] or [)]
+
+				string_builder_append(output_builder, "Unexpected token [${string-with-length}] inside function argument list. Was expected [,] or [)]", source + token.offset, token.length);
+				print_unexpected_token_location(output_builder, source, source_length, token);
 				return 0;
 			}
 		}
@@ -151,7 +303,7 @@ node_t *parse_function_expression(pool_t *pool, token_iterator_t *iterator, cons
 
 	// now parse the body
 
-	node_t *body = parse_statement(pool, iterator, source);
+	node_t *body = parse_statement(pool, iterator, source, source_length, output_builder);
 
 	if(body == 0)
 		return 0;
@@ -163,7 +315,7 @@ node_t *parse_function_expression(pool_t *pool, token_iterator_t *iterator, cons
 
 
 
-node_t *parse_dict_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
+node_t *parse_dict_expression(pool_t *pool, token_iterator_t *iterator, const char *source, int source_length, string_builder_t *output_builder)
 {
 
 	int dict_offset, dict_length;
@@ -176,6 +328,9 @@ node_t *parse_dict_expression(pool_t *pool, token_iterator_t *iterator, const ch
 
 		// #ERROR
 		// Was expected a dict expression
+
+		string_builder_append(output_builder, "Unexpected token [${string-with-length}]. Was expected a dict expression", source + token.offset, token.length);
+		print_unexpected_token_location(output_builder, source, source_length, token);
 		return 0;
 	}
 
@@ -218,7 +373,7 @@ node_t *parse_dict_expression(pool_t *pool, token_iterator_t *iterator, const ch
 			return 0;
 		}
 
-		key = parse_expression(pool, iterator, source);
+		key = parse_expression(pool, iterator, source, source_length, output_builder);
 
 		if(key == 0)
 			return 0;
@@ -240,6 +395,9 @@ node_t *parse_dict_expression(pool_t *pool, token_iterator_t *iterator, const ch
 
 			// #ERROR
 			// Unexpected token while parsing dict expression. Was expected a [:] after key expression
+
+			string_builder_append(output_builder, "Unexpected token [${string-with-length}] after dict item key. Was expected [:]", source + token.offset, token.length);
+			print_unexpected_token_location(output_builder, source, source_length, token);
 			return 0;
 		}
 
@@ -252,7 +410,7 @@ node_t *parse_dict_expression(pool_t *pool, token_iterator_t *iterator, const ch
 			return 0;
 		}
 
-		value = parse_expression(pool, iterator, source);
+		value = parse_expression(pool, iterator, source, source_length, output_builder);
 
 		if(value == 0)
 			return 0;
@@ -294,6 +452,9 @@ node_t *parse_dict_expression(pool_t *pool, token_iterator_t *iterator, const ch
 
 			// #ERROR
 			// Unexpected token after dict item. Was expected [,] or [}]
+
+			string_builder_append(output_builder, "Unexpected token [${string-with-length}] inside a dict expression. Was expected [,] or [}]", source + token.offset, token.length);
+			print_unexpected_token_location(output_builder, source, source_length, token);
 			return 0;
 		}
 	}
@@ -303,7 +464,7 @@ node_t *parse_dict_expression(pool_t *pool, token_iterator_t *iterator, const ch
 	return node_dict_create(pool, dict_offset, dict_length, item_head, item_tail, item_count);
 }
 
-node_t *parse_array_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
+node_t *parse_array_expression(pool_t *pool, token_iterator_t *iterator, const char *source, int source_length, string_builder_t *output_builder)
 {
 
 	int array_offset, array_length;
@@ -316,6 +477,9 @@ node_t *parse_array_expression(pool_t *pool, token_iterator_t *iterator, const c
 
 		// #ERROR
 		// Was expected a array expression
+
+		string_builder_append(output_builder, "Unexpected token [${string-with-length}]. Was expected an array expression", source + token.offset, token.length);
+		print_unexpected_token_location(output_builder, source, source_length, token);
 		return 0;
 	}
 
@@ -358,7 +522,7 @@ node_t *parse_array_expression(pool_t *pool, token_iterator_t *iterator, const c
 			return 0;
 		}
 
-		item = parse_expression(pool, iterator, source);
+		item = parse_expression(pool, iterator, source, source_length, output_builder);
 
 		if(item == 0)
 			return 0;
@@ -395,6 +559,9 @@ node_t *parse_array_expression(pool_t *pool, token_iterator_t *iterator, const c
 
 			// #ERROR
 			// Unexpected token after array item. Was expected [,] or []]
+
+			string_builder_append(output_builder, "Unexpected token [${string-with-length}] inside an array expression. Was expected [,] or []]", source + token.offset, token.length);
+			print_unexpected_token_location(output_builder, source, source_length, token);
 			return 0;
 		}
 	}
@@ -404,7 +571,7 @@ node_t *parse_array_expression(pool_t *pool, token_iterator_t *iterator, const c
 	return node_array_create(pool, array_offset, array_length, item_head, item_tail, item_count);
 }
 
-node_t *parse_subexpression_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
+node_t *parse_subexpression_expression(pool_t *pool, token_iterator_t *iterator, const char *source, int source_length, string_builder_t *output_builder)
 {
 	token_t token = token_iterator_current(iterator);
 
@@ -414,6 +581,9 @@ node_t *parse_subexpression_expression(pool_t *pool, token_iterator_t *iterator,
 
 		// #ERROR
 		// Was expected sub-expression
+
+		string_builder_append(output_builder, "Unexpected token [${string-with-length}]. Was expected a sub-expression!", source + token.offset, token.length);
+		print_unexpected_token_location(output_builder, source, source_length, token);
 		return 0;
 	}
 
@@ -426,7 +596,7 @@ node_t *parse_subexpression_expression(pool_t *pool, token_iterator_t *iterator,
 		return 0;
 	}
 
-	node_t *node = parse_expression(pool, iterator, source);
+	node_t *node = parse_expression(pool, iterator, source, source_length, output_builder);
 
 	if(node == 0)
 		return 0;
@@ -448,13 +618,16 @@ node_t *parse_subexpression_expression(pool_t *pool, token_iterator_t *iterator,
 
 		// #ERROR
 		// Was expected [)] after sub-expression
+
+		string_builder_append(output_builder, "Unexpected token [${string-with-length}] at the end of a sub-expression. Was expected [)]", source + token.offset, token.length);
+		print_unexpected_token_location(output_builder, source, source_length, token);
 		return 0;
 	}
 
 	return node;
 }
 
-node_t *parse_primary_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
+node_t *parse_primary_expression(pool_t *pool, token_iterator_t *iterator, const char *source, int source_length, string_builder_t *output_builder)
 {
 	token_t token = token_iterator_current(iterator);
 
@@ -497,25 +670,38 @@ node_t *parse_primary_expression(pool_t *pool, token_iterator_t *iterator, const
 		}
 
 		case TOKEN_KIND_KWORD_FUNCTION: 
-		return parse_function_expression(pool, iterator, source);
+		return parse_function_expression(pool, iterator, source, source_length, output_builder);
 
 		case '{': 
 		//token_iterator_prev(iterator);
-		return parse_dict_expression(pool, iterator, source);
+		return parse_dict_expression(pool, iterator, source, source_length, output_builder);
 
 		case '[': 
 		//token_iterator_prev(iterator);
-		return parse_array_expression(pool, iterator, source);
+		return parse_array_expression(pool, iterator, source, source_length, output_builder);
 
 		case '(': 
 		//token_iterator_prev(iterator);
-		return parse_subexpression_expression(pool, iterator, source);
+		return parse_subexpression_expression(pool, iterator, source, source_length, output_builder);
+
+		case '\'':
+		FAILED;
+
+		// #ERROR
+		// Unexpected token. Was expected a primary expression
+		string_builder_append(output_builder, "Unexpected token [${string-with-length}] at the start of primary expression. Was expected a constant value (an int, float or string), a sub-expression, an identifier, a dict expression or an array expression. This language only used double quotes!", source + token.offset, token.length);
+		print_unexpected_token_location(output_builder, source, source_length, token);
+		return 0;
+		break;
 
 		default:
 		FAILED;
 
 		// #ERROR
-		// Unexpected token. Was expected a pripary expression
+		// Unexpected token. Was expected a primary expression
+		
+		string_builder_append(output_builder, "Unexpected token [${string-with-length}] at the start of primary expression. Was expected a constant value (an int, float or string), a sub-expression, an identifier, a dict expression or an array expression", source + token.offset, token.length);
+		print_unexpected_token_location(output_builder, source, source_length, token);
 		return 0;
 	}
 
@@ -523,9 +709,9 @@ node_t *parse_primary_expression(pool_t *pool, token_iterator_t *iterator, const
 	return 0;
 }
 
-node_t *parse_postfix_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
+node_t *parse_postfix_expression(pool_t *pool, token_iterator_t *iterator, const char *source, int source_length, string_builder_t *output_builder)
 {
-	node_t *node = parse_primary_expression(pool, iterator, source);
+	node_t *node = parse_primary_expression(pool, iterator, source, source_length, output_builder);
 
 	if(node == 0)
 		return 0;
@@ -552,7 +738,7 @@ node_t *parse_postfix_expression(pool_t *pool, token_iterator_t *iterator, const
 					return 0;
 				}
 
-				node_t *index = parse_expression(pool, iterator, source);
+				node_t *index = parse_expression(pool, iterator, source, source_length, output_builder);
 
 				if(index == 0)
 					return 0;
@@ -574,6 +760,8 @@ node_t *parse_postfix_expression(pool_t *pool, token_iterator_t *iterator, const
 
 					// #ERROR
 					// Unexpected token. Was expected []] after index selection expression
+					string_builder_append(output_builder, "Unexpected token [${string-with-length}] after index expression in index selection. Was expected []]!", source + token.offset, token.length);
+					print_unexpected_token_location(output_builder, source, source_length, token);
 					return 0;
 				}
 
@@ -622,7 +810,7 @@ node_t *parse_postfix_expression(pool_t *pool, token_iterator_t *iterator, const
 						return 0;
 					}
 
-					node_t *arg = parse_expression(pool, iterator, source);
+					node_t *arg = parse_expression(pool, iterator, source, source_length, output_builder);
 
 					if(arg == 0)
 						return 0;
@@ -651,6 +839,9 @@ node_t *parse_postfix_expression(pool_t *pool, token_iterator_t *iterator, const
 
 						// #ERROR
 						// Unexpected token in call expression. Was expected [,] or [)]
+
+						string_builder_append(output_builder, "Unexpected token [${string-with-length}] in call expression. Were expected [,] or [)]!", source + token.offset, token.length);
+						print_unexpected_token_location(output_builder, source, source_length, token);
 						return 0;
 					}
 				}
@@ -678,6 +869,8 @@ node_t *parse_postfix_expression(pool_t *pool, token_iterator_t *iterator, const
 
 					// #ERROR
 					// Unexpected token after dot in dot selection. Was expected an identifier
+					string_builder_append(output_builder, "Unexpected token [${string-with-length}] after dot in dot selection. Was expected an identifier!", source + token.offset, token.length);
+					print_unexpected_token_location(output_builder, source, source_length, token);
 					return 0;
 				}
 
@@ -710,7 +903,7 @@ node_t *parse_postfix_expression(pool_t *pool, token_iterator_t *iterator, const
 	return node;
 }
 
-node_t *parse_unary_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
+node_t *parse_unary_expression(pool_t *pool, token_iterator_t *iterator, const char *source, int source_length, string_builder_t *output_builder)
 {
 	token_t token = token_iterator_current(iterator);
 
@@ -727,7 +920,7 @@ node_t *parse_unary_expression(pool_t *pool, token_iterator_t *iterator, const c
 				return 0;
 			}
 
-			node_t *node = parse_unary_expression(pool, iterator, source);
+			node_t *node = parse_unary_expression(pool, iterator, source, source_length, output_builder);
 
 			if(node == 0)
 				return 0;
@@ -746,7 +939,7 @@ node_t *parse_unary_expression(pool_t *pool, token_iterator_t *iterator, const c
 				return 0;
 			}
 
-			node_t *node = parse_unary_expression(pool, iterator, source);
+			node_t *node = parse_unary_expression(pool, iterator, source, source_length, output_builder);
 
 			if(node == 0)
 				return 0;
@@ -765,7 +958,7 @@ node_t *parse_unary_expression(pool_t *pool, token_iterator_t *iterator, const c
 				return 0;
 			}
 
-			node_t *node = parse_unary_expression(pool, iterator, source);
+			node_t *node = parse_unary_expression(pool, iterator, source, source_length, output_builder);
 
 			if(node == 0)
 				return 0;
@@ -784,7 +977,7 @@ node_t *parse_unary_expression(pool_t *pool, token_iterator_t *iterator, const c
 				return 0;
 			}
 
-			node_t *node = parse_unary_expression(pool, iterator, source);
+			node_t *node = parse_unary_expression(pool, iterator, source, source_length, output_builder);
 
 			if(node == 0)
 				return 0;
@@ -793,12 +986,12 @@ node_t *parse_unary_expression(pool_t *pool, token_iterator_t *iterator, const c
 		}
 	}
 
-	return parse_postfix_expression(pool, iterator, source);
+	return parse_postfix_expression(pool, iterator, source, source_length, output_builder);
 }
 
-node_t *parse_multiplicative_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
+node_t *parse_multiplicative_expression(pool_t *pool, token_iterator_t *iterator, const char *source, int source_length, string_builder_t *output_builder)
 {
-	node_t *node = parse_unary_expression(pool, iterator, source);
+	node_t *node = parse_unary_expression(pool, iterator, source, source_length, output_builder);
 
 	if(node == 0)
 		return 0;
@@ -820,7 +1013,7 @@ node_t *parse_multiplicative_expression(pool_t *pool, token_iterator_t *iterator
 				return 0;
 			}
 
-			node_t *right = parse_multiplicative_expression(pool, iterator, source);
+			node_t *right = parse_multiplicative_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -839,7 +1032,7 @@ node_t *parse_multiplicative_expression(pool_t *pool, token_iterator_t *iterator
 				return 0;
 			}
 
-			node_t *right = parse_multiplicative_expression(pool, iterator, source);
+			node_t *right = parse_multiplicative_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -858,7 +1051,7 @@ node_t *parse_multiplicative_expression(pool_t *pool, token_iterator_t *iterator
 				return 0;
 			}
 
-			node_t *right = parse_multiplicative_expression(pool, iterator, source);
+			node_t *right = parse_multiplicative_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -873,9 +1066,9 @@ node_t *parse_multiplicative_expression(pool_t *pool, token_iterator_t *iterator
 	return node;
 }
 
-node_t *parse_additive_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
+node_t *parse_additive_expression(pool_t *pool, token_iterator_t *iterator, const char *source, int source_length, string_builder_t *output_builder)
 {
-	node_t *node = parse_multiplicative_expression(pool, iterator, source);
+	node_t *node = parse_multiplicative_expression(pool, iterator, source, source_length, output_builder);
 
 	if(node == 0)
 		return 0;
@@ -897,7 +1090,7 @@ node_t *parse_additive_expression(pool_t *pool, token_iterator_t *iterator, cons
 				return 0;
 			}
 
-			node_t *right = parse_additive_expression(pool, iterator, source);
+			node_t *right = parse_additive_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -916,7 +1109,7 @@ node_t *parse_additive_expression(pool_t *pool, token_iterator_t *iterator, cons
 				return 0;
 			}
 
-			node_t *right = parse_additive_expression(pool, iterator, source);
+			node_t *right = parse_additive_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -930,9 +1123,9 @@ node_t *parse_additive_expression(pool_t *pool, token_iterator_t *iterator, cons
 	return node;
 }
 
-node_t *parse_shift_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
+node_t *parse_shift_expression(pool_t *pool, token_iterator_t *iterator, const char *source, int source_length, string_builder_t *output_builder)
 {
-	node_t *node = parse_additive_expression(pool, iterator, source);
+	node_t *node = parse_additive_expression(pool, iterator, source, source_length, output_builder);
 
 	if(node == 0)
 		return 0;
@@ -954,7 +1147,7 @@ node_t *parse_shift_expression(pool_t *pool, token_iterator_t *iterator, const c
 				return 0;
 			}
 
-			node_t *right = parse_shift_expression(pool, iterator, source);
+			node_t *right = parse_shift_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -973,7 +1166,7 @@ node_t *parse_shift_expression(pool_t *pool, token_iterator_t *iterator, const c
 				return 0;
 			}
 
-			node_t *right = parse_shift_expression(pool, iterator, source);
+			node_t *right = parse_shift_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -987,9 +1180,9 @@ node_t *parse_shift_expression(pool_t *pool, token_iterator_t *iterator, const c
 	return node;
 }
 
-node_t *parse_relational_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
+node_t *parse_relational_expression(pool_t *pool, token_iterator_t *iterator, const char *source, int source_length, string_builder_t *output_builder)
 {
-	node_t *node = parse_shift_expression(pool, iterator, source);
+	node_t *node = parse_shift_expression(pool, iterator, source, source_length, output_builder);
 
 	if(node == 0)
 		return 0;
@@ -1011,7 +1204,7 @@ node_t *parse_relational_expression(pool_t *pool, token_iterator_t *iterator, co
 				return 0;
 			}
 
-			node_t *right = parse_relational_expression(pool, iterator, source);
+			node_t *right = parse_relational_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -1030,7 +1223,7 @@ node_t *parse_relational_expression(pool_t *pool, token_iterator_t *iterator, co
 				return 0;
 			}
 
-			node_t *right = parse_relational_expression(pool, iterator, source);
+			node_t *right = parse_relational_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -1049,7 +1242,7 @@ node_t *parse_relational_expression(pool_t *pool, token_iterator_t *iterator, co
 				return 0;
 			}
 
-			node_t *right = parse_relational_expression(pool, iterator, source);
+			node_t *right = parse_relational_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -1068,7 +1261,7 @@ node_t *parse_relational_expression(pool_t *pool, token_iterator_t *iterator, co
 				return 0;
 			}
 
-			node_t *right = parse_relational_expression(pool, iterator, source);
+			node_t *right = parse_relational_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -1082,9 +1275,9 @@ node_t *parse_relational_expression(pool_t *pool, token_iterator_t *iterator, co
 	return node;
 }
 
-node_t *parse_equality_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
+node_t *parse_equality_expression(pool_t *pool, token_iterator_t *iterator, const char *source, int source_length, string_builder_t *output_builder)
 {
-	node_t *node = parse_relational_expression(pool, iterator, source);
+	node_t *node = parse_relational_expression(pool, iterator, source, source_length, output_builder);
 
 	if(node == 0)
 		return 0;
@@ -1106,7 +1299,7 @@ node_t *parse_equality_expression(pool_t *pool, token_iterator_t *iterator, cons
 				return 0;
 			}
 
-			node_t *right = parse_equality_expression(pool, iterator, source);
+			node_t *right = parse_equality_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -1125,7 +1318,7 @@ node_t *parse_equality_expression(pool_t *pool, token_iterator_t *iterator, cons
 				return 0;
 			}
 
-			node_t *right = parse_equality_expression(pool, iterator, source);
+			node_t *right = parse_equality_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -1139,9 +1332,9 @@ node_t *parse_equality_expression(pool_t *pool, token_iterator_t *iterator, cons
 	return node;
 }
 
-node_t *parse_bitwise_and_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
+node_t *parse_bitwise_and_expression(pool_t *pool, token_iterator_t *iterator, const char *source, int source_length, string_builder_t *output_builder)
 {
-	node_t *node = parse_equality_expression(pool, iterator, source);
+	node_t *node = parse_equality_expression(pool, iterator, source, source_length, output_builder);
 
 	if(node == 0)
 		return 0;
@@ -1163,7 +1356,7 @@ node_t *parse_bitwise_and_expression(pool_t *pool, token_iterator_t *iterator, c
 				return 0;
 			}
 
-			node_t *right = parse_bitwise_and_expression(pool, iterator, source);
+			node_t *right = parse_bitwise_and_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -1177,9 +1370,9 @@ node_t *parse_bitwise_and_expression(pool_t *pool, token_iterator_t *iterator, c
 	return node;
 }
 
-node_t *parse_bitwise_xor_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
+node_t *parse_bitwise_xor_expression(pool_t *pool, token_iterator_t *iterator, const char *source, int source_length, string_builder_t *output_builder)
 {
-	node_t *node = parse_bitwise_and_expression(pool, iterator, source);
+	node_t *node = parse_bitwise_and_expression(pool, iterator, source, source_length, output_builder);
 
 	if(node == 0)
 		return 0;
@@ -1201,7 +1394,7 @@ node_t *parse_bitwise_xor_expression(pool_t *pool, token_iterator_t *iterator, c
 				return 0;
 			}
 
-			node_t *right = parse_bitwise_xor_expression(pool, iterator, source);
+			node_t *right = parse_bitwise_xor_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -1215,9 +1408,9 @@ node_t *parse_bitwise_xor_expression(pool_t *pool, token_iterator_t *iterator, c
 	return node;
 }
 
-node_t *parse_bitwise_or_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
+node_t *parse_bitwise_or_expression(pool_t *pool, token_iterator_t *iterator, const char *source, int source_length, string_builder_t *output_builder)
 {
-	node_t *node = parse_bitwise_xor_expression(pool, iterator, source);
+	node_t *node = parse_bitwise_xor_expression(pool, iterator, source, source_length, output_builder);
 
 	if(node == 0)
 		return 0;
@@ -1239,7 +1432,7 @@ node_t *parse_bitwise_or_expression(pool_t *pool, token_iterator_t *iterator, co
 				return 0;
 			}
 
-			node_t *right = parse_bitwise_or_expression(pool, iterator, source);
+			node_t *right = parse_bitwise_or_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -1253,9 +1446,9 @@ node_t *parse_bitwise_or_expression(pool_t *pool, token_iterator_t *iterator, co
 	return node;
 }
 
-node_t *parse_and_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
+node_t *parse_and_expression(pool_t *pool, token_iterator_t *iterator, const char *source, int source_length, string_builder_t *output_builder)
 {
-	node_t *node = parse_bitwise_or_expression(pool, iterator, source);
+	node_t *node = parse_bitwise_or_expression(pool, iterator, source, source_length, output_builder);
 
 	if(node == 0)
 		return 0;
@@ -1277,7 +1470,7 @@ node_t *parse_and_expression(pool_t *pool, token_iterator_t *iterator, const cha
 				return 0;
 			}
 
-			node_t *right = parse_and_expression(pool, iterator, source);
+			node_t *right = parse_and_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -1291,9 +1484,9 @@ node_t *parse_and_expression(pool_t *pool, token_iterator_t *iterator, const cha
 	return node;
 }
 
-node_t *parse_or_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
+node_t *parse_or_expression(pool_t *pool, token_iterator_t *iterator, const char *source, int source_length, string_builder_t *output_builder)
 {
-	node_t *node = parse_and_expression(pool, iterator, source);
+	node_t *node = parse_and_expression(pool, iterator, source, source_length, output_builder);
 
 	if(node == 0)
 		return 0;
@@ -1315,7 +1508,7 @@ node_t *parse_or_expression(pool_t *pool, token_iterator_t *iterator, const char
 				return 0;
 			}
 
-			node_t *right = parse_or_expression(pool, iterator, source);
+			node_t *right = parse_or_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -1329,9 +1522,9 @@ node_t *parse_or_expression(pool_t *pool, token_iterator_t *iterator, const char
 	return node;
 }
 
-node_t *parse_assign_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
+node_t *parse_assign_expression(pool_t *pool, token_iterator_t *iterator, const char *source, int source_length, string_builder_t *output_builder)
 {
-	node_t *node = parse_or_expression(pool, iterator, source);
+	node_t *node = parse_or_expression(pool, iterator, source, source_length, output_builder);
 
 	if(node == 0)
 		return 0;
@@ -1353,7 +1546,7 @@ node_t *parse_assign_expression(pool_t *pool, token_iterator_t *iterator, const 
 				return 0;
 			}
 
-			node_t *right = parse_assign_expression(pool, iterator, source);
+			node_t *right = parse_assign_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -1372,7 +1565,7 @@ node_t *parse_assign_expression(pool_t *pool, token_iterator_t *iterator, const 
 				return 0;
 			}
 
-			node_t *right = parse_assign_expression(pool, iterator, source);
+			node_t *right = parse_assign_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -1391,7 +1584,7 @@ node_t *parse_assign_expression(pool_t *pool, token_iterator_t *iterator, const 
 				return 0;
 			}
 
-			node_t *right = parse_assign_expression(pool, iterator, source);
+			node_t *right = parse_assign_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -1409,7 +1602,7 @@ node_t *parse_assign_expression(pool_t *pool, token_iterator_t *iterator, const 
 				return 0;
 			}
 
-			node_t *right = parse_assign_expression(pool, iterator, source);
+			node_t *right = parse_assign_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -1428,7 +1621,7 @@ node_t *parse_assign_expression(pool_t *pool, token_iterator_t *iterator, const 
 				return 0;
 			}
 
-			node_t *right = parse_assign_expression(pool, iterator, source);
+			node_t *right = parse_assign_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -1447,7 +1640,7 @@ node_t *parse_assign_expression(pool_t *pool, token_iterator_t *iterator, const 
 				return 0;
 			}
 
-			node_t *right = parse_assign_expression(pool, iterator, source);
+			node_t *right = parse_assign_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -1466,7 +1659,7 @@ node_t *parse_assign_expression(pool_t *pool, token_iterator_t *iterator, const 
 				return 0;
 			}
 
-			node_t *right = parse_assign_expression(pool, iterator, source);
+			node_t *right = parse_assign_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -1485,7 +1678,7 @@ node_t *parse_assign_expression(pool_t *pool, token_iterator_t *iterator, const 
 				return 0;
 			}
 
-			node_t *right = parse_assign_expression(pool, iterator, source);
+			node_t *right = parse_assign_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -1504,7 +1697,7 @@ node_t *parse_assign_expression(pool_t *pool, token_iterator_t *iterator, const 
 				return 0;
 			}
 
-			node_t *right = parse_assign_expression(pool, iterator, source);
+			node_t *right = parse_assign_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -1523,7 +1716,7 @@ node_t *parse_assign_expression(pool_t *pool, token_iterator_t *iterator, const 
 				return 0;
 			}
 
-			node_t *right = parse_assign_expression(pool, iterator, source);
+			node_t *right = parse_assign_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -1542,7 +1735,7 @@ node_t *parse_assign_expression(pool_t *pool, token_iterator_t *iterator, const 
 				return 0;
 			}
 
-			node_t *right = parse_assign_expression(pool, iterator, source);
+			node_t *right = parse_assign_expression(pool, iterator, source, source_length, output_builder);
 
 			if(right == 0)
 				return 0;
@@ -1557,12 +1750,12 @@ node_t *parse_assign_expression(pool_t *pool, token_iterator_t *iterator, const 
 }
 
 
-node_t *parse_expression(pool_t *pool, token_iterator_t *iterator, const char *source)
+node_t *parse_expression(pool_t *pool, token_iterator_t *iterator, const char *source, int source_length, string_builder_t *output_builder)
 {
-	return parse_assign_expression(pool, iterator, source);
+	return parse_assign_expression(pool, iterator, source, source_length, output_builder);
 }
 
-node_t *parse_while_statement(pool_t *pool, token_iterator_t *iterator, const char *source)
+node_t *parse_while_statement(pool_t *pool, token_iterator_t *iterator, const char *source, int source_length, string_builder_t *output_builder)
 {
 	int while_stmt_offset,
 		while_stmt_length;
@@ -1575,6 +1768,8 @@ node_t *parse_while_statement(pool_t *pool, token_iterator_t *iterator, const ch
 
 		// #ERROR
 		// Was expected a while statement
+		string_builder_append(output_builder, "Unexpected token [${string-with-length}]. Was expected a while statement", source + token.offset, token.length);
+		print_unexpected_token_location(output_builder, source, source_length, token);
 		return 0;
 	}
 
@@ -1586,10 +1781,12 @@ node_t *parse_while_statement(pool_t *pool, token_iterator_t *iterator, const ch
 
 		// #ERROR
 		// Unexpected end of source after while keyword. Was expected an expression
+
+		string_builder_append(output_builder, "Unexpected end of source inside a while statement, right after the while keyword. Was expected the condition expression");
 		return 0;
 	}
 
-	node_t *expression = parse_expression(pool, iterator, source);
+	node_t *expression = parse_expression(pool, iterator, source, source_length, output_builder);
 
 	if(expression == 0)
 		return 0;
@@ -1598,12 +1795,15 @@ node_t *parse_while_statement(pool_t *pool, token_iterator_t *iterator, const ch
 
 		// #ERROR
 		// Unexpected end of source in while statement, after the expression
+
+		string_builder_append(output_builder, "Unexpected end of source inside a while statement, after the condition expression. Was expected a statement");
+
 		FAILED;
 
 		return 0;
 	}
 
-	node_t *block = parse_statement(pool, iterator, source);
+	node_t *block = parse_statement(pool, iterator, source, source_length, output_builder);
 
 	if(block == 0)
 		return 0;
@@ -1613,7 +1813,7 @@ node_t *parse_while_statement(pool_t *pool, token_iterator_t *iterator, const ch
 	return node_while_create(pool, while_stmt_offset, while_stmt_length, expression, block);
 }
 
-node_t *parse_ifelse_statement(pool_t *pool, token_iterator_t *iterator, const char *source)
+node_t *parse_ifelse_statement(pool_t *pool, token_iterator_t *iterator, const char *source, int source_length, string_builder_t *output_builder)
 {
 	int ifelse_stmt_offset,
 		ifelse_stmt_length;
@@ -1626,6 +1826,9 @@ node_t *parse_ifelse_statement(pool_t *pool, token_iterator_t *iterator, const c
 
 		// #ERROR
 		// Was expected an if-else statement
+
+		string_builder_append(output_builder, "Unexpected token [${string-with-length}]. Was expected an if-else statement", source + token.offset, token.length);
+		print_unexpected_token_location(output_builder, source, source_length, token);
 		return 0;
 	}
 
@@ -1637,10 +1840,12 @@ node_t *parse_ifelse_statement(pool_t *pool, token_iterator_t *iterator, const c
 
 		// #ERROR
 		// Unexpected end of source after if keyword. Was expected an expression
+
+		string_builder_append(output_builder, "Unexpected end of source inside an if-else statement, right after the if keyword. Was expected the condition expression");
 		return 0;
 	}
 
-	node_t *expression = parse_expression(pool, iterator, source);
+	node_t *expression = parse_expression(pool, iterator, source, source_length, output_builder);
 
 	if(expression == 0)
 		return 0;
@@ -1649,12 +1854,15 @@ node_t *parse_ifelse_statement(pool_t *pool, token_iterator_t *iterator, const c
 
 		// #ERROR
 		// Unexpected end of source in if statement, after the expression
+
+		string_builder_append(output_builder, "Unexpected end of source inside of an if-else statement, after the condition expression. Was expected a statement");
+
 		FAILED;
 
 		return 0;
 	}
 
-	node_t *if_block = parse_statement(pool, iterator, source);
+	node_t *if_block = parse_statement(pool, iterator, source, source_length, output_builder);
 
 	if(if_block == 0)
 		return 0;
@@ -1674,10 +1882,11 @@ node_t *parse_ifelse_statement(pool_t *pool, token_iterator_t *iterator, const c
 
 				// #ERROR
 				// Unexpected end of source after else keyword
+				string_builder_append(output_builder, "Unexpected end of source inside of an if-else statement, after the else keyword. Was expected a statement");
 				return 0;
 			}
 
-			else_block = parse_statement(pool, iterator, source);
+			else_block = parse_statement(pool, iterator, source, source_length, output_builder);
 
 			ifelse_stmt_length = else_block->offset + else_block->length - ifelse_stmt_offset;
 
@@ -1690,7 +1899,7 @@ node_t *parse_ifelse_statement(pool_t *pool, token_iterator_t *iterator, const c
 	return node_ifelse_create(pool, ifelse_stmt_offset, ifelse_stmt_length, expression, if_block, else_block);
 }
 
-node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, const char *source)
+node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, const char *source, int source_length, string_builder_t *output_builder)
 {
 	token_t token = token_iterator_current(iterator);
 
@@ -1702,6 +1911,7 @@ node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, const char *so
 
 				// #ERROR
 				// Unexpected end of source in compound statement
+				string_builder_append(output_builder, "Unexpected end of source inside a compound statement, right after the [{]. Was expected [}] or a statement");
 				return 0;
 			}
 
@@ -1716,7 +1926,7 @@ node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, const char *so
 
 			while(1) {
 
-				node_t *stmt = parse_statement(pool, iterator, source);
+				node_t *stmt = parse_statement(pool, iterator, source, source_length, output_builder);
 
 				if(stmt == 0)
 					return 0;
@@ -1737,6 +1947,8 @@ node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, const char *so
 
 					// #ERROR
 					// Unexpected and of source inside compound statement
+
+					string_builder_append(output_builder, "Unexpected end of source inside a compound statement. Was expected [}] or a statement");
 					break;
 				}
 
@@ -1765,7 +1977,7 @@ node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, const char *so
 		case TOKEN_KIND_OPERATOR_NOT:
 		case TOKEN_KIND_OPERATOR_BITWISE_NOT:
 		{
-			node_t *expression = parse_expression(pool, iterator, source);
+			node_t *expression = parse_expression(pool, iterator, source, source_length, output_builder);
 			
 			if(!token_iterator_next(iterator)) {
 
@@ -1773,6 +1985,9 @@ node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, const char *so
 
 				// #ERROR
 				// Unexpected end of source after expression. Was expected [;]
+
+				string_builder_append(output_builder, "Unexpected end of source after expression. Was expected [;]");
+				print_missing_semicolon_location(output_builder, source, source_length, token);
 				return 0;
 			}
 			
@@ -1785,6 +2000,8 @@ node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, const char *so
 				// #ERROR
 				// Unexpected token after expression. Was expected [;]
 
+				string_builder_append(output_builder, "Unexpected token [${string-with-length}] after expression. Was expected [;]", source + token.offset, token.length);
+				print_unexpected_token_location(output_builder, source, source_length, token);
 				return 0;
 			}
 
@@ -1801,6 +2018,7 @@ node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, const char *so
 
 				// #ERROR
 				// Unexpected end of source after break statement. Was expected [;]
+				string_builder_append(output_builder, "Unexpected end of source after break statement. Was expected [;]");
 				return 0;
 			}
 			
@@ -1813,6 +2031,8 @@ node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, const char *so
 				// #ERROR
 				// Unexpected token after break statement. Was expected [;]
 
+				string_builder_append(output_builder, "Unexpected token [${string-with-length}] after break statement. Was expected [;]", source + token.offset, token.length);
+				print_unexpected_token_location(output_builder, source, source_length, token);
 				return 0;
 			}
 
@@ -1829,6 +2049,8 @@ node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, const char *so
 
 				// #ERROR
 				// Unexpected end of source after continue statement. Was expected [;]
+
+				string_builder_append(output_builder, "Unexpected end of source after continue statement. Was expected [;]");
 				return 0;
 			}
 			
@@ -1841,6 +2063,8 @@ node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, const char *so
 				// #ERROR
 				// Unexpected token after continue statement. Was expected [;]
 
+				string_builder_append(output_builder, "Unexpected token [${string-with-length}] after continue statement. Was expected [;]", source + token.offset, token.length);
+				print_unexpected_token_location(output_builder, source, source_length, token);
 				return 0;
 			}
 
@@ -1853,14 +2077,17 @@ node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, const char *so
 
 			// #ERROR
 			// Unexpected else keyword. An else statement should follow an if statement
+			
+			string_builder_append(output_builder, "Unexpected token else statement. An else statement must come after an if statement!");
+			print_unexpected_token_location(output_builder, source, source_length, token);
 			return 0;
 		}
 
 		case TOKEN_KIND_KWORD_IF:
-		return parse_ifelse_statement(pool, iterator, source);
+		return parse_ifelse_statement(pool, iterator, source, source_length, output_builder);
 
 		case TOKEN_KIND_KWORD_WHILE:
-		return parse_while_statement(pool, iterator, source);
+		return parse_while_statement(pool, iterator, source, source_length, output_builder);
 
 		case TOKEN_KIND_KWORD_RETURN:
 		{
@@ -1875,10 +2102,12 @@ node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, const char *so
 
 				// #ERROR
 				// Unexpected end of source after return keyword. Was expected an expression
+
+				string_builder_append(output_builder, "Unexpected end of source after return keyword. Was expected and expression");
 				return 0;
 			}
 
-			node_t *expression = parse_expression(pool, iterator, source);
+			node_t *expression = parse_expression(pool, iterator, source, source_length, output_builder);
 			
 			if(expression == 0)
 				return 0;
@@ -1889,6 +2118,7 @@ node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, const char *so
 
 				// #ERROR
 				// Unexpected end of source after expression. Was expected [;]
+				string_builder_append(output_builder, "Unexpected end of source after return statement value expression. Was expected [;]");
 				return 0;
 			}
 
@@ -1900,6 +2130,9 @@ node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, const char *so
 
 				// #ERROR
 				// Unexpected token after return statement. Was expected [;]
+
+				string_builder_append(output_builder, "Unexpected token [${string-with-length}] after return statement value expression. Was expected [;]", source + token.offset, token.length);
+				print_unexpected_token_location(output_builder, source, source_length, token);
 				return 0;
 			}
 
@@ -1913,7 +2146,10 @@ node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, const char *so
 
 		// #ERROR
 		// Unexpected token at the start of statement
-		assert(0);
+
+		string_builder_append(output_builder, "Unexpected token at the start of a statement\n", source + token.offset, token.length);
+		print_unexpected_token_location(output_builder, source, source_length, token);
+		return 0;
 	}
 }
 
@@ -1940,7 +2176,7 @@ int parse(const char *source, int source_length, ast_t *e_ast, string_builder_t 
 
 	while(1) {
 
-		node_t *stmt = parse_statement(pool, &iterator, source);
+		node_t *stmt = parse_statement(pool, &iterator, source, source_length, output_builder);
 
 		if(stmt == 0) {
 			
@@ -1976,7 +2212,7 @@ int parse(const char *source, int source_length, ast_t *e_ast, string_builder_t 
 		return 0;
 	}
 
-	if(!check(result, source, output_builder)) {
+	if(!check(result, source, source_length, output_builder)) {
 		pool_destroy(pool);
 		return 0;
 	}

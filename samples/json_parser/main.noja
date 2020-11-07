@@ -7,6 +7,4 @@ parse_from_file = function(path) {
 
 	if text == null return false;
 
-	
-
 };

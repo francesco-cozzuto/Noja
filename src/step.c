@@ -39,7 +39,7 @@ int step(state_t *state)
 			return 0;
 		}
 
-		state->stack[state->stack_item_count++] = (object_t*) &object_null;
+		state->stack[state->stack_item_count++] = (object_t*) &state->null_object;
 		break;
 		
 		case OPCODE_PUSH_TRUE:
@@ -52,7 +52,7 @@ int step(state_t *state)
 			return 0;
 		}
 
-		state->stack[state->stack_item_count++] = (object_t*) &object_true;
+		state->stack[state->stack_item_count++] = (object_t*) &state->true_object;
 		break;
 
 		case OPCODE_PUSH_FALSE:
@@ -65,7 +65,7 @@ int step(state_t *state)
 			return 0;
 		}
 
-		state->stack[state->stack_item_count++] = (object_t*) &object_false;
+		state->stack[state->stack_item_count++] = (object_t*) &state->false_object;
 		break;
 		
 		
@@ -131,48 +131,83 @@ int step(state_t *state)
 			break;
 		}
 
-		case OPCODE_PUSH_ARRAY:
+		case OPCODE_BUILD_ARRAY:
 		{
-			if(state->stack_item_count == state->stack_item_count_max) {
+
+			int64_t count;
+
+			fetch_i64(state, &count);
+
+			if(failed(state))
+				return 0;
+
+			if(state->stack_item_count < count) {
 
 				// #ERROR
-				// PUSH_ARRAY on a full stack
-				fail(state, "PUSH_ARRAY while out of stack");
+				fail(state, "BUILD_ARRAY with more items than the stack size");
 				return 0;
 			}
 
-			object_t *object = object_istanciate(state, (object_t*) &array_type_object);
+			object_t *object = object_istanciate(state, (object_t*) &state->type_object_array);
 
 			if(object == 0) {
 
 				// #ERROR
 				// Failed to create object
-				fail(state, "Failed to create PUSH_ARRAY's value");
+				fail(state, "Failed to create BUILD_ARRAY's value");
 				return 0;
+			}
+
+			for(int i = 0; i < count; i++) {
+
+				object_t *value;
+
+				value = state->stack[--state->stack_item_count];
+
+				if(!array_cinsert(state, object, i, value))
+					return 0;
 			}
 
 			state->stack[state->stack_item_count++] = object;
 			break;
 		}
 
-		case OPCODE_PUSH_DICT:
+		case OPCODE_BUILD_DICT:
 		{
-			if(state->stack_item_count == state->stack_item_count_max) {
+
+			int64_t count;
+
+			fetch_i64(state, &count);
+
+			if(failed(state))
+				return 0;
+
+			if(state->stack_item_count < count * 2) {
 
 				// #ERROR
-				// PUSH_DICT on a full stack
-				fail(state, "PUSH_DICT while out of stack");
+				fail(state, "BUILD_DICT with more items than the stack size");
 				return 0;
 			}
 
-			object_t *object = object_istanciate(state, (object_t*) &dict_type_object);
+			object_t *object = object_istanciate(state, (object_t*) &state->type_object_dict);
 
 			if(object == 0) {
 
 				// #ERROR
 				// Failed to create object
-				fail(state, "Failed to create PUSH_DICT's value");
+				fail(state, "Failed to create BUILD_DICT's value");
 				return 0;
+			}
+
+			for(int i = 0; i < count; i++) {
+
+				object_t *key, *value;
+
+				value = state->stack[--state->stack_item_count];
+				key   = state->stack[--state->stack_item_count];
+
+				if(!object_insert(state, object, key, value))
+					return 0;
 			}
 
 			state->stack[state->stack_item_count++] = object;
@@ -354,6 +389,44 @@ int step(state_t *state)
 			break;
 		}
 
+		case OPCODE_SELECT_ATTRIBUTE_AND_REPUSH: 
+		{
+			char *attribute_name;
+
+			fetch_string(state, &attribute_name);
+
+			if(failed(state)) 
+				return 0;
+
+			if(state->stack_item_count == state->stack_item_count_max) {
+
+				// #ERROR
+				fail(state, "SELECT_ATTRIBUTE_AND_REPUSH but out of stack");
+				return 0;
+			}
+
+			if(state->stack_item_count == 0) {
+
+				// #ERROR
+				fail(state, "SELECT_ATTRIBUTE_AND_REPUSH on an empty stack");
+				return 0;
+			}
+
+			object_t *container = state->stack[--state->stack_item_count];
+			object_t *selected = object_select_attribute(state, container, attribute_name);
+
+			if(selected == 0) {
+
+				// #ERROR
+				fail(state, "Failed to select attribute");
+				return 0;
+			}
+
+			state->stack[state->stack_item_count++] = selected;
+			state->stack[state->stack_item_count++] = container;
+			break;
+		}
+
 		case OPCODE_SELECT: 
 		{
 			if(state->stack_item_count < 2) {
@@ -392,9 +465,9 @@ int step(state_t *state)
 
 			object_t *container, *key, *item;
 
-			container = state->stack[state->stack_item_count-3];
-			key 	  = state->stack[state->stack_item_count-2];
-			item   	  = state->stack[state->stack_item_count-1];
+			item   	  = state->stack[--state->stack_item_count];
+			key 	  = state->stack[--state->stack_item_count];
+			container = state->stack[--state->stack_item_count];
 
 			if(!object_insert(state, container, key, item)) {
 
@@ -402,6 +475,8 @@ int step(state_t *state)
 				fail(state, "Failed to insert item into object");
 				return 0;
 			}
+
+			item = state->stack[state->stack_item_count++];
 
 			break;
 		}
@@ -478,7 +553,7 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *dict = object_istanciate(state, (object_t*) &dict_type_object);
+			object_t *dict = object_istanciate(state, (object_t*) &state->type_object_dict);
 
 			if(dict == 0) {
 
@@ -642,7 +717,7 @@ int step(state_t *state)
 				
 			object_t *callable = state->stack[state->stack_item_count - argc - 1];
 
-			if(callable->type == (object_t*) &cfunction_type_object) {
+			if(callable->type == (object_t*) &state->type_object_cfunction) {
 
 				object_t *result = ((object_cfunction_t*) callable)->routine(state, argc, state->stack + state->stack_item_count - argc);
 
@@ -655,7 +730,7 @@ int step(state_t *state)
 				state->stack_item_count -= argc + 1;
 				state->stack[state->stack_item_count++] = result;
 
-			} else if(callable->type == (object_t*) &function_type_object) {
+			} else if(callable->type == (object_t*) &state->type_object_function) {
 
 				state->argc = argc;
 
@@ -1333,20 +1408,24 @@ int step(state_t *state)
 	}
 
 	/*
-	printf("=== Stack view (%d) ===\n", state->program_counters[state->call_depth-1]);
+	FILE *fp = fopen("log.txt", "a+");
+	
+	fprintf(fp, "=== Stack view (%d) ===\n", state->program_counters[state->call_depth-1]);
 
 	for(size_t i = 0; i < state->stack_item_count; i++) {
 
-		printf("%ld: [", i);
-		object_print(state, state->stack[i], stdout);
-		printf("]\n");
+		fprintf("%ld: ", i);
+		object_print(state, state->stack[i], fp);
+		fprintf(fp, "\n");
 
 	}
 
-	printf("==================\n");
-	
-	getc(stdin);
+	fprintf(fp, "==================\n");
+
+	fclose(fp);
 	*/
+
+	
 
 	return 1;
 }

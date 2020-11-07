@@ -14,7 +14,7 @@ static object_t *builtin_print(state_t *state, int argc, object_t **argv)
 	
 	printf("\n");
 
-	return (object_t*) &object_null;
+	return (object_t*) &state->null_object;
 }
 
 static object_t *builtin_typeof(state_t *state, int argc, object_t **argv)
@@ -50,6 +50,7 @@ static char *builtin_names[] = {
 	"type_of",
 	"typename_of",
 	"disassemble",
+	"import",
 };
 
 static builtin_interface_t builtin_routines[] = {
@@ -57,6 +58,7 @@ static builtin_interface_t builtin_routines[] = {
 	builtin_typeof,
 	builtin_typenameof,
 	builtin_disassemble,
+	builtin_import,
 };
 
 static int builtin_count = sizeof(builtin_names) / sizeof(char*);

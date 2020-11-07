@@ -171,6 +171,7 @@ typedef struct {
 	int count;
 } node_compound_t;
 
+void ast_print(ast_t ast, FILE *fp);
 void ast_delete(ast_t ast);
 node_t *node_neg_create(pool_t *pool, int offset, int length, node_t *operand);
 node_t *node_add_create(pool_t *pool, int offset, int length, node_t *left_operand, node_t *right_operand);

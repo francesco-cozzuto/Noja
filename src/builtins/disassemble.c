@@ -13,10 +13,11 @@ static const char *operand_types[] = {
 	[OPCODE_PUSH_INT] = "i",
 	[OPCODE_PUSH_FLOAT] = "f",
 	[OPCODE_PUSH_STRING] = "s",
-	[OPCODE_PUSH_ARRAY] = "",
-	[OPCODE_PUSH_DICT] = "",
+	[OPCODE_BUILD_ARRAY] = "i",
+	[OPCODE_BUILD_DICT] = "i",
 	[OPCODE_PUSH_FUNCTION] = "a",
 	[OPCODE_PUSH_VARIABLE] = "s",
+	[OPCODE_SELECT_ATTRIBUTE_AND_REPUSH] = "s",
 
 	[OPCODE_POP] = "i",
 
@@ -86,10 +87,11 @@ static const char *get_opcode_name(int opcode)
 		case OPCODE_PUSH_INT: return "PUSH_INT";
 		case OPCODE_PUSH_FLOAT: return "PUSH_FLOAT";
 		case OPCODE_PUSH_STRING: return "PUSH_STRING";
-		case OPCODE_PUSH_ARRAY: return "PUSH_ARRAY";
-		case OPCODE_PUSH_DICT: return "PUSH_DICT";
+		case OPCODE_BUILD_ARRAY: return "BUILD_ARRAY";
+		case OPCODE_BUILD_DICT: return "BUILD_DICT";
 		case OPCODE_PUSH_FUNCTION: return "PUSH_FUNCTION";
 		case OPCODE_PUSH_VARIABLE: return "PUSH_VARIABLE";
+		case OPCODE_SELECT_ATTRIBUTE_AND_REPUSH: return "SELECT_ATTRIBUTE_AND_REPUSH";
 
 		case OPCODE_POP: return "POP";
 
@@ -250,5 +252,5 @@ object_t *builtin_disassemble(state_t *state, int argc, object_t **argv)
 		fprintf(stdout, "\n");
 	}
 
-	return (object_t*) &object_null;
+	return (object_t*) &state->null_object;
 }
