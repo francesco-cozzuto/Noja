@@ -1,4 +1,6 @@
 
+print("hoy???");
+
 import "samples/imported.noja" as imported;
 
 print(imported);

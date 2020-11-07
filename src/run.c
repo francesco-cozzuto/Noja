@@ -54,8 +54,12 @@ int run_text_inner(const char *text, int length, string_builder_t *output_builde
 	state_t state;
 	ast_t ast;
 
+	printf("about to parse...\n");
+
 	if(!parse(text, length, &ast, output_builder))
 		return 0;
+
+	printf("parsed\n");
 
 	//ast_print(ast, stdout);
 
@@ -66,22 +70,29 @@ int run_text_inner(const char *text, int length, string_builder_t *output_builde
 
 	if(!generate(ast, &first_data_segment, &first_code_segment, &first_data_segment_size, &first_code_segment_size)) {
 
+		string_builder_append(output_builder, "Failed to generate bytecode");
 		ast_delete(ast);
 		return 0;
 	}
+
+	printf("bytecode generated\n");
 
 	ast_delete(ast);
 
 	if(!state_init(&state, output_builder)) {
 
+		printf("failed to initialize state\n");
+
 		free(first_code_segment);
 		return 0;
 	}
 
+	printf("state initialized\n");
+
 	if(!append_segment(&state, first_code_segment, first_data_segment, first_code_segment_size, first_data_segment_size, 0))
 		return 0;
 
-	if(!u32_push(&state.segment_stack, 0) || u32_push(&state.offset_stack, 0))
+	if(!u32_push(&state.segment_stack, 0) || !u32_push(&state.offset_stack, 0))
 		return 0;
 
 	while(step(&state));
@@ -275,16 +286,22 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *popped = object_pop(&state->eval_stack);
+			// Pop path from the stack
+	
+			{
+				object_t *popped = object_pop(&state->eval_stack);
 
-			if(popped->type != (object_t*) &state->type_object_string) {
+				if(popped->type != (object_t*) &state->type_object_string) {
 
-				// #ERROR
-				fail(state, "The imported path expression is not a string");
-				return 0;
+					// #ERROR
+					fail(state, "The imported path expression is not a string");
+					return 0;
+				}
+
+				path = ((object_string_t*) popped)->value;
 			}
 
-			path = ((object_string_t*) popped)->value;
+			// Fetch import name if there is one
 
 			if(opcode == OPCODE_IMPORT_AS) {
 
@@ -304,7 +321,7 @@ int step(state_t *state)
 
 			if(!load_text(path, &text, &length)) {
 
-				fail(state, "Failed to load file contents");
+				fail(state, "Failed to load \"${zero-terminated-string}\" in memory", path);
 				return 0;
 			}
 
@@ -327,7 +344,7 @@ int step(state_t *state)
 
 			if(!generate(ast, &data_segment, &code_segment, &data_segment_size, &code_segment_size)) {
 
-				fail(state, "Out of memory. Failed to generated imported source bytecode");
+				fail(state, "Failed to generate bytecode for \"${zero-terminated-string}\"", path);
 				ast_delete(ast);
 				return 0;
 			}

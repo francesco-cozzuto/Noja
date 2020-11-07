@@ -1,2 +1,37 @@
 
 some_text = "hello!";
+
+list = {"head": 0, "tail": 0, "count": 0};
+
+iter_no = 0;
+
+print("hoy?");
+
+while list["count"] < 10 {
+
+	print("New value");
+
+	item = {"value": list["count"], "next": 0};
+
+	if list["head"] == 0 {
+
+		print("if case at iteration ", iter_no);
+
+		print("Setting as head");
+
+		list["head"] = item;
+
+	} else {
+
+		print("else case at iteration ", iter_no);
+
+		print("Appending... ", list);
+
+		list["tail"]["next"] = item;
+	}
+
+	list["tail"] = item;
+	list["count"] = list["count"] + 1;
+
+	iter_no = iter_no + 1;
+}

@@ -484,7 +484,7 @@ static void node_compile(function_text_t *ft, node_t *node)
 
 				function_text_append_u32(ft, OPCODE_IMPORT_AS);
 				function_text_append_string(ft, x->name);
-				
+
 			} else {
 
 				function_text_append_u32(ft, OPCODE_IMPORT);
@@ -507,6 +507,8 @@ static void node_compile(function_text_t *ft, node_t *node)
 
 				function_text_append_u32(ft, 0);
 
+				// if block start
+
 				node_compile(ft, x->if_block);
 
 				if(x->if_block->kind == NODE_KIND_EXPRESSION) {
@@ -520,9 +522,12 @@ static void node_compile(function_text_t *ft, node_t *node)
 
 				function_text_append_u32(ft, 0);
 
-				label_t C = function_text_get_label_here(ft);
+				// if block end
 
-				function_text_write_u32_from_label(A, C);
+				// else block start
+
+				label_t C = function_text_get_label_here(ft); //
+				function_text_write_u32_from_label(A, C); 	  // The first jump jumps here
 
 				node_compile(ft, x->else_block);
 
@@ -531,7 +536,10 @@ static void node_compile(function_text_t *ft, node_t *node)
 					function_text_append_i64(ft, 1);
 				}
 
-				function_text_write_u32_from_label(B, C);
+				// else block end
+
+				label_t D = function_text_get_label_here(ft); //
+				function_text_write_u32_from_label(B, D); 	  // The jump at the end of the if block must jump here
 
 			} else {
 

@@ -231,7 +231,7 @@ static object_t *int_eql(state_t *state, object_t *self, object_t *right)
 
 		// #ERROR
 		// Unexpected type
-		return 0;
+		return object_from_cint(state, 0);
 	}
 
 	object_int_t *r = (object_int_t*) right;
