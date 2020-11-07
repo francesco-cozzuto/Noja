@@ -3,3 +3,7 @@ import "samples/imported.noja" as imported;
 
 print(imported);
 print(imported["some_text"]);
+
+import "samples/imported.noja";
+
+print(some_text);

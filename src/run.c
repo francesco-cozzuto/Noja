@@ -81,16 +81,17 @@ int run_text_inner(const char *text, int length, string_builder_t *output_builde
 	if(!append_segment(&state, first_code_segment, first_data_segment, first_code_segment_size, first_data_segment_size, 0))
 		return 0;
 
-	u32_push(&state.segment_stack, 0);
-	u32_push(&state.offset_stack, 0);
+	if(!u32_push(&state.segment_stack, 0) || u32_push(&state.offset_stack, 0))
+		return 0;
 
 	while(step(&state));
+
+	u32_pop(&state.segment_stack);
+	u32_pop(&state.offset_stack);
 
 	int result = !state.failed;
 
 	state_deinit(&state);
-
-	free(first_code_segment);
 	return result;	
 }
 
@@ -218,6 +219,11 @@ static void state_deinit(state_t *state)
 {
 	free(state->heap); // free overflow allocations!
 
+	for(int i = 0; i < state->segments_used; i++)
+		free(state->segments[i].code);
+
+	free(state->segments);
+
 	object_stack_deinit(&state->eval_stack);
 	object_stack_deinit(&state->vars_stack);
 	u32_stack_deinit(&state->continue_destinations);
@@ -298,9 +304,7 @@ int step(state_t *state)
 
 			if(!load_text(path, &text, &length)) {
 
-				// Failed to load file contents
-
-				#warning "Push error string to the stack"
+				fail(state, "Failed to load file contents");
 				return 0;
 			}
 
@@ -308,16 +312,13 @@ int step(state_t *state)
 			// Parse it
 			//
 
-			string_builder_t output_builder;
-			string_builder_init(&output_builder);
 
-			if(!parse(text, length, &ast, &output_builder)) {
+			if(!parse(text, length, &ast, state->output_builder)) {
 
-				string_builder_deinit(&output_builder);
+				free(text);
 				return 0;
 			}
 
-			string_builder_deinit(&output_builder);
 			free(text);
 
 			//
@@ -326,6 +327,7 @@ int step(state_t *state)
 
 			if(!generate(ast, &data_segment, &code_segment, &data_segment_size, &code_segment_size)) {
 
+				fail(state, "Out of memory. Failed to generated imported source bytecode");
 				ast_delete(ast);
 				return 0;
 			}
@@ -338,8 +340,12 @@ int step(state_t *state)
 
 			uint32_t imported_segment;
 
-			if(!append_segment(state, code_segment, data_segment, code_segment_size, data_segment_size, &imported_segment))
+			if(!append_segment(state, code_segment, data_segment, code_segment_size, data_segment_size, &imported_segment)) {
+
+				// #ERROR
+				fail(state, "Out of memory. Failed to grow segment array");
 				return 0;
+			}
 
 			//
 			// Run the segment
@@ -351,7 +357,7 @@ int step(state_t *state)
 			while(step(state));
 
 			if(state->failed)
-				break;
+				return 0;
 
 			u32_pop(&state->segment_stack);
 			u32_pop(&state->offset_stack);
