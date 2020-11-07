@@ -53,7 +53,7 @@ void object_stack_print(state_t *state, object_stack_t *stack, FILE *fp)
 
 	int j = stack->absolute_size-1;
 
-	for(int i = 0; i < stack->relative_size; i++, j--) {
+	for(size_t i = 0; i < stack->relative_size; i++, j--) {
 		fprintf(fp, "%d: ", j);
 		object_print(state, chunk->items[stack->relative_size - i - 1], fp);
 		fprintf(fp, "\n");

@@ -21,8 +21,8 @@ static const char *operand_types[] = {
 
 	[OPCODE_POP] = "i",
 
-	[OPCODE_IMPORT] = "s",
-	[OPCODE_IMPORT_AS] = "ss",
+	[OPCODE_IMPORT] = "",
+	[OPCODE_IMPORT_AS] = "s",
 
 	[OPCODE_ASSIGN] = "s",
 	[OPCODE_SELECT] = "",

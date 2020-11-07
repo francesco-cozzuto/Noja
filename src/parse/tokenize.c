@@ -35,6 +35,13 @@ static void assign_identifier_kind(char *source, token_t *token)
 
 	switch(source[token->offset]) {
 
+		case 'a':
+		if MATCH("as") {
+			token->kind = TOKEN_KIND_KWORD_AS;
+			break;
+		}
+		break;
+
 		case 'b':
 		if MATCH("break") {
 			token->kind = TOKEN_KIND_KWORD_BREAK;
@@ -66,6 +73,11 @@ static void assign_identifier_kind(char *source, token_t *token)
 		case 'i':
 		if MATCH("if") {
 			token->kind = TOKEN_KIND_KWORD_IF;
+			break;
+		}
+
+		if MATCH("import") {
+			token->kind = TOKEN_KIND_KWORD_IMPORT;
 			break;
 		}
 		break;

@@ -149,7 +149,7 @@ int check(node_t *node, const char *source, int source_length, string_builder_t 
 node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, const char *source, int source_length, string_builder_t *output_builder);
 node_t *parse_expression(pool_t *pool, token_iterator_t *iterator, const char *source, int source_length, string_builder_t *output_builder);
 
-#define FAILED //fprintf(stderr, ">> Failed at %s:%d\n", __FILE__, __LINE__);
+#define FAILED fprintf(stderr, ">> Failed at %s:%d\n", __FILE__, __LINE__);
 
 #warning "Implement parsing error reporting"
 
@@ -1949,7 +1949,7 @@ node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, const char *so
 					// Unexpected and of source inside compound statement
 
 					string_builder_append(output_builder, "Unexpected end of source inside a compound statement. Was expected [}] or a statement");
-					break;
+					return 0;
 				}
 
 				token = token_iterator_current(iterator);
@@ -1961,6 +1961,95 @@ node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, const char *so
 			comp_stmt_length = token.offset + token.length - comp_stmt_offset;
 
 			return node_compound_create(pool, comp_stmt_offset, comp_stmt_length, stmt_head, stmt_tail, stmt_count);
+		}
+
+		case TOKEN_KIND_KWORD_IMPORT:
+		{
+
+			int import_stmt_offset, import_stmt_length;
+
+			import_stmt_offset = token.offset;
+
+			if(!token_iterator_next(iterator)) {
+
+				// #ERROR
+
+				FAILED;
+
+				string_builder_append(output_builder, "Unexpected end of source inside an import statement, right after the import statement. Was expected an expression as path");
+				return 0;
+			}
+
+			node_t *expression = parse_expression(pool, iterator, source, source_length, output_builder);
+
+			if(expression == 0)
+				return 0;
+
+			char *name = 0;
+
+			if(!token_iterator_next(iterator)) {
+
+				// #ERROR
+
+				FAILED;
+
+				string_builder_append(output_builder, "Unexpected end of source inside an import statement, after path expression. Was expected [as] or [;]");
+				return 0;
+			}
+
+			token = token_iterator_current(iterator);
+
+			if(token.kind == TOKEN_KIND_KWORD_AS) {
+
+				if(!token_iterator_next(iterator)) {
+
+					// #ERROR
+
+					FAILED;
+
+					string_builder_append(output_builder, "Unexpected end of source inside an import statement, after [as] keyword. Was expected an identifier");
+					return 0;
+				}
+
+				token = token_iterator_current(iterator);
+
+				if(token.kind != TOKEN_KIND_IDENTIFIER) {
+
+					// #ERROR
+
+					FAILED;
+
+					string_builder_append(output_builder, "Unexpected token [${string-with-length}] inside an import statement, after [as] keyword. Was expected an identifier", source + token.offset, token.length);
+					print_unexpected_token_location(output_builder, source, source_length, token);
+					return 0;
+				}
+
+				if(!token_to_string(pool, token, source, &name, 0))
+					return 0;
+
+				if(!token_iterator_next(iterator)) {
+
+					// #ERROR
+
+					FAILED;
+
+					string_builder_append(output_builder, "Unexpected end of source inside an import statement, after identifier. Was expected [;]");
+					return 0;
+				}
+
+				token = token_iterator_current(iterator);
+			}
+
+			if(token.kind != ';') {
+
+				string_builder_append(output_builder, "Unexpected token [${string-with-length}] inside an import statement. Was expected [;]", source + token.offset, token.length);
+				print_unexpected_token_location(output_builder, source, source_length, token);
+				return 0;
+			}
+
+			import_stmt_length = token.offset + token.length - import_stmt_offset;
+
+			return node_import_create(pool, import_stmt_offset, import_stmt_length, expression, name);
 		}
 
 		case '(':
@@ -2151,6 +2240,8 @@ node_t *parse_statement(pool_t *pool, token_iterator_t *iterator, const char *so
 		print_unexpected_token_location(output_builder, source, source_length, token);
 		return 0;
 	}
+
+	return 0; //??
 }
 
 int parse(const char *source, int source_length, ast_t *e_ast, string_builder_t *output_builder)
@@ -2213,6 +2304,7 @@ int parse(const char *source, int source_length, ast_t *e_ast, string_builder_t 
 	}
 
 	if(!check(result, source, source_length, output_builder)) {
+		
 		pool_destroy(pool);
 		return 0;
 	}

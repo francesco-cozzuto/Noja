@@ -54,10 +54,8 @@ int run_text_inner(const char *text, int length, string_builder_t *output_builde
 	state_t state;
 	ast_t ast;
 
-	if(!parse(text, length, &ast, output_builder)) {
-
+	if(!parse(text, length, &ast, output_builder))
 		return 0;
-	}
 
 	//ast_print(ast, stdout);
 
@@ -264,10 +262,23 @@ int step(state_t *state)
 			uint32_t data_segment_size;
 			int length;
 
-			fetch_string(state, &path);
+			if(object_stack_size(&state->eval_stack) == 0) {
 
-			if(failed(state))
+				// #ERROR
+				fail(state, "OPCODE_IMPORT/OPCODE_IMPORT_AS on an empty stack");
 				return 0;
+			}
+
+			object_t *popped = object_pop(&state->eval_stack);
+
+			if(popped->type != (object_t*) &state->type_object_string) {
+
+				// #ERROR
+				fail(state, "The imported path expression is not a string");
+				return 0;
+			}
+
+			path = ((object_string_t*) popped)->value;
 
 			if(opcode == OPCODE_IMPORT_AS) {
 
@@ -288,7 +299,8 @@ int step(state_t *state)
 			if(!load_text(path, &text, &length)) {
 
 				// Failed to load file contents
-		
+
+				#warning "Push error string to the stack"
 				return 0;
 			}
 

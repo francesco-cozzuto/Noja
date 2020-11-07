@@ -13,6 +13,7 @@ enum {
 	NODE_KIND_DICT_ITEM,
 	NODE_KIND_EXPRESSION,
 	NODE_KIND_COMPOUND,
+	NODE_KIND_IMPORT,
 };
 
 enum {
@@ -167,6 +168,12 @@ typedef struct {
 
 typedef struct {
 	node_t super;
+	node_t *expression;
+	char *name;
+} node_import_t;
+
+typedef struct {
+	node_t super;
 	node_t *head, *tail;
 	int count;
 } node_compound_t;
@@ -228,6 +235,7 @@ node_t *node_return_create(pool_t *pool, int offset, int length, node_t *express
 node_t *node_break_create(pool_t *pool, int offset, int length);
 node_t *node_continue_create(pool_t *pool, int offset, int length);
 node_t *node_compound_create(pool_t *pool, int offset, int length, node_t *head, node_t *tail, int count);
+node_t *node_import_create(pool_t *pool, int offset, int length, node_t *expression, char *name);
 
 int 	node_get_kind(node_t *node);
 node_t *node_get_next(node_t *node);

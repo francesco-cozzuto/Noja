@@ -109,6 +109,7 @@ static void pop(checking_context_t *ctx)
 static int node_check(checking_context_t *ctx, node_t *node)
 {
 	switch(node->kind) {
+
 		case NODE_KIND_BREAK:
 		{
 			if(!inside_loop(ctx)) {
@@ -156,6 +157,21 @@ static int node_check(checking_context_t *ctx, node_t *node)
 				print_node_start_location(ctx->output_builder, ctx->source, ctx->source_length, node);
 				return 0;
 			}
+
+			node_return_t *x = (node_return_t*) node;
+
+			if(!node_check(ctx, x->expression))
+				return 0;
+			return 1;
+		}
+
+		case NODE_KIND_IMPORT:
+		{
+			node_import_t *x = (node_import_t*) node;
+
+			if(!node_check(ctx, x->expression))
+				return 0;
+
 			return 1;
 		}
 
@@ -426,7 +442,8 @@ static int node_check(checking_context_t *ctx, node_t *node)
 					return 1;
 				}
 				
-			}	
+			}
+			assert(0);
 			return 0;
 		}
 
@@ -448,6 +465,7 @@ static int node_check(checking_context_t *ctx, node_t *node)
 		}
 	}
 
+	assert(0);
 	return 0;
 }
 

@@ -499,6 +499,22 @@ node_t *node_compound_create(pool_t *pool, int offset, int length, node_t *head,
 	return (node_t*) node;
 }
 
+node_t *node_import_create(pool_t *pool, int offset, int length, node_t *expression, char *name)
+{
+	node_import_t *node = pool_request(pool, sizeof(node_import_t));
+
+	if(node == 0)
+		return 0;
+
+	node->super.kind = NODE_KIND_IMPORT;
+	node->super.offset = offset;
+	node->super.length = length;
+	node->super.next = 0;
+	node->expression = expression;
+	node->name = name;
+
+	return (node_t*) node;
+}
 
 /* =========================== */
 /* === Getters and setters === */
@@ -595,6 +611,20 @@ void node_print(node_t *node, FILE *fp)
 			node_print(((node_return_t*) node)->expression, fp);
 		}
 		break;
+
+		case NODE_KIND_IMPORT:
+		{
+			node_import_t *import = (node_import_t*) node;
+
+			fprintf(fp, "import ");
+
+			node_print(import->expression, fp);
+
+			if(import->name)
+				fprintf(fp, " as %s", import->name);
+
+			break;
+		}
 
 		case NODE_KIND_IFELSE:
 		{

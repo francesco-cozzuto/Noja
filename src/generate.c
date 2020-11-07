@@ -474,6 +474,25 @@ static void node_compile(function_text_t *ft, node_t *node)
 			break;
 		}
 
+		case NODE_KIND_IMPORT:
+		{
+			node_import_t *x = (node_import_t*) node;
+
+			node_compile(ft, x->expression);
+
+			if(x->name) {
+
+				function_text_append_u32(ft, OPCODE_IMPORT_AS);
+				function_text_append_string(ft, x->name);
+				
+			} else {
+
+				function_text_append_u32(ft, OPCODE_IMPORT);
+
+			}
+			break;
+		}
+
 		case NODE_KIND_IFELSE:
 		{
 			node_ifelse_t *x = (node_ifelse_t*) node;

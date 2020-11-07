@@ -1,52 +1,5 @@
 
-[].filter = function(self, routine) {
+import "samples/imported.noja" as imported;
 
-	i = 0;
-	r = [];
-
-	while i < self.length() {
-
-		if routine(i, self[i])
-
-			r[r.length()] = self[i];
-
-		i = i + 1;
-	}
-
-	return r;
-};
-
-[].reverse = function(self) {
-
-	i = self.length() - 1;
-	r = [];
-
-	while i >= 0 {
-
-		r[self.length() - 1 + i] = self[i];
-
-		i = i - 1;
-	}
-
-	return r;
-};
-
-
-#a = [1, 2, 0-3, 5, 0-55];
-
-#print("The positive elements of ", a, " are ", a.filter(function(i, v) { return v > 0; }).reverse() );
-
-
-p = {"name": "Francesco", "surname": "Cozzuto", "age": 22, "university": "Federico II"};
-
-print(p, " has ", p.length(), " items in it");
-print(p.keys());
-
-i = 0;
-
-while i < p.keys().length() {
-
-	print("'", p.keys()[i], "': ", p[p.keys()[i]]);
-
-	i = i + 1;
-}
+print(imported);
+print(imported["some_text"]);
