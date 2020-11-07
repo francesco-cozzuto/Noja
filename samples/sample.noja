@@ -32,9 +32,10 @@
 };
 
 
-a = [1, 2, 0-3, 5, 0-55];
+#a = [1, 2, 0-3, 5, 0-55];
 
-print("The positive elements of ", a, " are ", a.filter(function(i, v) { return v > 0; }).reverse() );
+#print("The positive elements of ", a, " are ", a.filter(function(i, v) { return v > 0; }).reverse() );
+
 
 p = {"name": "Francesco", "surname": "Cozzuto", "age": 22, "university": "Federico II"};
 

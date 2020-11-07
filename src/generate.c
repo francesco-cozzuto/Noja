@@ -5,6 +5,8 @@
 #include <setjmp.h>
 #include "noja.h"
 
+#warning "Align data in code generation"
+
 #define BYTES_PER_DATA_CHUNK 4096
 #define BYTES_PER_CODE_CHUNK 1024
 
@@ -125,7 +127,6 @@ void function_text_append_f64(function_text_t *function_text, double value)
 	function_text->tail->used += sizeof(double);
 	function_text->length += sizeof(double);
 }
-
 
 void function_text_append_string(function_text_t *function_text, const char *value)
 {
@@ -304,7 +305,7 @@ static void release_resources(generating_context_t ctx)
 
 static void node_compile(function_text_t *ft, node_t *node);
 
-executable_t *generate(ast_t ast)
+int generate(ast_t ast, char **e_data, char **e_code, uint32_t *e_data_size, uint32_t *e_code_size)
 {
 	generating_context_t ctx;
 	ctx.head_data.next = 0;
@@ -365,23 +366,19 @@ executable_t *generate(ast_t ast)
 		ctx.tail_call_gap = 0;
 	}
 
-	executable_t *executable = malloc(sizeof(executable_t) + ctx.data_length + code_length);
+	char *code = malloc(ctx.data_length + code_length);
+	char *data = code + code_length;
 
-	if(executable == 0)
+	if(code == 0)
 		throw(&ctx);
-
-	executable->code_length = code_length;
-	executable->data_length = ctx.data_length;
 	
-	executable->code = (char*) (executable + 1);
-	executable->data = executable->code + code_length;
 
 	// write the data
 
 	{
 		uint32_t written;
 
-		memcpy(executable->data, ctx.head_data.content, ctx.head_data.used);
+		memcpy(data, ctx.head_data.content, ctx.head_data.used);
 
 		written = ctx.head_data.used;
 
@@ -391,7 +388,7 @@ executable_t *generate(ast_t ast)
 
 			data_chunk_t *next_chunk = chunk->next;
 
-			memcpy(executable->data + written, chunk->content, chunk->used);
+			memcpy(data + written, chunk->content, chunk->used);
 
 			written += chunk->used;
 
@@ -419,7 +416,7 @@ executable_t *generate(ast_t ast)
 			{
 				// serialize the first function chunk
 
-				memcpy(executable->code + written, ft->head.content, ft->head.used);
+				memcpy(code + written, ft->head.content, ft->head.used);
 				written += ft->head.used;
 
 				// serialize the remanining function chunks
@@ -430,7 +427,7 @@ executable_t *generate(ast_t ast)
 
 					function_text_chunk_t *next_c = c->next;
 
-					memcpy(executable->code + written, c->content, c->used);
+					memcpy(code + written, c->content, c->used);
 					written += c->used;
 
 					free(c);
@@ -449,8 +446,12 @@ executable_t *generate(ast_t ast)
 		}
 	}
 
-	return executable;
+	*e_code = code;
+	*e_data = data;
+	*e_code_size = code_length;
+	*e_data_size = ctx.data_length;
 
+	return 1;
 }
 
 
@@ -600,13 +601,11 @@ static void node_compile(function_text_t *ft, node_t *node)
 			switch(x->kind) {
 
 				case EXPRESSION_KIND_INT:
-				#warning "Align PUSH_INT operand"
 				function_text_append_u32(ft, OPCODE_PUSH_INT);
 				function_text_append_i64(ft, ((node_expr_int_t*) node)->value); // #TODO Should align
 				break;
 
 				case EXPRESSION_KIND_FLOAT:
-				#warning "Align PUSH_FLOAT operand"
 				function_text_append_u32(ft, OPCODE_PUSH_FLOAT);
 				function_text_append_f64(ft, ((node_expr_float_t*) node)->value); // #TODO Should align
 				break;
@@ -790,7 +789,6 @@ static void node_compile(function_text_t *ft, node_t *node)
 						arg = arg->next;
 					}
 
-					#warning "Align OPCODE_CALL's operand"
 					function_text_append_u32(ft, OPCODE_CALL);
 					function_text_append_i64(ft, argc);
 					break;	

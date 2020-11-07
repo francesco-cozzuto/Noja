@@ -134,6 +134,7 @@ static object_t *method_length(state_t *state, int argc, object_t **argv)
 
 int array_methods_setup(state_t *state)
 {
+(void) state;
 	state->type_object_array.methods = object_istanciate(state, (object_t*) &state->type_object_dict);
 
 	assert(state->type_object_array.methods);

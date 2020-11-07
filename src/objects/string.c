@@ -84,6 +84,8 @@ static void string_print(state_t *state, object_t *self, FILE *fp)
 
 int string_methods_setup(state_t *state)
 {
+(void) state;
+	/*
 	state->type_object_string.methods = object_istanciate(state, (object_t*) &state->type_object_dict);
 
 	assert(state->type_object_string.methods);
@@ -102,6 +104,7 @@ int string_methods_setup(state_t *state)
 	
 			return 0;
 	}
+	*/
 
 	return 1;
 }

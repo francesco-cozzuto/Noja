@@ -394,6 +394,8 @@ static uint8_t int_test(state_t *state, object_t *self)
 
 int int_methods_setup(state_t *state)
 {
+(void) state;
+	/*
 	state->type_object_int.methods = object_istanciate(state, (object_t*) &state->type_object_dict);
 
 	assert(state->type_object_int.methods);
@@ -412,6 +414,7 @@ int int_methods_setup(state_t *state)
 	
 			return 0;
 	}
+	*/
 
 	return 1;
 }

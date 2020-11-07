@@ -35,7 +35,7 @@ object_t *object_from_cfloat(state_t *state, double value)
 	return o;
 }
 
-object_t *object_from_executable_and_offset(state_t *state, executable_t *executable, uint32_t offset)
+object_t *object_from_segment_and_offset(state_t *state, uint32_t segment, uint32_t offset)
 {
 	object_t *o = object_istanciate(state, (object_t*) &state->type_object_function);
 
@@ -44,7 +44,7 @@ object_t *object_from_executable_and_offset(state_t *state, executable_t *execut
 
 	object_function_t *x = (object_function_t*) o;
 
-	x->executable = executable;
+	x->segment = segment;
 	x->offset = offset;
 
 	return o;

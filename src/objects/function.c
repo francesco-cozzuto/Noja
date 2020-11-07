@@ -3,6 +3,8 @@
 
 int function_methods_setup(state_t *state)
 {
+(void) state;
+	/*
 	state->type_object_function.methods = object_istanciate(state, (object_t*) &state->type_object_dict);
 
 	assert(state->type_object_function.methods);
@@ -21,6 +23,7 @@ int function_methods_setup(state_t *state)
 	
 			return 0;
 	}
+	*/
 
 	return 1;
 }

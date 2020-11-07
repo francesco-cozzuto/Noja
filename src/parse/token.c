@@ -177,7 +177,7 @@ void token_iterator_init(token_iterator_t *iterator, token_array_t *array)
 	iterator->count = array->count;
 }
 
-int __token_iterator_next(token_iterator_t *iterator, char *file, int line, const char *func, const char *source)
+int token_iterator_next(token_iterator_t *iterator)
 {
 	iterator->relative_offset++;
 	iterator->absolute_offset++;
@@ -194,24 +194,11 @@ int __token_iterator_next(token_iterator_t *iterator, char *file, int line, cons
 		iterator->chunk = iterator->chunk->next;
 		iterator->relative_offset = 0;
 	}
-
-	{
-		(void) file;
-		(void) line;
-		(void) func;
-		/*
-		token_t token = iterator->chunk->tokens[iterator->relative_offset];
-		printf(">> Now at [");
-		for(int i = 0; i < token.length; i++)
-			printf("%c", source[token.offset + i]);
-		printf("] [%d, %d] from %s:%d in %s\n", token.offset, token.length, file, line, func);
-		*/	
-	}
 	
 	return 1;
 }
 
-int __token_iterator_prev(token_iterator_t *iterator, char *file, int line, const char *func, const char *source)
+int token_iterator_prev(token_iterator_t *iterator)
 {
 	iterator->relative_offset--;
 	iterator->absolute_offset--;
@@ -229,17 +216,6 @@ int __token_iterator_prev(token_iterator_t *iterator, char *file, int line, cons
 		iterator->relative_offset = 0;
 	}
 
-	(void) file;
-	(void) line;
-	(void) func;
-/*	
-	token_t token = iterator->chunk->tokens[iterator->relative_offset];
-
-	printf(">> Back at [");
-		for(int i = 0; i < token.length; i++)
-			printf("%c", source[token.offset + i]);
-		printf("] [%d, %d] from %s:%d in %s\n", token.offset, token.length, file, line, func);
-	*/
 	return 1;
 }
 

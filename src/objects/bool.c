@@ -21,6 +21,8 @@ static uint8_t bool_test(state_t *state, object_t *self)
 
 int bool_methods_setup(state_t *state)
 {
+(void) state;
+	/*
 	state->type_object_bool.methods = object_istanciate(state, (object_t*) &state->type_object_dict);
 
 	assert(state->type_object_bool.methods);
@@ -39,7 +41,7 @@ int bool_methods_setup(state_t *state)
 	
 			return 0;
 	}
-
+	*/
 	return 1;
 }
 

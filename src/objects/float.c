@@ -39,6 +39,8 @@ static uint8_t float_test(state_t *state, object_t *self)
 
 int float_methods_setup(state_t *state)
 {
+(void) state;
+	/*
 	state->type_object_float.methods = object_istanciate(state, (object_t*) &state->type_object_dict);
 
 	assert(state->type_object_float.methods);
@@ -57,6 +59,7 @@ int float_methods_setup(state_t *state)
 	
 			return 0;
 	}
+	*/
 
 	return 1;
 }

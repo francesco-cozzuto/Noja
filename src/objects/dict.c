@@ -126,6 +126,16 @@ object_t *dict_cselect(state_t *state, object_t *self, const char *name)
 	return 0;
 }
 
+int dict_import(state_t *state, object_t *self, object_t *other)
+{
+	object_dict_t *y = (object_dict_t*) other;
+
+	for(int i = 0; i < y->item_used; i++)
+		if(!dict_cinsert(state, self, y->item_keys[i], y->item_values[i]))
+			return 0;
+
+	return 1;
+}
 
 int dict_cinsert(state_t *state, object_t *self, const char *key, object_t *value)
 {
@@ -271,7 +281,7 @@ static object_t *method_keys(state_t *state, int argc, object_t **argv)
 	if(argc != 1)
 		return 0;
 
-	if(argv[0]->type != &state->type_object_dict)
+	if(argv[0]->type != (object_t*) &state->type_object_dict)
 		return 0;
 
 	object_dict_t *x = (object_dict_t*) argv[0];
@@ -300,7 +310,7 @@ static object_t *method_length(state_t *state, int argc, object_t **argv)
 	if(argc != 1)
 		return 0;
 
-	if(argv[0]->type != &state->type_object_dict)
+	if(argv[0]->type != (object_t*) &state->type_object_dict)
 		return 0;
 
 	object_dict_t *x = (object_dict_t*) argv[0];
@@ -310,6 +320,7 @@ static object_t *method_length(state_t *state, int argc, object_t **argv)
 
 int dict_methods_setup(state_t *state)
 {
+(void) state;
 	state->type_object_dict.methods = object_istanciate(state, (object_t*) &state->type_object_dict);
 
 	assert(state->type_object_dict.methods);

@@ -26,6 +26,9 @@ enum {
 
 	OPCODE_POP,
 
+	OPCODE_IMPORT,
+	OPCODE_IMPORT_AS,
+
 	OPCODE_ASSIGN,
 	OPCODE_SELECT,
 	OPCODE_INSERT,
@@ -137,23 +140,52 @@ typedef struct {
 
 } object_type_t;
 
-typedef struct {
-
-	char *data, *code;
-	uint32_t data_length, code_length;
-} executable_t;
-
 typedef struct overflow_allocation_t overflow_allocation_t;
 struct overflow_allocation_t {
 	overflow_allocation_t *prev;
 	char body[];
 };
 
+typedef struct {
+	char *data;
+	char *code;
+	uint32_t data_size;
+	uint32_t code_size;
+	object_t *global_variables_map;
+} segment_t;
+
+#define OBJECT_STACK_ITEMS_PER_CHUNK 128
+#define U32_STACK_ITEMS_PER_CHUNK 128
+
+typedef struct object_stack_chunk_t object_stack_chunk_t;
+struct object_stack_chunk_t {
+	object_stack_chunk_t *prev;
+	object_t *items[OBJECT_STACK_ITEMS_PER_CHUNK];
+};
+
+typedef struct {
+	object_stack_chunk_t head, *tail;
+	uint32_t relative_size;
+	uint32_t absolute_size;
+} object_stack_t;
+
+typedef struct u32_stack_chunk_t u32_stack_chunk_t;
+struct u32_stack_chunk_t {
+	u32_stack_chunk_t *prev;
+	uint32_t items[U32_STACK_ITEMS_PER_CHUNK];
+};
+
+typedef struct {
+	u32_stack_chunk_t head, *tail;
+	uint32_t relative_size;
+	uint32_t absolute_size;
+} u32_stack_t;
+
 struct state_t {
 
 	object_t null_object;
 	object_bool_t true_object;
-	object_bool_t false_object; 
+	object_bool_t false_object;
 
 	object_type_t type_object_int;
 	object_type_t type_object_dict;
@@ -167,6 +199,8 @@ struct state_t {
 	object_type_t type_object_cfunction;
 
 	int failed;
+	int64_t argc;
+
 	string_builder_t *output_builder;
 
 	char *heap;
@@ -174,28 +208,25 @@ struct state_t {
 	uint32_t heap_used;
 	overflow_allocation_t *overflow_allocations;
 
-	object_t **stack;
-	uint32_t stack_item_count;
-	uint32_t stack_item_count_max;
-
+	object_stack_t eval_stack;
+	object_stack_t vars_stack;
 	object_t *builtins_map;
 
-	object_t **variable_maps;
-	uint32_t variable_maps_count;
-	uint32_t variable_maps_count_max;
+	// Break/continue stuff
 
-	uint32_t break_destinations[16];
-	uint32_t break_destinations_depth;
+	u32_stack_t break_destinations;
+	u32_stack_t continue_destinations;
 
-	uint32_t continue_destinations[16];
-	uint32_t continue_destinations_depth;
+	// Keep track of the point of execution
 
-	executable_t *executable_stack[16];
-	uint32_t program_counters[16];
-	uint32_t call_depth;
+	u32_stack_t segment_stack;
+	u32_stack_t offset_stack;
 
-	int64_t argc;
+	// Virtual memory simulation stuff
 
+	segment_t *segments;
+	int segments_size;
+	int segments_used;
 };
 
 typedef struct {
@@ -252,7 +283,7 @@ typedef struct {
 
 typedef struct {
 	object_t super;
-	executable_t *executable;
+	uint32_t segment;
 	uint32_t offset;
 } object_function_t;
 
@@ -268,6 +299,26 @@ typedef struct {
 
 typedef object_t *(*builtin_interface_t)(state_t *state, int argc, object_t **argv);
 
+
+void 	   object_stack_init(object_stack_t *stack);
+void 	   object_stack_deinit(object_stack_t *stack);
+int 	   object_stack_size(object_stack_t *stack);
+int 	   object_push(object_stack_t *stack, object_t *item);
+object_t  *object_pop(object_stack_t *stack);
+object_t  *object_top(object_stack_t *stack);
+object_t **object_top_ref(object_stack_t *stack);
+object_t  *object_nth_from_top(object_stack_t *stack, int count);
+void 	   object_stack_print(state_t *state, object_stack_t *stack, FILE *fp);
+
+void 	  u32_stack_init(u32_stack_t *stack);
+int 	  u32_stack_size(u32_stack_t *stack);
+void 	  u32_stack_deinit(u32_stack_t *stack);
+int 	  u32_push(u32_stack_t *stack, uint32_t item);
+uint32_t  u32_pop(u32_stack_t *stack);
+uint32_t  u32_top(u32_stack_t *stack);
+uint32_t *u32_top_ref(u32_stack_t *stack);
+
+int 	  dict_import(state_t *state, object_t *self, object_t *other);
 object_t *dict_cselect(state_t *state, object_t *self, const char *name);
 int 	  dict_cinsert(state_t *state, object_t *self, const char *name, object_t *value);
 object_t *array_cselect(state_t *state, object_t *self, int64_t index);
@@ -278,7 +329,7 @@ object_t *object_from_cfloat(state_t *state, double value);
 object_t *object_from_cstring(state_t *state, char *value, size_t length);
 object_t *object_from_cstring_ref(state_t *state, const char *value, size_t length);
 object_t *object_from_cfunction(state_t *state, object_t *(*routine)(state_t *state, int argc, object_t **argv));
-object_t *object_from_executable_and_offset(state_t *state, executable_t *executable, uint32_t offset);
+object_t *object_from_segment_and_offset(state_t *state, uint32_t segment, uint32_t offset);
 object_t *object_istanciate(state_t *state, object_t *type);
 void 	  object_print(state_t *state, object_t *self, FILE *fp);
 
@@ -317,4 +368,4 @@ int run_text(const char *text, int length, char **error_text);
 int run_file(const char *path, char **error_text);
 
 int parse(const char *source, int source_length, ast_t *ast, string_builder_t *output_builder);
-executable_t *generate(ast_t ast);
+int generate(ast_t ast, char **e_data, char **e_code, uint32_t *e_data_size, uint32_t *e_code_size);

@@ -26,6 +26,8 @@ static int type_insert_attribute(state_t *state, object_t *self, const char *nam
 
 int type_methods_setup(state_t *state)
 {
+(void) state;
+	/*
 	state->type_object_type.methods = object_istanciate(state, (object_t*) &state->type_object_dict);
 
 	assert(state->type_object_type.methods);
@@ -44,6 +46,7 @@ int type_methods_setup(state_t *state)
 	
 			return 0;
 	}
+	*/
 
 	return 1;
 }

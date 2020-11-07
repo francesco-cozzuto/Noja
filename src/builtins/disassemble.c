@@ -21,6 +21,9 @@ static const char *operand_types[] = {
 
 	[OPCODE_POP] = "i",
 
+	[OPCODE_IMPORT] = "s",
+	[OPCODE_IMPORT_AS] = "ss",
+
 	[OPCODE_ASSIGN] = "s",
 	[OPCODE_SELECT] = "",
 	[OPCODE_INSERT] = "",
@@ -95,6 +98,9 @@ static const char *get_opcode_name(int opcode)
 
 		case OPCODE_POP: return "POP";
 
+		case OPCODE_IMPORT: return "IMPORT";
+		case OPCODE_IMPORT_AS: return "IMPORT_AS";
+
 		case OPCODE_ASSIGN: return "ASSIGN";
 		case OPCODE_SELECT: return "SELECT";
 		case OPCODE_INSERT: return "INSERT";
@@ -161,10 +167,10 @@ object_t *builtin_disassemble(state_t *state, int argc, object_t **argv)
 	char *code, *data;
 	int code_length, data_length;
 
-	code = state->executable_stack[state->call_depth-1]->code;
-	data = state->executable_stack[state->call_depth-1]->data;
-	code_length = state->executable_stack[state->call_depth-1]->code_length;
-	data_length = state->executable_stack[state->call_depth-1]->data_length;
+	code = state->segments[u32_top(&state->segment_stack)].code;
+	data = state->segments[u32_top(&state->segment_stack)].data;
+	code_length = state->segments[u32_top(&state->segment_stack)].code_size;
+	data_length = state->segments[u32_top(&state->segment_stack)].data_size;
 
 	{
 		int i = 0;

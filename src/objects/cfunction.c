@@ -18,6 +18,8 @@ object_t *object_from_cfunction(state_t *state, object_t *(*routine)(state_t *st
 
 int cfunction_methods_setup(state_t *state)
 {
+(void) state;
+	/*
 	state->type_object_cfunction.methods = object_istanciate(state, (object_t*) &state->type_object_dict);
 
 	assert(state->type_object_cfunction.methods);
@@ -36,6 +38,7 @@ int cfunction_methods_setup(state_t *state)
 	
 			return 0;
 	}
+	*/
 
 	return 1;
 }

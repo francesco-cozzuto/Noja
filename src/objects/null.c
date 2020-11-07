@@ -11,6 +11,8 @@ static void null_print(state_t *state, object_t *self, FILE *fp)
 
 int null_methods_setup(state_t *state)
 {
+(void) state;
+	/*
 	state->type_object_null.methods = object_istanciate(state, (object_t*) &state->type_object_dict);
 
 	assert(state->type_object_null.methods);
@@ -29,6 +31,7 @@ int null_methods_setup(state_t *state)
 	
 			return 0;
 	}
+	*/
 
 	return 1;
 }

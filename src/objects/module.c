@@ -1,6 +1,7 @@
 
 #include "../noja.h"
 
+/*
 static object_t *module_select_attribute(state_t *state, object_t *self, const char *name)
 {
 	(void) state;
@@ -18,9 +19,11 @@ static int module_insert_attribute(state_t *state, object_t *self, const char *n
 
 	return dict_cinsert(state, x->dict, name, value);
 }
+*/
 
 int module_methods_setup(state_t *state)
 {
+(void) state;
 	return 1;
 }
 
