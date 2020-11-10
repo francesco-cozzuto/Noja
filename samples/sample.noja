@@ -1,11 +1,17 @@
 
-print("hoy???");
-
-import "samples/imported.noja" as imported;
-
-print(imported);
-print(imported["some_text"]);
-
 import "samples/imported.noja";
 
 print(some_text);
+
+print(list);
+
+item = list["head"];
+i = 0;
+
+while i < list["count"] {
+
+	print("Item is ", item);
+
+	item = item["next"];
+	i = i + 1;
+}

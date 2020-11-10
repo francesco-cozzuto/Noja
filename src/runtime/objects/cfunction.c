@@ -2,25 +2,25 @@
 
 #include "../noja.h"
 
-object_t *object_from_cfunction(state_t *state, object_t *(*routine)(state_t *state, int argc, object_t **argv))
+nj_object_t *nj_object_from_c_function(nj_state_t *state, nj_object_t *(*routine)(nj_state_t *state, int argc, nj_object_t **argv))
 {
-	object_t *o = object_istanciate(state, (object_t*) &state->type_object_cfunction);
+	nj_object_t *o = nj_object_istanciate(state, (nj_object_t*) &state->type_object_cfunction);
 
 	if(o == 0)
 		return 0;
 
-	object_cfunction_t *x = (object_cfunction_t*) o;
+	nj_object_cfunction_t *x = (nj_object_cfunction_t*) o;
 
 	x->routine = routine;
 
 	return o;
 }
 
-int cfunction_methods_setup(state_t *state)
+int cfunction_methods_setup(nj_state_t *state)
 {
 (void) state;
 	/*
-	state->type_object_cfunction.methods = object_istanciate(state, (object_t*) &state->type_object_dict);
+	state->type_object_cfunction.methods = object_istanciate(state, (nj_object_t*) &state->type_object_dict);
 
 	assert(state->type_object_cfunction.methods);
 
@@ -29,12 +29,12 @@ int cfunction_methods_setup(state_t *state)
 
 	for(size_t i = 0; i < sizeof(method_names) / sizeof(char*); i++) {
 
-		object_t *o = object_from_cfunction(state, method_routines[i]);
+		nj_object_t *o = object_from_cfunction(state, method_routines[i]);
 
 		if(o == 0)
 			return 0;
 
-		if(!dict_cinsert(state, state->type_object_cfunction.methods, method_names[i], o))
+		if(!nj_dictionary_insert(state, state->type_object_cfunction.methods, method_names[i], o))
 	
 			return 0;
 	}
@@ -43,13 +43,13 @@ int cfunction_methods_setup(state_t *state)
 	return 1;
 }
 
-int cfunction_setup(state_t *state)
+int cfunction_setup(nj_state_t *state)
 {
-	state->type_object_cfunction = (object_type_t) {
+	state->type_object_cfunction = (nj_object_type_t) {
 
-		.super = (object_t) { .new_location = 0, .type = (object_t*) &state->type_object_type, .flags = 0 },
+		.super = (nj_object_t) { .new_location = 0, .type = (nj_object_t*) &state->type_object_type, .flags = 0 },
 		.name = "CFunction",
-		.size = sizeof(object_cfunction_t),
+		.size = sizeof(nj_object_cfunction_t),
 		.methods = 0, // Must be created
 		.on_init = 0,
 		.on_deinit = 0,

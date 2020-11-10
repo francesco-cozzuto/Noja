@@ -1,11 +1,11 @@
 
 #include "../noja.h"
 
-int function_methods_setup(state_t *state)
+int function_methods_setup(nj_state_t *state)
 {
 (void) state;
 	/*
-	state->type_object_function.methods = object_istanciate(state, (object_t*) &state->type_object_dict);
+	state->type_object_function.methods = object_istanciate(state, (nj_object_t*) &state->type_object_dict);
 
 	assert(state->type_object_function.methods);
 
@@ -14,12 +14,12 @@ int function_methods_setup(state_t *state)
 
 	for(size_t i = 0; i < sizeof(method_names) / sizeof(char*); i++) {
 
-		object_t *o = object_from_cfunction(state, method_routines[i]);
+		nj_object_t *o = object_from_cfunction(state, method_routines[i]);
 
 		if(o == 0)
 			return 0;
 
-		if(!dict_cinsert(state, state->type_object_function.methods, method_names[i], o))
+		if(!nj_dictionary_insert(state, state->type_object_function.methods, method_names[i], o))
 	
 			return 0;
 	}
@@ -28,13 +28,13 @@ int function_methods_setup(state_t *state)
 	return 1;
 }
 
-int function_setup(state_t *state)
+int function_setup(nj_state_t *state)
 {
-	state->type_object_function = (object_type_t) {
+	state->type_object_function = (nj_object_type_t) {
 
-		.super = (object_t) { .new_location = 0, .type = (object_t*) &state->type_object_type, .flags = 0 },
+		.super = (nj_object_t) { .new_location = 0, .type = (nj_object_t*) &state->type_object_type, .flags = 0 },
 		.name = "Function",
-		.size = sizeof(object_function_t),
+		.size = sizeof(nj_object_function_t),
 		.methods = 0, // Must be created
 		.on_init = 0,
 		.on_deinit = 0,

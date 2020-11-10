@@ -1,7 +1,7 @@
 
-parse_from_file = function(path) {
+import io;
 
-	object = {};
+parse_from_file = function(path) {
 
 	text = load_text(path);
 

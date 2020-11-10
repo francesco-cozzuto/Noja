@@ -32,11 +32,11 @@ static void map_insert(int *map, int map_size, const char *name, int index) {
 	map[i] = index;
 }
 
-static int dict_init(state_t *state, object_t *self)
+static int dict_init(nj_state_t *state, nj_object_t *self)
 {
 	(void) state;
 
-	object_dict_t *x = (object_dict_t*) self;
+	nj_object_dict_t *x = (nj_object_dict_t*) self;
 
 	x->map = malloc(sizeof(int) * 8);
 	x->map_size = 8;
@@ -47,8 +47,8 @@ static int dict_init(state_t *state, object_t *self)
 	for(int i = 0; i < 8; i++)
 		x->map[i] = -1;
 
-	x->item_keys   = malloc((sizeof(char*) + sizeof(object_t*)) * 8);
-	x->item_values = (object_t**) (x->item_keys + 8);
+	x->item_keys   = malloc((sizeof(char*) + sizeof(nj_object_t*)) * 8);
+	x->item_values = (nj_object_t**) (x->item_keys + 8);
 	x->item_used = 0;
 	x->item_size = 8;
 
@@ -61,11 +61,11 @@ static int dict_init(state_t *state, object_t *self)
 	return 1;
 }
 
-static int dict_deinit(state_t *state, object_t *self)
+static int dict_deinit(nj_state_t *state, nj_object_t *self)
 {
 	(void) state;
 
-	object_dict_t *x = (object_dict_t*) self;
+	nj_object_dict_t *x = (nj_object_dict_t*) self;
 
 	for(int i = 0; i < x->item_used; i++)
 		free(x->item_keys[i]);
@@ -76,9 +76,9 @@ static int dict_deinit(state_t *state, object_t *self)
 	return 1;
 }
 
-static void dict_print(state_t *state, object_t *self, FILE *fp)
+static void dict_print(nj_state_t *state, nj_object_t *self, FILE *fp)
 {
-	object_dict_t *x = (object_dict_t*) self;
+	nj_object_dict_t *x = (nj_object_dict_t*) self;
 
 	(void) state;
 
@@ -87,7 +87,7 @@ static void dict_print(state_t *state, object_t *self, FILE *fp)
 	for(int i = 0; i < x->item_used; i++) {
 
 		fprintf(fp, "\"%s\": ", x->item_keys[i]);
-		object_print(state, x->item_values[i], fp);
+		nj_object_print(state, x->item_values[i], fp);
 
 		if(i+1 < x->item_used)
 			fprintf(fp, ", ");
@@ -96,11 +96,11 @@ static void dict_print(state_t *state, object_t *self, FILE *fp)
 	fprintf(fp, "}");
 }
 
-object_t *dict_cselect(state_t *state, object_t *self, const char *name)
+nj_object_t *nj_dictionary_select(nj_state_t *state, nj_object_t *self, const char *name)
 {
 	(void) state;
 
-	object_dict_t *d = (object_dict_t*) self;
+	nj_object_dict_t *d = (nj_object_dict_t*) self;
 
 	int i, x, p, mask;
 
@@ -126,22 +126,22 @@ object_t *dict_cselect(state_t *state, object_t *self, const char *name)
 	return 0;
 }
 
-int dict_import(state_t *state, object_t *self, object_t *other)
+int nj_dictionary_merge_in(nj_state_t *state, nj_object_t *self, nj_object_t *other)
 {
-	object_dict_t *y = (object_dict_t*) other;
+	nj_object_dict_t *y = (nj_object_dict_t*) other;
 
 	for(int i = 0; i < y->item_used; i++)
-		if(!dict_cinsert(state, self, y->item_keys[i], y->item_values[i]))
+		if(!nj_dictionary_insert(state, self, y->item_keys[i], y->item_values[i]))
 			return 0;
 
 	return 1;
 }
 
-int dict_cinsert(state_t *state, object_t *self, const char *key, object_t *value)
+int nj_dictionary_insert(nj_state_t *state, nj_object_t *self, const char *key, nj_object_t *value)
 {
 	(void) state;
 
-	object_dict_t *d = (object_dict_t*) self;
+	nj_object_dict_t *d = (nj_object_dict_t*) self;
 
 	// Check if the key was already inserted
 
@@ -179,13 +179,13 @@ int dict_cinsert(state_t *state, object_t *self, const char *key, object_t *valu
 
 	if(d->item_used == d->item_size) {
 
-		char *chunk = malloc((sizeof(char*) + sizeof(object_t*)) * d->item_size * 2);
+		char *chunk = malloc((sizeof(char*) + sizeof(nj_object_t*)) * d->item_size * 2);
 
 		if(chunk == 0)
 			return 0;
 
 		char 	 **new_keys = (char**) chunk;
-		object_t **new_values = (object_t**) (chunk + sizeof(char*) * d->item_size * 2);
+		nj_object_t **new_values = (nj_object_t**) (chunk + sizeof(char*) * d->item_size * 2);
 
 
 		for(int i = 0; i < d->item_used; i++) {
@@ -248,80 +248,80 @@ int dict_cinsert(state_t *state, object_t *self, const char *key, object_t *valu
 	return 1;
 }
 
-static object_t *dict_select(state_t *state, object_t *self, object_t *key)
+static nj_object_t *dict_select(nj_state_t *state, nj_object_t *self, nj_object_t *key)
 {
 	(void) state;
 
-	if(key->type != (object_t*) &state->type_object_string) {
+	if(key->type != (nj_object_t*) &state->type_object_string) {
 
 		// #ERROR
 		// Expected string value as dict key
 		return 0;
 	}
 
-	return dict_cselect(state, self, ((object_string_t*) key)->value);
+	return nj_dictionary_select(state, self, ((nj_object_string_t*) key)->value);
 }
 
-static int dict_insert(state_t *state, object_t *self, object_t *key, object_t *value)
+static int dict_insert(nj_state_t *state, nj_object_t *self, nj_object_t *key, nj_object_t *value)
 {
 	(void) state;
 
-	if(key->type != (object_t*) &state->type_object_string) {
+	if(key->type != (nj_object_t*) &state->type_object_string) {
 
 		// #ERROR
 		// Expected string value as dict key
 		return 0;
 	}
 
-	return dict_cinsert(state, self, ((object_string_t*) key)->value, value);
+	return nj_dictionary_insert(state, self, ((nj_object_string_t*) key)->value, value);
 }
 
-static object_t *method_keys(state_t *state, int argc, object_t **argv)
+static nj_object_t *method_keys(nj_state_t *state, int argc, nj_object_t **argv)
 {
 	if(argc != 1)
 		return 0;
 
-	if(argv[0]->type != (object_t*) &state->type_object_dict)
+	if(argv[0]->type != (nj_object_t*) &state->type_object_dict)
 		return 0;
 
-	object_dict_t *x = (object_dict_t*) argv[0];
+	nj_object_dict_t *x = (nj_object_dict_t*) argv[0];
 
-	object_t *array = object_istanciate(state, (object_t*) &state->type_object_array);	
+	nj_object_t *array = nj_object_istanciate(state, (nj_object_t*) &state->type_object_array);	
 
 	if(array == 0)
 		return 0;
 
 	for(int i = 0; i < x->item_used; i++) {
 
-		object_t *string = object_from_cstring(state, x->item_keys[i], strlen(x->item_keys[i]));
+		nj_object_t *string = nj_object_from_c_string(state, x->item_keys[i], strlen(x->item_keys[i]));
 
 		if(string == 0)
 			return 0;
 
-		if(!array_cinsert(state, array, i, string))
+		if(!nj_array_insert(state, array, i, string))
 			return 0;
 	}
 
 	return array;
 }
 
-static object_t *method_length(state_t *state, int argc, object_t **argv)
+static nj_object_t *method_length(nj_state_t *state, int argc, nj_object_t **argv)
 {
 	if(argc != 1)
 		return 0;
 
-	if(argv[0]->type != (object_t*) &state->type_object_dict)
+	if(argv[0]->type != (nj_object_t*) &state->type_object_dict)
 		return 0;
 
-	object_dict_t *x = (object_dict_t*) argv[0];
+	nj_object_dict_t *x = (nj_object_dict_t*) argv[0];
 
-	return object_from_cint(state, x->item_used);
+	return nj_object_from_c_int(state, x->item_used);
 }	
 
-int dict_methods_setup(state_t *state)
+int dict_methods_setup(nj_state_t *state)
 {
 (void) state;
-	state->type_object_dict.methods = object_istanciate(state, (object_t*) &state->type_object_dict);
+	state->type_object_dict.methods = nj_object_istanciate(state, (nj_object_t*) &state->type_object_dict);
 
 	assert(state->type_object_dict.methods);
 
@@ -330,12 +330,12 @@ int dict_methods_setup(state_t *state)
 
 	for(size_t i = 0; i < sizeof(method_names) / sizeof(char*); i++) {
 
-		object_t *o = object_from_cfunction(state, method_routines[i]);
+		nj_object_t *o = nj_object_from_c_function(state, method_routines[i]);
 
 		if(o == 0)
 			return 0;
 
-		if(!dict_cinsert(state, state->type_object_dict.methods, method_names[i], o))
+		if(!nj_dictionary_insert(state, state->type_object_dict.methods, method_names[i], o))
 	
 			return 0;
 	}
@@ -343,13 +343,13 @@ int dict_methods_setup(state_t *state)
 	return 1;
 }
 
-int dict_setup(state_t *state)
+int dict_setup(nj_state_t *state)
 {
-	state->type_object_dict = (object_type_t) {
+	state->type_object_dict = (nj_object_type_t) {
 
-		.super = (object_t) { .new_location = 0, .type = (object_t*) &state->type_object_type, .flags = 0 },
+		.super = (nj_object_t) { .new_location = 0, .type = (nj_object_t*) &state->type_object_type, .flags = 0 },
 		.name = "Dict",
-		.size = sizeof(object_dict_t),
+		.size = sizeof(nj_object_dict_t),
 		.methods = 0, // Must be created
 		.on_init = dict_init,
 		.on_deinit = dict_deinit,

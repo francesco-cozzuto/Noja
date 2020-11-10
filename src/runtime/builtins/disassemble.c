@@ -153,7 +153,7 @@ static const char *get_opcode_name(int opcode)
 }
 
 
-object_t *builtin_disassemble(state_t *state, int argc, object_t **argv)
+nj_object_t *builtin_disassemble(nj_state_t *state, int argc, nj_object_t **argv)
 {
 	(void) state;
 	(void) argv;
@@ -258,5 +258,5 @@ object_t *builtin_disassemble(state_t *state, int argc, object_t **argv)
 		fprintf(stdout, "\n");
 	}
 
-	return (object_t*) &state->null_object;
+	return (nj_object_t*) &state->null_object;
 }

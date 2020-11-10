@@ -3,15 +3,17 @@
 #include <assert.h>
 #include <string.h>
 #include <stdarg.h>
+#include <dlfcn.h>
+
 #include "noja.h"
 #include "utils/basic.h"
 
-int step(state_t *state);
-int insert_builtins(state_t *state, object_t *dest);
-static int  state_init(state_t *state, string_builder_t *output_builder);
-static void state_deinit(state_t *state);
+int step(nj_state_t *state);
+int insert_builtins(nj_state_t *state, nj_object_t *dest);
+static int  state_init(nj_state_t *state, string_builder_t *output_builder);
+static void state_deinit(nj_state_t *state);
 
-int append_segment(state_t *state, char *code, char *data, uint32_t code_size, uint32_t data_size, uint32_t *e_segment)
+int append_segment(nj_state_t *state, char *code, char *data, uint32_t code_size, uint32_t data_size, uint32_t *e_segment)
 {
 	if(state->segments_used == state->segments_size) {
 
@@ -31,7 +33,7 @@ int append_segment(state_t *state, char *code, char *data, uint32_t code_size, u
 	if(e_segment)
 		*e_segment = state->segments_used;
 
-	object_t *map = object_istanciate(state, (object_t*) &state->type_object_dict);
+	nj_object_t *map = nj_object_istanciate(state, (nj_object_t*) &state->type_object_dict);
 
 	if(map == 0)
 		return 0;
@@ -49,17 +51,13 @@ int append_segment(state_t *state, char *code, char *data, uint32_t code_size, u
 	return 1;
 }
 
-int run_text_inner(const char *text, int length, string_builder_t *output_builder)
+static int run_text_inner(const char *text, int length, string_builder_t *output_builder)
 {
-	state_t state;
+	nj_state_t state;
 	ast_t ast;
-
-	printf("about to parse...\n");
 
 	if(!parse(text, length, &ast, output_builder))
 		return 0;
-
-	printf("parsed\n");
 
 	//ast_print(ast, stdout);
 
@@ -75,19 +73,13 @@ int run_text_inner(const char *text, int length, string_builder_t *output_builde
 		return 0;
 	}
 
-	printf("bytecode generated\n");
-
 	ast_delete(ast);
 
 	if(!state_init(&state, output_builder)) {
 
-		printf("failed to initialize state\n");
-
 		free(first_code_segment);
 		return 0;
 	}
-
-	printf("state initialized\n");
 
 	if(!append_segment(&state, first_code_segment, first_data_segment, first_code_segment_size, first_data_segment_size, 0))
 		return 0;
@@ -106,7 +98,7 @@ int run_text_inner(const char *text, int length, string_builder_t *output_builde
 	return result;	
 }
 
-int run_text(const char *text, int length, char **error_text)
+int nj_run(const char *text, int length, char **error_text)
 {
 	string_builder_t output_builder;
 	string_builder_init(&output_builder);
@@ -125,7 +117,7 @@ int run_text(const char *text, int length, char **error_text)
 	return result;
 }
 
-int run_file(const char *path, char **error_text)
+int nj_run_file(const char *path, char **error_text)
 {
 	char *text;
 	int length;
@@ -137,36 +129,36 @@ int run_file(const char *path, char **error_text)
 		return 0;
 	}
 
-	int result = run_text(text, length, error_text);
+	int result = nj_run(text, length, error_text);
 
 	free(text);
 
 	return result;
 }
 
-int array_setup(state_t *state);
-int bool_setup(state_t *state);
-int dict_setup(state_t *state);
-int int_setup(state_t *state);
-int function_setup(state_t *state);
-int cfunction_setup(state_t *state);
-int null_setup(state_t *state);
-int string_setup(state_t *state);
-int type_setup(state_t *state);
-int float_setup(state_t *state);
+int array_setup(nj_state_t *state);
+int bool_setup(nj_state_t *state);
+int dict_setup(nj_state_t *state);
+int int_setup(nj_state_t *state);
+int function_setup(nj_state_t *state);
+int cfunction_setup(nj_state_t *state);
+int null_setup(nj_state_t *state);
+int string_setup(nj_state_t *state);
+int type_setup(nj_state_t *state);
+int float_setup(nj_state_t *state);
 
-int array_methods_setup(state_t *state);
-int bool_methods_setup(state_t *state);
-int dict_methods_setup(state_t *state);
-int int_methods_setup(state_t *state);
-int function_methods_setup(state_t *state);
-int cfunction_methods_setup(state_t *state);
-int null_methods_setup(state_t *state);
-int string_methods_setup(state_t *state);
-int type_methods_setup(state_t *state);
-int float_methods_setup(state_t *state);
+int array_methods_setup(nj_state_t *state);
+int bool_methods_setup(nj_state_t *state);
+int dict_methods_setup(nj_state_t *state);
+int int_methods_setup(nj_state_t *state);
+int function_methods_setup(nj_state_t *state);
+int cfunction_methods_setup(nj_state_t *state);
+int null_methods_setup(nj_state_t *state);
+int string_methods_setup(nj_state_t *state);
+int type_methods_setup(nj_state_t *state);
+int float_methods_setup(nj_state_t *state);
 
-static int state_init(state_t *state, string_builder_t *output_builder)
+static int state_init(nj_state_t *state, string_builder_t *output_builder)
 {
 	state->heap = malloc(4096);
 	state->heap_size = 4096;
@@ -208,7 +200,7 @@ static int state_init(state_t *state, string_builder_t *output_builder)
 	assert(type_methods_setup(state));
 	assert(float_methods_setup(state));
 
-	state->builtins_map = object_istanciate(state, (object_t*) &state->type_object_dict);
+	state->builtins_map = nj_object_istanciate(state, (nj_object_t*) &state->type_object_dict);
 	assert(state->builtins_map);
 
 	if(!insert_builtins(state, state->builtins_map))
@@ -226,7 +218,7 @@ static int state_init(state_t *state, string_builder_t *output_builder)
 	return 1;
 }
 
-static void state_deinit(state_t *state)
+static void state_deinit(nj_state_t *state)
 {
 	free(state->heap); // free overflow allocations!
 
@@ -243,20 +235,44 @@ static void state_deinit(state_t *state)
 	u32_stack_deinit(&state->offset_stack);
 }
 
-static void fetch_u32(state_t *state, uint32_t *value);
-static void fetch_i64(state_t *state, int64_t *value);
-static void fetch_f64(state_t *state, double *value);
-static void fetch_string(state_t *state, char **value);
-static void fail(state_t *state, const char *fmt, ...);
-static int  failed(state_t *state);
+static void fetch_u32(nj_state_t *state, uint32_t *value);
+static void fetch_i64(nj_state_t *state, int64_t *value);
+static void fetch_f64(nj_state_t *state, double *value);
+static void fetch_string(nj_state_t *state, char **value);
+static void fail(nj_state_t *state, const char *fmt, ...);
+static int  failed(nj_state_t *state);
 
-static object_t *do_binary_import(state_t *state, char *path)
+static nj_object_t *do_binary_import(nj_state_t *state, char *path)
 {
-	fail(state, "Binary imports are not supported yet!");
-	return 0;
+	void *handle = dlopen(path, RTLD_LAZY | RTLD_NODELETE);
+
+	if(handle == 0) {
+		fail(state, "Failed to open the library file \"${zero-terminated-string}\" (${zero-terminated-string})", path, dlerror());
+		return 0;
+	}
+
+	dlerror();
+
+	nj_object_t *(*setup)(nj_state_t *state);
+
+	setup = dlsym(handle, "setup");
+
+	if(setup == 0) {
+		fail(state, "Failed to load symbols from \"${zero-terminated-string}\". There was no setup routine! (${zero-terminated-string})", path, dlerror());
+		return 0;
+	}
+
+	nj_object_t *result = setup(state);
+
+	dlclose(handle);
+
+	if(result == 0 && !failed(state))
+		fail(state, "Setup routine of \"${zero-terminated-string}\" returned null but didn't raise an error!", path);
+
+	return result;
 }
 
-static object_t *do_text_import(state_t *state, char *path)
+static nj_object_t *do_text_import(nj_state_t *state, char *path)
 {
 	char *text;
 	ast_t ast;
@@ -283,6 +299,7 @@ static object_t *do_text_import(state_t *state, char *path)
 
 	if(!parse(text, length, &ast, state->output_builder)) {
 
+		state->failed = 1;
 		free(text);
 		return 0;
 	}
@@ -333,7 +350,7 @@ static object_t *do_text_import(state_t *state, char *path)
 	return state->segments[imported_segment].global_variables_map;
 }
 
-static object_t *current_map(state_t *state)
+static nj_object_t *current_map(nj_state_t *state)
 {
 	if(object_stack_size(&state->vars_stack) == 0)
 
@@ -342,7 +359,7 @@ static object_t *current_map(state_t *state)
 	return object_top(&state->vars_stack);
 }
 
-static void do_named_import(state_t *state)
+static void do_named_import(nj_state_t *state)
 {
 	char *name;
 
@@ -365,9 +382,9 @@ static void do_named_import(state_t *state)
 	// Pop an object from the evaluation stack
 	// and try to get the path from it.
 	
-	object_t *path_object = object_pop(&state->eval_stack);
+	nj_object_t *path_object = object_pop(&state->eval_stack);
 
-	if(path_object->type != (object_t*) &state->type_object_string) {
+	if(path_object->type != (nj_object_t*) &state->type_object_string) {
 
 		// #ERROR
 		fail(state, "The imported path expression is not a string");
@@ -376,7 +393,7 @@ static void do_named_import(state_t *state)
 
 	// Get the raw path representation
 
-	char *path = ((object_string_t*) path_object)->value;
+	char *path = ((nj_object_string_t*) path_object)->value;
 	
 	// Get the extension
 
@@ -385,9 +402,9 @@ static void do_named_import(state_t *state)
     // If there is no extension, or if there is an extension but it's not ".dll" or ".so",
 	// we expect a noja text source file, else we expect a shared library.
 
-	object_t *map;
+	nj_object_t *map;
 
-	if(!extension || strcmp(extension, "dll") || strcmp(extension, "so")) {
+	if(!extension || (strcmp(extension, ".dll") && strcmp(extension, ".so"))) {
 
 		// Handle the import of a noja source
 
@@ -411,7 +428,7 @@ static void do_named_import(state_t *state)
 	}
 }
 
-static void do_unnamed_import(state_t *state)
+static void do_unnamed_import(nj_state_t *state)
 {
 
 	if(object_stack_size(&state->eval_stack) == 0) {
@@ -424,9 +441,9 @@ static void do_unnamed_import(state_t *state)
 	// Pop an object from the evaluation stack
 	// and try to get the path from it.
 	
-	object_t *path_object = object_pop(&state->eval_stack);
+	nj_object_t *path_object = object_pop(&state->eval_stack);
 
-	if(path_object->type != (object_t*) &state->type_object_string) {
+	if(path_object->type != (nj_object_t*) &state->type_object_string) {
 
 		// #ERROR
 		fail(state, "The imported path expression is not a string");
@@ -435,7 +452,7 @@ static void do_unnamed_import(state_t *state)
 
 	// Get the raw path representation
 
-	char *path = ((object_string_t*) path_object)->value;
+	char *path = ((nj_object_string_t*) path_object)->value;
 	
 	// Get the extension
 
@@ -444,9 +461,9 @@ static void do_unnamed_import(state_t *state)
     // If there is no extension, or if there is an extension but it's not ".dll" or ".so",
 	// we expect a noja text source file, else we expect a shared library.
 
-	object_t *map;
+	nj_object_t *map;
 
-	if(!extension || strcmp(extension, "dll") || strcmp(extension, "so")) {
+	if(!extension || (strcmp(extension, ".dll") && strcmp(extension, ".so"))) {
 
 		// Handle the import of a noja source
 
@@ -466,7 +483,7 @@ static void do_unnamed_import(state_t *state)
 	// Insert the symbols in it
 	//
 
-	if(!dict_import(state, current_map(state), map)) {
+	if(!nj_dictionary_merge_in(state, current_map(state), map)) {
 
 		// #ERROR
 		fail(state, "Failed to create import module symnols");
@@ -474,7 +491,7 @@ static void do_unnamed_import(state_t *state)
 	}
 }
 
-int step(state_t *state)
+int step(nj_state_t *state)
 {
 	uint32_t opcode;
 
@@ -501,7 +518,7 @@ int step(state_t *state)
 
 		case OPCODE_PUSH_NULL:
 
-		if(!object_push(&state->eval_stack, (object_t*) &state->null_object)) {
+		if(!object_push(&state->eval_stack, (nj_object_t*) &state->null_object)) {
 			
 			// #ERROR
 			fail(state, "Out of memory. Couldn't grow the evaluation stack");
@@ -512,7 +529,7 @@ int step(state_t *state)
 		
 		case OPCODE_PUSH_TRUE:
 
-		if(!object_push(&state->eval_stack, (object_t*) &state->true_object)){
+		if(!object_push(&state->eval_stack, (nj_object_t*) &state->true_object)){
 			
 			// #ERROR
 			fail(state, "Out of memory. Couldn't grow the evaluation stack");
@@ -523,7 +540,7 @@ int step(state_t *state)
 
 		case OPCODE_PUSH_FALSE:
 
-		if(!object_push(&state->eval_stack, (object_t*) &state->false_object)){
+		if(!object_push(&state->eval_stack, (nj_object_t*) &state->false_object)){
 			
 			// #ERROR
 			fail(state, "Out of memory. Couldn't grow the evaluation stack");
@@ -543,7 +560,7 @@ int step(state_t *state)
 			if(failed(state)) 
 				return 0;
 
-			object_t *object = object_from_cint(state, value);
+			nj_object_t *object = nj_object_from_c_int(state, value);
 
 			if(object == 0) {
 
@@ -570,7 +587,7 @@ int step(state_t *state)
 			if(failed(state)) 
 				return 0;
 
-			object_t *object = object_from_cfloat(state, value);
+			nj_object_t *object = nj_object_from_c_float(state, value);
 
 			if(object == 0) {
 
@@ -605,7 +622,7 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *object = object_istanciate(state, (object_t*) &state->type_object_array);
+			nj_object_t *object = nj_object_istanciate(state, (nj_object_t*) &state->type_object_array);
 
 			if(object == 0) {
 
@@ -656,7 +673,7 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *object = object_istanciate(state, (object_t*) &state->type_object_dict);
+			nj_object_t *object = nj_object_istanciate(state, (nj_object_t*) &state->type_object_dict);
 
 			if(object == 0) {
 
@@ -668,12 +685,12 @@ int step(state_t *state)
 
 			for(int i = 0; i < count; i++) {
 
-				object_t *key, *value;
+				nj_object_t *key, *value;
 
 				value = object_pop(&state->eval_stack);
 				key   = object_pop(&state->eval_stack);
 
-				if(!object_insert(state, object, key, value)) {
+				if(!nj_object_insert(state, object, key, value)) {
 
 					// #ERROR
 					fail(state, "Failed to insert object into dict while building it");
@@ -700,7 +717,7 @@ int step(state_t *state)
 			if(failed(state)) 
 				return 0;
 
-			object_t *object = object_from_cstring_ref(state, value, strlen(value));
+			nj_object_t *object = nj_object_from_c_string_ref(state, value, strlen(value));
 
 			if(object == 0) {
 
@@ -739,7 +756,7 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *object = object_from_segment_and_offset(state, current_segment, dest);
+			nj_object_t *object = nj_object_from_segment_and_offset(state, current_segment, dest);
 
 			if(object == 0) {
 
@@ -767,7 +784,7 @@ int step(state_t *state)
 			if(failed(state)) 
 				return 0;
 
-			object_t *object = 0;
+			nj_object_t *object = 0;
 
 			if(object_stack_size(&state->vars_stack) > 0)
 				object = nj_dictionary_select(state, object_top(&state->vars_stack), variable_name);
@@ -843,7 +860,7 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *dest;
+			nj_object_t *dest;
 
 			if(object_stack_size(&state->vars_stack) == 0) {
 
@@ -882,8 +899,8 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *container = object_pop(&state->eval_stack);
-			object_t *selected  = object_select_attribute(state, container, attribute_name);
+			nj_object_t *container = object_pop(&state->eval_stack);
+			nj_object_t *selected  = nj_object_select_attribute(state, container, attribute_name);
 
 			if(selected == 0) {
 
@@ -910,12 +927,12 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *container, *key, *item;
+			nj_object_t *container, *key, *item;
 
 			key 	  = object_pop(&state->eval_stack);
 			container = object_top(&state->eval_stack);
 
-			item = object_select(state, container, key);
+			item = nj_object_select(state, container, key);
 
 			if(item == 0) {
 
@@ -938,13 +955,13 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *container, *key, *item;
+			nj_object_t *container, *key, *item;
 
 			item   	  = object_pop(&state->eval_stack);
 			key 	  = object_pop(&state->eval_stack);
 			container = object_top(&state->eval_stack);
 
-			if(!object_insert(state, container, key, item)) {
+			if(!nj_object_insert(state, container, key, item)) {
 
 				// #ERROR
 				fail(state, "Failed to insert item into object");
@@ -971,9 +988,9 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *container = object_top(&state->eval_stack);
+			nj_object_t *container = object_top(&state->eval_stack);
 	
-			object_t *selected = object_select_attribute(state, container, attribute_name);
+			nj_object_t *selected = nj_object_select_attribute(state, container, attribute_name);
 
 			if(selected == 0) {
 
@@ -1003,12 +1020,12 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *container, *item;
+			nj_object_t *container, *item;
 
 			item      = object_pop(&state->eval_stack);
 			container = object_top(&state->eval_stack);
 
-			if(!object_insert_attribute(state, container, attribute_name, item)) {
+			if(!nj_object_insert_attribute(state, container, attribute_name, item)) {
 
 				// #ERROR
 				fail(state, "Failed to insert attribute");
@@ -1021,7 +1038,7 @@ int step(state_t *state)
 
 		case OPCODE_VARIABLE_MAP_PUSH:
 		{
-			object_t *dict = object_istanciate(state, (object_t*) &state->type_object_dict);
+			nj_object_t *dict = nj_object_istanciate(state, (nj_object_t*) &state->type_object_dict);
 
 			if(dict == 0) {
 
@@ -1187,21 +1204,21 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *callable = object_nth_from_top(&state->eval_stack, argc + 1);
+			nj_object_t *callable = object_nth_from_top(&state->eval_stack, argc + 1);
 
-			if(callable->type == (object_t*) &state->type_object_cfunction) {
+			if(callable->type == (nj_object_t*) &state->type_object_cfunction) {
 
 				//
 				// Handle the call to a C function
 				//
 
-				object_t **argv = malloc(sizeof(object_t*) * argc);
+				nj_object_t **argv = malloc(sizeof(nj_object_t*) * argc);
 
 				for(int i = 0; i < argc; i++)
 					argv[argc-i-1] = object_pop(&state->eval_stack); // Pop the arguments
 				object_pop(&state->eval_stack); // Pop the called object
 
-				object_t *result = ((object_cfunction_t*) callable)->routine(state, argc, argv);
+				nj_object_t *result = ((nj_object_cfunction_t*) callable)->routine(state, argc, argv);
 
 				free(argv);
 
@@ -1218,7 +1235,7 @@ int step(state_t *state)
 					return 0;
 				}
 
-			} else if(callable->type == (object_t*) &state->type_object_function) {
+			} else if(callable->type == (nj_object_t*) &state->type_object_function) {
 
 				//
 				// Handle the call to a noja function
@@ -1228,8 +1245,8 @@ int step(state_t *state)
 
 				uint32_t dest_segment, dest_offset;
 
-				dest_segment = ((object_function_t*) callable)->segment;
-				dest_offset  = ((object_function_t*) callable)->offset;
+				dest_segment = ((nj_object_function_t*) callable)->segment;
+				dest_offset  = ((nj_object_function_t*) callable)->offset;
 
 				if(!u32_push(&state->segment_stack, dest_segment)) {
 
@@ -1340,7 +1357,7 @@ int step(state_t *state)
 				return 0;
 			}
 
-			if(!object_test(state, object_pop(&state->eval_stack))) {
+			if(!nj_object_test(state, object_pop(&state->eval_stack))) {
 
 				*u32_top_ref(&state->offset_stack) = dest;
 			}
@@ -1357,12 +1374,12 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *left, *right, *result;
+			nj_object_t *left, *right, *result;
 
 			right = object_pop(&state->eval_stack);
 			left  = object_pop(&state->eval_stack);
 			
-			result = object_add(state, left, right);
+			result = nj_object_add(state, left, right);
 
 			if(result == 0) {
 
@@ -1393,12 +1410,12 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *left, *right, *result;
+			nj_object_t *left, *right, *result;
 
 			right = object_pop(&state->eval_stack);
 			left  = object_pop(&state->eval_stack);
 			
-			result = object_sub(state, left, right);
+			result = nj_object_sub(state, left, right);
 
 			if(result == 0) {
 
@@ -1427,12 +1444,12 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *left, *right, *result;
+			nj_object_t *left, *right, *result;
 
 			right = object_pop(&state->eval_stack);
 			left  = object_pop(&state->eval_stack);
 			
-			result = object_mul(state, left, right);
+			result = nj_object_mul(state, left, right);
 
 			if(result == 0) {
 
@@ -1461,12 +1478,12 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *left, *right, *result;
+			nj_object_t *left, *right, *result;
 
 			right = object_pop(&state->eval_stack);
 			left  = object_pop(&state->eval_stack);
 			
-			result = object_div(state, left, right);
+			result = nj_object_div(state, left, right);
 
 			if(result == 0) {
 
@@ -1495,12 +1512,12 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *left, *right, *result;
+			nj_object_t *left, *right, *result;
 
 			right = object_pop(&state->eval_stack);
 			left  = object_pop(&state->eval_stack);
 			
-			result = object_mod(state, left, right);
+			result = nj_object_mod(state, left, right);
 
 			if(result == 0) {
 
@@ -1529,12 +1546,12 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *left, *right, *result;
+			nj_object_t *left, *right, *result;
 
 			right = object_pop(&state->eval_stack);
 			left  = object_pop(&state->eval_stack);
 			
-			result = object_pow(state, left, right);
+			result = nj_object_pow(state, left, right);
 
 			if(result == 0) {
 
@@ -1565,12 +1582,12 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *left, *right, *result;
+			nj_object_t *left, *right, *result;
 
 			right = object_pop(&state->eval_stack);
 			left  = object_pop(&state->eval_stack);
 			
-			result = object_lss(state, left, right);
+			result = nj_object_lss(state, left, right);
 
 			if(result == 0) {
 
@@ -1599,12 +1616,12 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *left, *right, *result;
+			nj_object_t *left, *right, *result;
 
 			right = object_pop(&state->eval_stack);
 			left  = object_pop(&state->eval_stack);
 			
-			result = object_grt(state, left, right);
+			result = nj_object_grt(state, left, right);
 
 			if(result == 0) {
 
@@ -1633,12 +1650,12 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *left, *right, *result;
+			nj_object_t *left, *right, *result;
 
 			right = object_pop(&state->eval_stack);
 			left  = object_pop(&state->eval_stack);
 			
-			result = object_leq(state, left, right);
+			result = nj_object_leq(state, left, right);
 
 			if(result == 0) {
 
@@ -1667,12 +1684,12 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *left, *right, *result;
+			nj_object_t *left, *right, *result;
 
 			right = object_pop(&state->eval_stack);
 			left  = object_pop(&state->eval_stack);
 			
-			result = object_geq(state, left, right);
+			result = nj_object_geq(state, left, right);
 
 			if(result == 0) {
 
@@ -1701,12 +1718,12 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *left, *right, *result;
+			nj_object_t *left, *right, *result;
 
 			right = object_pop(&state->eval_stack);
 			left  = object_pop(&state->eval_stack);
 			
-			result = object_eql(state, left, right);
+			result = nj_object_eql(state, left, right);
 
 			if(result == 0) {
 
@@ -1735,12 +1752,12 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *left, *right, *result;
+			nj_object_t *left, *right, *result;
 
 			right = object_pop(&state->eval_stack);
 			left  = object_pop(&state->eval_stack);
 			
-			result = object_nql(state, left, right);
+			result = nj_object_nql(state, left, right);
 
 			if(result == 0) {
 
@@ -1769,12 +1786,12 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *left, *right, *result;
+			nj_object_t *left, *right, *result;
 
 			right = object_pop(&state->eval_stack);
 			left  = object_pop(&state->eval_stack);
 			
-			result = object_and(state, left, right);
+			result = nj_object_and(state, left, right);
 
 			if(result == 0) {
 
@@ -1803,12 +1820,12 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *left, *right, *result;
+			nj_object_t *left, *right, *result;
 
 			right = object_pop(&state->eval_stack);
 			left  = object_pop(&state->eval_stack);
 			
-			result = object_or(state, left, right);
+			result = nj_object_or(state, left, right);
 
 			if(result == 0) {
 
@@ -1839,12 +1856,12 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *left, *right, *result;
+			nj_object_t *left, *right, *result;
 
 			right = object_pop(&state->eval_stack);
 			left  = object_pop(&state->eval_stack);
 			
-			result = object_shl(state, left, right);
+			result = nj_object_shl(state, left, right);
 
 			if(result == 0) {
 
@@ -1873,12 +1890,12 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *left, *right, *result;
+			nj_object_t *left, *right, *result;
 
 			right = object_pop(&state->eval_stack);
 			left  = object_pop(&state->eval_stack);
 			
-			result = object_shr(state, left, right);
+			result = nj_object_shr(state, left, right);
 
 			if(result == 0) {
 
@@ -1907,12 +1924,12 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *left, *right, *result;
+			nj_object_t *left, *right, *result;
 
 			right = object_pop(&state->eval_stack);
 			left  = object_pop(&state->eval_stack);
 			
-			result = object_bitwise_and(state, left, right);
+			result = nj_object_bitwise_and(state, left, right);
 
 			if(result == 0) {
 
@@ -1941,12 +1958,12 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *left, *right, *result;
+			nj_object_t *left, *right, *result;
 
 			right = object_pop(&state->eval_stack);
 			left  = object_pop(&state->eval_stack);
 			
-			result = object_bitwise_or(state, left, right);
+			result = nj_object_bitwise_or(state, left, right);
 
 			if(result == 0) {
 
@@ -1975,12 +1992,12 @@ int step(state_t *state)
 				return 0;
 			}
 
-			object_t *left, *right, *result;
+			nj_object_t *left, *right, *result;
 
 			right = object_pop(&state->eval_stack);
 			left  = object_pop(&state->eval_stack);
 			
-			result = object_bitwise_xor(state, left, right);
+			result = nj_object_bitwise_xor(state, left, right);
 
 			if(result == 0) {
 
@@ -2027,7 +2044,7 @@ int step(state_t *state)
 	return 1;
 }
 
-static void fetch_u32(state_t *state, uint32_t *value)
+static void fetch_u32(nj_state_t *state, uint32_t *value)
 {
 	if(u32_top(&state->offset_stack) + sizeof(uint32_t) > state->segments[u32_top(&state->segment_stack)].code_size) {
 
@@ -2041,7 +2058,7 @@ static void fetch_u32(state_t *state, uint32_t *value)
 	*u32_top_ref(&state->offset_stack) += sizeof(uint32_t);
 }
 
-static void fetch_i64(state_t *state, int64_t *value)
+static void fetch_i64(nj_state_t *state, int64_t *value)
 {
 	if(u32_top(&state->offset_stack) + sizeof(int64_t) > state->segments[u32_top(&state->segment_stack)].code_size) {
 
@@ -2055,7 +2072,7 @@ static void fetch_i64(state_t *state, int64_t *value)
 	*u32_top_ref(&state->offset_stack) += sizeof(int64_t);
 }
 
-static void fetch_f64(state_t *state, double *value)
+static void fetch_f64(nj_state_t *state, double *value)
 {
 	if(u32_top(&state->offset_stack) + sizeof(double) > state->segments[u32_top(&state->segment_stack)].code_size) {
 
@@ -2069,7 +2086,7 @@ static void fetch_f64(state_t *state, double *value)
 	*u32_top_ref(&state->offset_stack) += sizeof(double);
 }
 
-static void fetch_string(state_t *state, char **value)
+static void fetch_string(nj_state_t *state, char **value)
 {
 	if(u32_top(&state->offset_stack) + sizeof(uint32_t) > state->segments[u32_top(&state->segment_stack)].code_size) {
 
@@ -2091,7 +2108,7 @@ static void fetch_string(state_t *state, char **value)
 	*u32_top_ref(&state->offset_stack) += sizeof(uint32_t);
 }
 
-static void fail(state_t *state, const char *fmt, ...)
+static void fail(nj_state_t *state, const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
@@ -2101,7 +2118,7 @@ static void fail(state_t *state, const char *fmt, ...)
 	state->failed = 1;
 }
 
-static int failed(state_t *state)
+static int failed(nj_state_t *state)
 {
 	return state->failed;
 }

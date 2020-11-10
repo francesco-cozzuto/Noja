@@ -5,27 +5,15 @@ list = {"head": 0, "tail": 0, "count": 0};
 
 iter_no = 0;
 
-print("hoy?");
-
 while list["count"] < 10 {
-
-	print("New value");
 
 	item = {"value": list["count"], "next": 0};
 
-	if list["head"] == 0 {
-
-		print("if case at iteration ", iter_no);
-
-		print("Setting as head");
+	if 0 == list["head"] {
 
 		list["head"] = item;
 
 	} else {
-
-		print("else case at iteration ", iter_no);
-
-		print("Appending... ", list);
 
 		list["tail"]["next"] = item;
 	}

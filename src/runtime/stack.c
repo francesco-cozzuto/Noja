@@ -24,7 +24,7 @@ void object_stack_deinit(object_stack_t *stack)
 	}
 }
 
-object_t *object_nth_from_top(object_stack_t *stack, int count)
+nj_object_t *object_nth_from_top(object_stack_t *stack, int count)
 {
 	object_stack_chunk_t *chunk = stack->tail;
 	int size = stack->relative_size;
@@ -47,7 +47,7 @@ object_t *object_nth_from_top(object_stack_t *stack, int count)
 	return 0;
 }
 
-void object_stack_print(state_t *state, object_stack_t *stack, FILE *fp)
+void object_stack_print(nj_state_t *state, object_stack_t *stack, FILE *fp)
 {
 	object_stack_chunk_t *chunk = stack->tail;
 
@@ -55,7 +55,7 @@ void object_stack_print(state_t *state, object_stack_t *stack, FILE *fp)
 
 	for(size_t i = 0; i < stack->relative_size; i++, j--) {
 		fprintf(fp, "%d: ", j);
-		object_print(state, chunk->items[stack->relative_size - i - 1], fp);
+		nj_object_print(state, chunk->items[stack->relative_size - i - 1], fp);
 		fprintf(fp, "\n");
 	}
 
@@ -65,7 +65,7 @@ void object_stack_print(state_t *state, object_stack_t *stack, FILE *fp)
 
 		for(int i = 0; i < OBJECT_STACK_ITEMS_PER_CHUNK; i++, j--) {
 			fprintf(fp, "%d: ", j);
-			object_print(state, chunk->items[stack->relative_size - i - 1], fp);
+			nj_object_print(state, chunk->items[stack->relative_size - i - 1], fp);
 			fprintf(fp, "\n");
 		}
 
@@ -78,7 +78,7 @@ int object_stack_size(object_stack_t *stack)
 	return stack->absolute_size;
 }
 
-int object_push(object_stack_t *stack, object_t *item)
+int object_push(object_stack_t *stack, nj_object_t *item)
 {
 	if(stack->relative_size == OBJECT_STACK_ITEMS_PER_CHUNK) {
 
@@ -99,12 +99,12 @@ int object_push(object_stack_t *stack, object_t *item)
 	return 1;
 }
 
-object_t *object_pop(object_stack_t *stack)
+nj_object_t *object_pop(object_stack_t *stack)
 {
 	if(stack->absolute_size == 0)
 		return 0;
 
-	object_t *popped = stack->tail->items[--stack->relative_size];
+	nj_object_t *popped = stack->tail->items[--stack->relative_size];
 	stack->absolute_size--;
 
 	if(stack->relative_size == 0) {
@@ -124,12 +124,12 @@ object_t *object_pop(object_stack_t *stack)
 	return popped;
 }
 
-object_t *object_top(object_stack_t *stack)
+nj_object_t *object_top(object_stack_t *stack)
 {
 	return stack->tail->items[stack->relative_size-1];
 }
 
-object_t **object_top_ref(object_stack_t *stack)
+nj_object_t **object_top_ref(object_stack_t *stack)
 {
 	return stack->tail->items + stack->relative_size - 1;
 }

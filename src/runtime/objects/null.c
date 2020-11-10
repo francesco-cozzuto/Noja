@@ -1,7 +1,7 @@
 
 #include "../noja.h"
 
-static void null_print(state_t *state, object_t *self, FILE *fp)
+static void null_print(nj_state_t *state, nj_object_t *self, FILE *fp)
 {
 	(void) state;
 	(void) self;
@@ -9,11 +9,11 @@ static void null_print(state_t *state, object_t *self, FILE *fp)
 	fprintf(fp, "null");
 }
 
-int null_methods_setup(state_t *state)
+int null_methods_setup(nj_state_t *state)
 {
 (void) state;
 	/*
-	state->type_object_null.methods = object_istanciate(state, (object_t*) &state->type_object_dict);
+	state->type_object_null.methods = object_istanciate(state, (nj_object_t*) &state->type_object_dict);
 
 	assert(state->type_object_null.methods);
 
@@ -22,12 +22,12 @@ int null_methods_setup(state_t *state)
 
 	for(size_t i = 0; i < sizeof(method_names) / sizeof(char*); i++) {
 
-		object_t *o = object_from_cfunction(state, method_routines[i]);
+		nj_object_t *o = object_from_cfunction(state, method_routines[i]);
 
 		if(o == 0)
 			return 0;
 
-		if(!dict_cinsert(state, state->type_object_null.methods, method_names[i], o))
+		if(!nj_dictionary_insert(state, state->type_object_null.methods, method_names[i], o))
 	
 			return 0;
 	}
@@ -36,19 +36,19 @@ int null_methods_setup(state_t *state)
 	return 1;
 }
 
-int null_setup(state_t *state)
+int null_setup(nj_state_t *state)
 {
-	state->null_object = (object_t) {
+	state->null_object = (nj_object_t) {
 		.new_location = 0, 
-		.type = (object_t*) &state->type_object_null, 
+		.type = (nj_object_t*) &state->type_object_null, 
 		.flags = 0,
 	};
 
-	state->type_object_null = (object_type_t) {
+	state->type_object_null = (nj_object_type_t) {
 
-		.super = (object_t) { .new_location = 0, .type = (object_t*) &state->type_object_type, .flags = 0 },
+		.super = (nj_object_t) { .new_location = 0, .type = (nj_object_t*) &state->type_object_type, .flags = 0 },
 		.name = "Null",
-		.size = sizeof(object_t),
+		.size = sizeof(nj_object_t),
 		.methods = 0, // Must be created
 		.on_init = 0,
 		.on_deinit = 0,

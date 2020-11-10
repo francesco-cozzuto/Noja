@@ -14,7 +14,7 @@ int main(int argc, char **argv)
 
 	char *error_text;
 
-	if(!run_file(argv[1], &error_text)) {
+	if(!nj_run_file(argv[1], &error_text)) {
 
 		fprintf(stderr, "%s\n", error_text);
 		free(error_text);

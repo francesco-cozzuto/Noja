@@ -1,5 +1,12 @@
 
-all: a.out
+all: noja path.so io.so
 
-a.out: $(wildcard src/*.h src/*.c src/*/*.h src/*/*.c)
-	gcc $(wildcard src/*.c src/*/*.c) -g -Wall -Wextra -lm
+noja: $(wildcard src/runtime/*.h src/runtime/*.c src/runtime/*/*.h src/runtime/*/*.c)
+	gcc $(wildcard src/runtime/*.c src/runtime/*/*.c) -o noja -g -Wall -Wextra -lm -ldl -rdynamic
+
+
+path.so: $(wildcard src/modules/path/*.h src/modules/path/*.c)
+	gcc $(wildcard src/modules/path/*.c) -o path.so -shared -fpic -I./include
+
+io.so: $(wildcard src/modules/io/*.h src/modules/io/*.c)
+	gcc $(wildcard src/modules/io/*.c) -o io.so -shared -fpic -I./include
