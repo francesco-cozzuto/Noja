@@ -4,3 +4,11 @@ import "./io.so";
 content = load_text("makefile");
 
 print("The content of the makefile is [", content, "]");
+
+print(stat("makefile"));
+
+size = stat("makefile")["st_size"];
+
+print("The size of the makefile is ", size);
+
+print(stat("makefile").keys());
