@@ -58,15 +58,20 @@ int load_text(const char *path, char **e_content, int *e_length)
 
 nj_object_t *exposed_load_text(nj_state_t *state, size_t argc, nj_object_t **argv)
 {
-	if(argc != 1)
+	if(argc != 1) {
+		nj_fail(state, "load_text expected one argument!");
 		return 0;
+	}
 
 	const char *path;
 	char *content;
 	int   length;
 
-	if(!nj_object_to_c_string(state, argv[0], &path, 0))
+	if(!nj_object_to_c_string(state, argv[0], &path, 0)) {
+
+		nj_fail(state, "load_text expected a string!");
 		return 0; // Was expecting a string!
+	}
 
 	if(!load_text(path, &content, &length))
 		return nj_get_null_object(state);
@@ -76,13 +81,19 @@ nj_object_t *exposed_load_text(nj_state_t *state, size_t argc, nj_object_t **arg
 
 nj_object_t *exposed_stat(nj_state_t *state, size_t argc, nj_object_t **argv)
 {
-	if(argc != 1)
+	if(argc != 1) {
+
+		nj_fail(state, "load_text expected one argument!");
 		return 0;
+	}
 
 	const char *path;
 
-	if(!nj_object_to_c_string(state, argv[0], &path, 0))
+	if(!nj_object_to_c_string(state, argv[0], &path, 0)) {
+
+		nj_fail(state, "load_text expected a string!");
 		return 0; // Was expecting a string!
+	}
 
 	struct stat buf;
 

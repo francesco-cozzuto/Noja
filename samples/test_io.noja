@@ -1,6 +1,8 @@
 
 import "./io.so";
 
+load_text(5);
+
 content = load_text("makefile");
 
 print("The content of the makefile is [", content, "]");

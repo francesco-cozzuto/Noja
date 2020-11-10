@@ -239,15 +239,13 @@ static void fetch_u32(nj_state_t *state, uint32_t *value);
 static void fetch_i64(nj_state_t *state, int64_t *value);
 static void fetch_f64(nj_state_t *state, double *value);
 static void fetch_string(nj_state_t *state, char **value);
-static void fail(nj_state_t *state, const char *fmt, ...);
-static int  failed(nj_state_t *state);
 
 static nj_object_t *do_binary_import(nj_state_t *state, char *path)
 {
 	void *handle = dlopen(path, RTLD_LAZY | RTLD_NODELETE);
 
 	if(handle == 0) {
-		fail(state, "Failed to open the library file \"${zero-terminated-string}\" (${zero-terminated-string})", path, dlerror());
+		nj_fail(state, "Failed to open the library file \"${zero-terminated-string}\" (${zero-terminated-string})", path, dlerror());
 		return 0;
 	}
 
@@ -258,7 +256,7 @@ static nj_object_t *do_binary_import(nj_state_t *state, char *path)
 	setup = dlsym(handle, "setup");
 
 	if(setup == 0) {
-		fail(state, "Failed to load symbols from \"${zero-terminated-string}\". There was no setup routine! (${zero-terminated-string})", path, dlerror());
+		nj_fail(state, "Failed to load symbols from \"${zero-terminated-string}\". There was no setup routine! (${zero-terminated-string})", path, dlerror());
 		return 0;
 	}
 
@@ -266,8 +264,8 @@ static nj_object_t *do_binary_import(nj_state_t *state, char *path)
 
 	dlclose(handle);
 
-	if(result == 0 && !failed(state))
-		fail(state, "Setup routine of \"${zero-terminated-string}\" returned null but didn't raise an error!", path);
+	if(result == 0 && !nj_failed(state))
+		nj_fail(state, "Setup routine of \"${zero-terminated-string}\" returned null but didn't raise an error!", path);
 
 	return result;
 }
@@ -288,7 +286,7 @@ static nj_object_t *do_text_import(nj_state_t *state, char *path)
 
 	if(!load_text(path, &text, &length)) {
 
-		fail(state, "Failed to load \"${zero-terminated-string}\" in memory", path);
+		nj_fail(state, "Failed to load \"${zero-terminated-string}\" in memory", path);
 		return 0;
 	}
 
@@ -312,7 +310,7 @@ static nj_object_t *do_text_import(nj_state_t *state, char *path)
 
 	if(!generate(ast, &data_segment, &code_segment, &data_segment_size, &code_segment_size)) {
 
-		fail(state, "Failed to generate bytecode for \"${zero-terminated-string}\"", path);
+		nj_fail(state, "Failed to generate bytecode for \"${zero-terminated-string}\"", path);
 		ast_delete(ast);
 		return 0;
 	}
@@ -328,7 +326,7 @@ static nj_object_t *do_text_import(nj_state_t *state, char *path)
 	if(!append_segment(state, code_segment, data_segment, code_segment_size, data_segment_size, &imported_segment)) {
 
 		// #ERROR
-		fail(state, "Out of memory. Failed to grow segment array");
+		nj_fail(state, "Out of memory. Failed to grow segment array");
 		return 0;
 	}
 
@@ -369,13 +367,13 @@ static void do_named_import(nj_state_t *state)
 
 	fetch_string(state, &name);
 
-	if(failed(state))
+	if(nj_failed(state))
 		return;
 
 	if(object_stack_size(&state->eval_stack) == 0) {
 
 		// #ERROR
-		fail(state, "OPCODE_IMPORT_AS on an empty stack");
+		nj_fail(state, "OPCODE_IMPORT_AS on an empty stack");
 		return;
 	}
 
@@ -387,7 +385,7 @@ static void do_named_import(nj_state_t *state)
 	if(path_object->type != (nj_object_t*) &state->type_object_string) {
 
 		// #ERROR
-		fail(state, "The imported path expression is not a string");
+		nj_fail(state, "The imported path expression is not a string");
 		return;
 	}
 
@@ -417,13 +415,13 @@ static void do_named_import(nj_state_t *state)
 		map = do_binary_import(state, path);
 	}
 
-	if(failed(state))
+	if(nj_failed(state))
 		return;
 
 	if(!nj_dictionary_insert(state, current_map(state), name, map)) {
 
 		// #ERROR
-		fail(state, "Failed to create imported module variable. Couldn't insert into the variable map");
+		nj_fail(state, "Failed to create imported module variable. Couldn't insert into the variable map");
 		return;
 	}
 }
@@ -434,7 +432,7 @@ static void do_unnamed_import(nj_state_t *state)
 	if(object_stack_size(&state->eval_stack) == 0) {
 
 		// #ERROR
-		fail(state, "OPCODE_IMPORT on an empty stack");
+		nj_fail(state, "OPCODE_IMPORT on an empty stack");
 		return;
 	}
 
@@ -446,7 +444,7 @@ static void do_unnamed_import(nj_state_t *state)
 	if(path_object->type != (nj_object_t*) &state->type_object_string) {
 
 		// #ERROR
-		fail(state, "The imported path expression is not a string");
+		nj_fail(state, "The imported path expression is not a string");
 		return;
 	}
 
@@ -476,7 +474,7 @@ static void do_unnamed_import(nj_state_t *state)
 		map = do_binary_import(state, path);
 	}
 
-	if(failed(state))
+	if(nj_failed(state))
 		return;
 
 	//
@@ -486,7 +484,7 @@ static void do_unnamed_import(nj_state_t *state)
 	if(!nj_dictionary_merge_in(state, current_map(state), map)) {
 
 		// #ERROR
-		fail(state, "Failed to create import module symnols");
+		nj_fail(state, "Failed to create import module symnols");
 		return;
 	}
 }
@@ -497,7 +495,7 @@ int step(nj_state_t *state)
 
 	fetch_u32(state, &opcode);
 
-	if(failed(state)) return 0;
+	if(nj_failed(state)) return 0;
 
 	switch(opcode) {
 
@@ -521,7 +519,7 @@ int step(nj_state_t *state)
 		if(!object_push(&state->eval_stack, (nj_object_t*) &state->null_object)) {
 			
 			// #ERROR
-			fail(state, "Out of memory. Couldn't grow the evaluation stack");
+			nj_fail(state, "Out of memory. Couldn't grow the evaluation stack");
 			return 0;
 		}
 
@@ -532,7 +530,7 @@ int step(nj_state_t *state)
 		if(!object_push(&state->eval_stack, (nj_object_t*) &state->true_object)){
 			
 			// #ERROR
-			fail(state, "Out of memory. Couldn't grow the evaluation stack");
+			nj_fail(state, "Out of memory. Couldn't grow the evaluation stack");
 			return 0;
 		}
 
@@ -543,7 +541,7 @@ int step(nj_state_t *state)
 		if(!object_push(&state->eval_stack, (nj_object_t*) &state->false_object)){
 			
 			// #ERROR
-			fail(state, "Out of memory. Couldn't grow the evaluation stack");
+			nj_fail(state, "Out of memory. Couldn't grow the evaluation stack");
 			return 0;
 		}
 
@@ -557,7 +555,7 @@ int step(nj_state_t *state)
 
 			fetch_i64(state, &value);
 			
-			if(failed(state)) 
+			if(nj_failed(state)) 
 				return 0;
 
 			nj_object_t *object = nj_object_from_c_int(state, value);
@@ -565,14 +563,14 @@ int step(nj_state_t *state)
 			if(object == 0) {
 
 				// #ERROR
-				fail(state, "Failed to create integer object");
+				nj_fail(state, "Failed to create integer object");
 				return 0;
 			}
 
 			if(!object_push(&state->eval_stack, object)) {
 			
 				// #ERROR
-				fail(state, "Out of memory. Couldn't grow the evaluation stack");
+				nj_fail(state, "Out of memory. Couldn't grow the evaluation stack");
 				return 0;
 			}
 			break;
@@ -584,7 +582,7 @@ int step(nj_state_t *state)
 
 			fetch_f64(state, &value);
 
-			if(failed(state)) 
+			if(nj_failed(state)) 
 				return 0;
 
 			nj_object_t *object = nj_object_from_c_float(state, value);
@@ -592,14 +590,14 @@ int step(nj_state_t *state)
 			if(object == 0) {
 
 				// #ERROR
-				fail(state, "Failed to create floating point object");
+				nj_fail(state, "Failed to create floating point object");
 				return 0;
 			}
 
 			if(!object_push(&state->eval_stack, object)) {
 			
 				// #ERROR
-				fail(state, "Out of memory. Couldn't grow the evaluation stack");
+				nj_fail(state, "Out of memory. Couldn't grow the evaluation stack");
 				return 0;
 			}
 			break;
@@ -612,13 +610,13 @@ int step(nj_state_t *state)
 
 			fetch_i64(state, &count);
 
-			if(failed(state))
+			if(nj_failed(state))
 				return 0;
 
 			if(object_stack_size(&state->eval_stack) < count) {
 
 				// #ERROR
-				fail(state, "BUILD_ARRAY with more items than the stack size");
+				nj_fail(state, "BUILD_ARRAY with more items than the stack size");
 				return 0;
 			}
 
@@ -628,7 +626,7 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// Failed to create object
-				fail(state, "Failed to create array object");
+				nj_fail(state, "Failed to create array object");
 				return 0;
 			}
 
@@ -636,21 +634,21 @@ int step(nj_state_t *state)
 				if(!nj_array_insert(state, object, i, object_pop(&state->eval_stack))) {
 
 					// #ERROR
-					fail(state, "Failed to insert item into array while building it");
+					nj_fail(state, "Failed to insert item into array while building it");
 					return 0;
 				}
 
 			if(!object_push(&state->eval_stack, object)) {
 
 				// #ERROR
-				fail(state, "Out of memory. Failed to grow evaluation stack");
+				nj_fail(state, "Out of memory. Failed to grow evaluation stack");
 				return 0;
 			}
 
 			if(!object_push(&state->eval_stack, object)) {
 			
 				// #ERROR
-				fail(state, "Out of memory. Couldn't grow the evaluation stack");
+				nj_fail(state, "Out of memory. Couldn't grow the evaluation stack");
 				return 0;
 			}
 			break;
@@ -663,13 +661,13 @@ int step(nj_state_t *state)
 
 			fetch_i64(state, &count);
 
-			if(failed(state))
+			if(nj_failed(state))
 				return 0;
 
 			if(object_stack_size(&state->eval_stack) < count * 2) {
 
 				// #ERROR
-				fail(state, "BUILD_DICT with more items than the stack size");
+				nj_fail(state, "BUILD_DICT with more items than the stack size");
 				return 0;
 			}
 
@@ -679,7 +677,7 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// Failed to create object
-				fail(state, "Failed to create BUILD_DICT's value");
+				nj_fail(state, "Failed to create BUILD_DICT's value");
 				return 0;
 			}
 
@@ -693,7 +691,7 @@ int step(nj_state_t *state)
 				if(!nj_object_insert(state, object, key, value)) {
 
 					// #ERROR
-					fail(state, "Failed to insert object into dict while building it");
+					nj_fail(state, "Failed to insert object into dict while building it");
 					return 0;
 				}
 			}
@@ -701,7 +699,7 @@ int step(nj_state_t *state)
 			if(!object_push(&state->eval_stack, object)) {
 					
 					// #ERROR
-					fail(state, "Out of memory. Failed to grow evaluation stack");
+					nj_fail(state, "Out of memory. Failed to grow evaluation stack");
 					return 0;
 			}
 			break;
@@ -714,7 +712,7 @@ int step(nj_state_t *state)
 
 			fetch_string(state, &value);
 
-			if(failed(state)) 
+			if(nj_failed(state)) 
 				return 0;
 
 			nj_object_t *object = nj_object_from_c_string_ref(state, value, strlen(value));
@@ -723,14 +721,14 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// Failed to create object
-				fail(state, "Failed to create string object");
+				nj_fail(state, "Failed to create string object");
 				return 0;
 			}
 
 			if(!object_push(&state->eval_stack, object)) {
 					
 					// #ERROR
-					fail(state, "Out of memory. Failed to grow evaluation stack");
+					nj_fail(state, "Out of memory. Failed to grow evaluation stack");
 					return 0;
 			}
 			break;
@@ -743,7 +741,7 @@ int step(nj_state_t *state)
 
 			fetch_u32(state, &dest);
 
-			if(failed(state)) 
+			if(nj_failed(state)) 
 				return 0;
 
 			uint32_t current_segment = u32_top(&state->segment_stack);
@@ -752,7 +750,7 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// PUSH_FUNCTION refers to an address outside of the code segment
-				fail(state, "PUSH_FUNCTION refers to an address outside of the code segment");
+				nj_fail(state, "PUSH_FUNCTION refers to an address outside of the code segment");
 				return 0;
 			}
 
@@ -762,14 +760,14 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// Failed to create object
-				fail(state, "Failed to create PUSH_FUNCTION's value");
+				nj_fail(state, "Failed to create PUSH_FUNCTION's value");
 				return 0;
 			}
 
 			if(!object_push(&state->eval_stack, object)) {
 					
 					// #ERROR
-					fail(state, "Out of memory. Failed to grow evaluation stack");
+					nj_fail(state, "Out of memory. Failed to grow evaluation stack");
 					return 0;
 			}
 			break;
@@ -781,7 +779,7 @@ int step(nj_state_t *state)
 
 			fetch_string(state, &variable_name);
 
-			if(failed(state)) 
+			if(nj_failed(state)) 
 				return 0;
 
 			nj_object_t *object = 0;
@@ -799,14 +797,14 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// Undefined variable was referenced
-				fail(state, "Undefined variable [${zero-terminated-string}] was referenced", variable_name);
+				nj_fail(state, "Undefined variable [${zero-terminated-string}] was referenced", variable_name);
 				return 0;
 			}
 
 			if(!object_push(&state->eval_stack, object)) {
 					
 					// #ERROR
-					fail(state, "Out of memory. Failed to grow evaluation stack");
+					nj_fail(state, "Out of memory. Failed to grow evaluation stack");
 					return 0;
 			}
 			break;
@@ -818,14 +816,14 @@ int step(nj_state_t *state)
 			
 			fetch_i64(state, &count);
 
-			if(failed(state)) 
+			if(nj_failed(state)) 
 				return 0;
 
 			if(count < 0) {
 
 				// #ERROR
 				// POP's operand is negative
-				fail(state, "POP's operand is negative");
+				nj_fail(state, "POP's operand is negative");
 				return 0;	
 			}
 
@@ -833,7 +831,7 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// POP's operand is negative
-				fail(state, "POPping more item than there are on the stack");
+				nj_fail(state, "POPping more item than there are on the stack");
 				return 0;	
 			}
 
@@ -849,14 +847,14 @@ int step(nj_state_t *state)
 
 			fetch_string(state, &variable_name);
 
-			if(failed(state)) 
+			if(nj_failed(state)) 
 				return 0;
 
 			if(object_stack_size(&state->eval_stack) == 0) {
 
 				// #ERROR
 				// ASSIGN while the stack is empty
-				fail(state, "ASSIGN while the stack is empty");
+				nj_fail(state, "ASSIGN while the stack is empty");
 				return 0;
 			}
 
@@ -876,7 +874,7 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// Failed to create the variable
-				fail(state, "Failed to execute ASSIGN instrucion. Couldn't insert into the variable map");
+				nj_fail(state, "Failed to execute ASSIGN instrucion. Couldn't insert into the variable map");
 				return 0;
 			}
 
@@ -889,13 +887,13 @@ int step(nj_state_t *state)
 
 			fetch_string(state, &attribute_name);
 
-			if(failed(state)) 
+			if(nj_failed(state)) 
 				return 0;
 
 			if(object_stack_size(&state->eval_stack) == 0) {
 
 				// #ERROR
-				fail(state, "SELECT_ATTRIBUTE_AND_REPUSH on an empty stack");
+				nj_fail(state, "SELECT_ATTRIBUTE_AND_REPUSH on an empty stack");
 				return 0;
 			}
 
@@ -905,14 +903,14 @@ int step(nj_state_t *state)
 			if(selected == 0) {
 
 				// #ERROR
-				fail(state, "Failed to select attribute");
+				nj_fail(state, "Failed to select attribute");
 				return 0;
 			}
 
 			if(!object_push(&state->eval_stack, selected) || !object_push(&state->eval_stack, container)) {
 					
 					// #ERROR
-					fail(state, "Out of memory. Failed to grow evaluation stack");
+					nj_fail(state, "Out of memory. Failed to grow evaluation stack");
 					return 0;
 			}
 			break;
@@ -923,7 +921,7 @@ int step(nj_state_t *state)
 			if(object_stack_size(&state->eval_stack) < 2) {
 
 				// #ERROR
-				fail(state, "SELECT on a stack with less than 2 items");
+				nj_fail(state, "SELECT on a stack with less than 2 items");
 				return 0;
 			}
 
@@ -937,7 +935,7 @@ int step(nj_state_t *state)
 			if(item == 0) {
 
 				// #ERROR
-				fail(state, "Object doesn't contain item");
+				nj_fail(state, "Object doesn't contain item");
 				return 0;
 			}
 
@@ -951,7 +949,7 @@ int step(nj_state_t *state)
 			if(object_stack_size(&state->eval_stack) < 3) {
 
 				// #ERROR
-				fail(state, "INSERT on a stack with less than 3 items");
+				nj_fail(state, "INSERT on a stack with less than 3 items");
 				return 0;
 			}
 
@@ -964,7 +962,7 @@ int step(nj_state_t *state)
 			if(!nj_object_insert(state, container, key, item)) {
 
 				// #ERROR
-				fail(state, "Failed to insert item into object");
+				nj_fail(state, "Failed to insert item into object");
 				return 0;
 			}
 
@@ -978,13 +976,13 @@ int step(nj_state_t *state)
 
 			fetch_string(state, &attribute_name);
 
-			if(failed(state)) 
+			if(nj_failed(state)) 
 				return 0;
 
 			if(object_stack_size(&state->eval_stack) == 0) {
 
 				// #ERROR
-				fail(state, "SELECT_ATTRIBUTE on an empty stack");
+				nj_fail(state, "SELECT_ATTRIBUTE on an empty stack");
 				return 0;
 			}
 
@@ -995,7 +993,7 @@ int step(nj_state_t *state)
 			if(selected == 0) {
 
 				// #ERROR
-				fail(state, "Failed to select attribute");
+				nj_fail(state, "Failed to select attribute");
 				return 0;
 			}
 
@@ -1010,13 +1008,13 @@ int step(nj_state_t *state)
 
 			fetch_string(state, &attribute_name);
 
-			if(failed(state)) 
+			if(nj_failed(state)) 
 				return 0;
 
 			if(object_stack_size(&state->eval_stack) < 2) {
 
 				// #ERROR
-				fail(state, "INSERT_ATTRIBUTE on a stack with less than 2 items");
+				nj_fail(state, "INSERT_ATTRIBUTE on a stack with less than 2 items");
 				return 0;
 			}
 
@@ -1028,7 +1026,7 @@ int step(nj_state_t *state)
 			if(!nj_object_insert_attribute(state, container, attribute_name, item)) {
 
 				// #ERROR
-				fail(state, "Failed to insert attribute");
+				nj_fail(state, "Failed to insert attribute");
 				return 0;
 			}
 
@@ -1044,14 +1042,14 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// Failed to create variable map dict
-				fail(state, "Failed to create variable map object");
+				nj_fail(state, "Failed to create variable map object");
 				return 0;
 			}
 
 			if(!object_push(&state->vars_stack, dict)) {
 
 				// #ERROR
-				fail(state, "Out of memory. Failed to grow variable map stack");
+				nj_fail(state, "Out of memory. Failed to grow variable map stack");
 				return 0;
 			}
 			break;
@@ -1062,7 +1060,7 @@ int step(nj_state_t *state)
 			if(object_stack_size(&state->vars_stack) == 0) {
 
 				// #ERROR
-				fail(state, "VARIABLE_MAP_POP while the variable map stack is empty");
+				nj_fail(state, "VARIABLE_MAP_POP while the variable map stack is empty");
 				return 0;
 			}
 
@@ -1075,7 +1073,7 @@ int step(nj_state_t *state)
 			if(u32_stack_size(&state->break_destinations) == 0) {
 
 				// #ERROR
-				fail(state, "BREAK but no break destination was set");
+				nj_fail(state, "BREAK but no break destination was set");
 				return 0;
 			}
 
@@ -1084,7 +1082,7 @@ int step(nj_state_t *state)
 			if(!u32_push(&state->offset_stack, u32_top(&state->break_destinations))) {
 
 				// #ERROR
-				fail(state, "Out of memory. Failed to grow offset stack");
+				nj_fail(state, "Out of memory. Failed to grow offset stack");
 				return 0;
 			}
 			break;
@@ -1096,20 +1094,20 @@ int step(nj_state_t *state)
 
 			fetch_u32(state, &dest);
 
-			if(failed(state))
+			if(nj_failed(state))
 				return 0;
 
 			if(dest >= state->segments[u32_top(&state->segment_stack)].code_size) {
 
 				// #ERROR
-				fail(state, "OPCODE_BREAK_DESTINATION_PUSH refers to an address outside of the code segment");
+				nj_fail(state, "OPCODE_BREAK_DESTINATION_PUSH refers to an address outside of the code segment");
 				return 0;
 			}
 
 			if(!u32_push(&state->break_destinations, dest)) {
 				
 				// #ERROR
-				fail(state, "Out of memory. Failed to grow break destinations stack");
+				nj_fail(state, "Out of memory. Failed to grow break destinations stack");
 				return 0;
 			}
 			break;
@@ -1120,7 +1118,7 @@ int step(nj_state_t *state)
 			if(u32_stack_size(&state->break_destinations) == 0) {
 
 				// #ERROR
-				fail(state, "OPCODE_BREAK_DESTINATION_POP but the break destination stack is empty");
+				nj_fail(state, "OPCODE_BREAK_DESTINATION_POP but the break destination stack is empty");
 				return 0;
 			}
 
@@ -1133,7 +1131,7 @@ int step(nj_state_t *state)
 			if(u32_stack_size(&state->continue_destinations) == 0) {
 
 				// #ERROR
-				fail(state, "CONTINUE but no break destination was set");
+				nj_fail(state, "CONTINUE but no break destination was set");
 				return 0;
 			}
 
@@ -1142,7 +1140,7 @@ int step(nj_state_t *state)
 			if(!u32_push(&state->offset_stack, u32_top(&state->continue_destinations))) {
 
 				// #ERROR
-				fail(state, "Out of memory. Failed to grow offset stack");
+				nj_fail(state, "Out of memory. Failed to grow offset stack");
 				return 0;
 			}
 			break;
@@ -1154,21 +1152,21 @@ int step(nj_state_t *state)
 
 			fetch_u32(state, &dest);
 
-			if(failed(state))
+			if(nj_failed(state))
 				return 0;
 
 			if(dest >= state->segments[u32_top(&state->segment_stack)].code_size) {
 
 				// #ERROR
 				// OPCODE_CONTINUE_DESTINATION_PUSH refers to an address outside of the code segment
-				fail(state, "OPCODE_CONTINUE_DESTINATION_PUSH refers to an address outside of the code segment");
+				nj_fail(state, "OPCODE_CONTINUE_DESTINATION_PUSH refers to an address outside of the code segment");
 				return 0;
 			}
 
 			if(!u32_push(&state->continue_destinations, dest)) {
 				
 				// #ERROR
-				fail(state, "Out of memory. Failed to grow continue destinations stack");
+				nj_fail(state, "Out of memory. Failed to grow continue destinations stack");
 				return 0;
 			}
 			break;
@@ -1179,7 +1177,7 @@ int step(nj_state_t *state)
 			if(u32_stack_size(&state->continue_destinations) == 0) {
 
 				// #ERROR
-				fail(state, "OPCODE_CONTINUE_DESTINATION_POP but the continue destination stack is empty");
+				nj_fail(state, "OPCODE_CONTINUE_DESTINATION_POP but the continue destination stack is empty");
 				return 0;
 			}
 
@@ -1193,14 +1191,14 @@ int step(nj_state_t *state)
 
 			fetch_i64(state, &argc);
 
-			if(failed(state)) 
+			if(nj_failed(state)) 
 				return 0;
 
 			if(object_stack_size(&state->eval_stack) < argc + 1) {
 
 				// #ERROR
 				// CALL on a stack with not enough items
-				fail(state, "CALL on a stack with not enough items");
+				nj_fail(state, "CALL on a stack with not enough items");
 				return 0;
 			}
 
@@ -1222,16 +1220,16 @@ int step(nj_state_t *state)
 
 				free(argv);
 
-				if(result == 0) {
+				if(result == 0 && !nj_failed(state)) {
 
-					fail(state, "C function returned NULL");
+					nj_fail(state, "C function returned NULL but didn't raise an error!");
 					return 0;
 				}
 
 				if(!object_push(&state->eval_stack, result)) {
 
 					// #ERROR
-					fail(state, "Out of memory. Failed to grow evaluation stack");
+					nj_fail(state, "Out of memory. Failed to grow evaluation stack");
 					return 0;
 				}
 
@@ -1251,20 +1249,20 @@ int step(nj_state_t *state)
 				if(!u32_push(&state->segment_stack, dest_segment)) {
 
 					// #ERROR
-					fail(state, "Out of memory. Failed to grow segment stack");
+					nj_fail(state, "Out of memory. Failed to grow segment stack");
 					return 0;
 				}
 
 				if(!u32_push(&state->offset_stack, dest_offset)) {
 
 					// #ERROR
-					fail(state, "Out of memory. Failed to grow segment stack");
+					nj_fail(state, "Out of memory. Failed to grow segment stack");
 					return 0;
 				}
 
 			} else {
 
-				fail(state, "CALL on something that is not callable");
+				nj_fail(state, "CALL on something that is not callable");
 				return 0;
 			}
 
@@ -1278,20 +1276,20 @@ int step(nj_state_t *state)
 
 			fetch_i64(state, &argc);
 
-			if(failed(state)) 
+			if(nj_failed(state)) 
 				return 0;
 		
 			if(state->argc < 0) {
 
 				// #ERROR
-				fail(state, "EXPECT but the argc wasn't previously set by a CALL instruction");
+				nj_fail(state, "EXPECT but the argc wasn't previously set by a CALL instruction");
 				return 0;
 			}
 
 			if(argc != state->argc) {
 
 				// #ERROR
-				fail(state, "Function call didn't provide the required number of arguments");
+				nj_fail(state, "Function call didn't provide the required number of arguments");
 				return 0;
 			}
 
@@ -1304,7 +1302,7 @@ int step(nj_state_t *state)
 			if(u32_stack_size(&state->segment_stack) == 0 || u32_stack_size(&state->offset_stack) == 0) {
 
 				// #ERROR
-				fail(state, "RETURN but the call depth is 0");
+				nj_fail(state, "RETURN but the call depth is 0");
 				return 0;
 			}
 
@@ -1320,13 +1318,13 @@ int step(nj_state_t *state)
 
 			fetch_u32(state, &dest);
 
-			if(failed(state)) 
+			if(nj_failed(state)) 
 				return 0;
 
 			if(dest >= state->segments[u32_top(&state->segment_stack)].code_size) {
 
 				// #ERROR
-				fail(state, "JUMP_ABSOLUTE refers to an address outside of the code segment");
+				nj_fail(state, "JUMP_ABSOLUTE refers to an address outside of the code segment");
 				return 0;
 			}
 
@@ -1340,20 +1338,20 @@ int step(nj_state_t *state)
 
 			fetch_u32(state, &dest);
 
-			if(failed(state)) 
+			if(nj_failed(state)) 
 				return 0;
 
 			if(dest >= state->segments[u32_top(&state->segment_stack)].code_size) {
 
 				// #ERROR
-				fail(state, "JUMP_IF_FALSE_AND_POP refers to an address outside of the code segment");
+				nj_fail(state, "JUMP_IF_FALSE_AND_POP refers to an address outside of the code segment");
 				return 0;
 			}
 
 			if(object_stack_size(&state->eval_stack) == 0) {
 
 				// #ERROR
-				fail(state, "JUMP_IF_FALSE_AND_POP on an empty stack");
+				nj_fail(state, "JUMP_IF_FALSE_AND_POP on an empty stack");
 				return 0;
 			}
 
@@ -1370,7 +1368,7 @@ int step(nj_state_t *state)
 			if(object_stack_size(&state->eval_stack) < 2) {
 
 				// #ERROR
-				fail(state, "ADD while the stack has less than 2 items");
+				nj_fail(state, "ADD while the stack has less than 2 items");
 				return 0;
 			}
 
@@ -1385,14 +1383,14 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// Failed to execute ADD operation
-				fail(state, "Failed to execute ADD");
+				nj_fail(state, "Failed to execute ADD");
 				return 0;
 			}
 
 			if(!object_push(&state->eval_stack, result)) {
 
 				// #ERROR
-				fail(state, "Out of memory. Failed to grow evaluation stack");
+				nj_fail(state, "Out of memory. Failed to grow evaluation stack");
 				return 0;
 			}
 			break;
@@ -1406,7 +1404,7 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// SUB operation on a stack with less than 2 elements
-				fail(state, "SUB while the stack has less than 2 items");
+				nj_fail(state, "SUB while the stack has less than 2 items");
 				return 0;
 			}
 
@@ -1421,14 +1419,14 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// Failed to execute SUB operation
-				fail(state, "Failed to execute SUB");
+				nj_fail(state, "Failed to execute SUB");
 				return 0;
 			}
 
 			if(!object_push(&state->eval_stack, result)) {
 
 				// #ERROR
-				fail(state, "Out of memory. Failed to grow evaluation stack");
+				nj_fail(state, "Out of memory. Failed to grow evaluation stack");
 				return 0;
 			}
 			break;
@@ -1440,7 +1438,7 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// MUL operation on a stack with less than 2 elements
-				fail(state, "MUL while the stack has less than 2 items");
+				nj_fail(state, "MUL while the stack has less than 2 items");
 				return 0;
 			}
 
@@ -1455,14 +1453,14 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// Failed to execute MUL operation
-				fail(state, "Failed to execute MUL");
+				nj_fail(state, "Failed to execute MUL");
 				return 0;
 			}
 
 			if(!object_push(&state->eval_stack, result)) {
 
 				// #ERROR
-				fail(state, "Out of memory. Failed to grow evaluation stack");
+				nj_fail(state, "Out of memory. Failed to grow evaluation stack");
 				return 0;
 			}
 			break;
@@ -1474,7 +1472,7 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// DIV operation on a stack with less than 2 elements
-				fail(state, "DIV while the stack has less than 2 items");
+				nj_fail(state, "DIV while the stack has less than 2 items");
 				return 0;
 			}
 
@@ -1489,14 +1487,14 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// Failed to execute DIV operation
-				fail(state, "Failed to execute DIV");
+				nj_fail(state, "Failed to execute DIV");
 				return 0;
 			}
 
 			if(!object_push(&state->eval_stack, result)) {
 
 				// #ERROR
-				fail(state, "Out of memory. Failed to grow evaluation stack");
+				nj_fail(state, "Out of memory. Failed to grow evaluation stack");
 				return 0;
 			}
 			break;
@@ -1508,7 +1506,7 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// MOD operation on a stack with less than 2 elements
-				fail(state, "MOD while the stack has less than 2 items");
+				nj_fail(state, "MOD while the stack has less than 2 items");
 				return 0;
 			}
 
@@ -1523,14 +1521,14 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// Failed to execute MOD operation
-				fail(state, "Failed to execute MOD");
+				nj_fail(state, "Failed to execute MOD");
 				return 0;
 			}
 
 			if(!object_push(&state->eval_stack, result)) {
 
 				// #ERROR
-				fail(state, "Out of memory. Failed to grow evaluation stack");
+				nj_fail(state, "Out of memory. Failed to grow evaluation stack");
 				return 0;
 			}
 			break;
@@ -1542,7 +1540,7 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// POW operation on a stack with less than 2 elements
-				fail(state, "POW while the stack has less than 2 items");
+				nj_fail(state, "POW while the stack has less than 2 items");
 				return 0;
 			}
 
@@ -1557,14 +1555,14 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// Failed to execute POW operation
-				fail(state, "Failed to execute POW");
+				nj_fail(state, "Failed to execute POW");
 				return 0;
 			}
 
 			if(!object_push(&state->eval_stack, result)) {
 
 				// #ERROR
-				fail(state, "Out of memory. Failed to grow evaluation stack");
+				nj_fail(state, "Out of memory. Failed to grow evaluation stack");
 				return 0;
 			}
 			break;
@@ -1578,7 +1576,7 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// LSS operation on a stack with less than 2 elements
-				fail(state, "LSS while the stack has less than 2 items");
+				nj_fail(state, "LSS while the stack has less than 2 items");
 				return 0;
 			}
 
@@ -1593,14 +1591,14 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// Failed to execute LSS operation
-				fail(state, "Failed to execute LSS");
+				nj_fail(state, "Failed to execute LSS");
 				return 0;
 			}
 
 			if(!object_push(&state->eval_stack, result)) {
 
 				// #ERROR
-				fail(state, "Out of memory. Failed to grow evaluation stack");
+				nj_fail(state, "Out of memory. Failed to grow evaluation stack");
 				return 0;
 			}
 			break;
@@ -1612,7 +1610,7 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// GRT operation on a stack with less than 2 elements
-				fail(state, "GRT while the stack has less than 2 items");
+				nj_fail(state, "GRT while the stack has less than 2 items");
 				return 0;
 			}
 
@@ -1627,14 +1625,14 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// Failed to execute GRT operation
-				fail(state, "Failed to execute GRT");
+				nj_fail(state, "Failed to execute GRT");
 				return 0;
 			}
 
 			if(!object_push(&state->eval_stack, result)) {
 
 				// #ERROR
-				fail(state, "Out of memory. Failed to grow evaluation stack");
+				nj_fail(state, "Out of memory. Failed to grow evaluation stack");
 				return 0;
 			}
 			break;
@@ -1646,7 +1644,7 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// LEQ operation on a stack with less than 2 elements
-				fail(state, "LEQ while the stack has less than 2 items");
+				nj_fail(state, "LEQ while the stack has less than 2 items");
 				return 0;
 			}
 
@@ -1661,14 +1659,14 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// Failed to execute LEQ operation
-				fail(state, "Failed to execute LEQ");
+				nj_fail(state, "Failed to execute LEQ");
 				return 0;
 			}
 
 			if(!object_push(&state->eval_stack, result)) {
 
 				// #ERROR
-				fail(state, "Out of memory. Failed to grow evaluation stack");
+				nj_fail(state, "Out of memory. Failed to grow evaluation stack");
 				return 0;
 			}
 			break;
@@ -1680,7 +1678,7 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// GEQ operation on a stack with less than 2 elements
-				fail(state, "GEQ while the stack has less than 2 items");
+				nj_fail(state, "GEQ while the stack has less than 2 items");
 				return 0;
 			}
 
@@ -1695,14 +1693,14 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// Failed to execute GEQ operation
-				fail(state, "Failed to execute GEQ");
+				nj_fail(state, "Failed to execute GEQ");
 				return 0;
 			}
 
 			if(!object_push(&state->eval_stack, result)) {
 
 				// #ERROR
-				fail(state, "Out of memory. Failed to grow evaluation stack");
+				nj_fail(state, "Out of memory. Failed to grow evaluation stack");
 				return 0;
 			}
 			break;
@@ -1714,7 +1712,7 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// EQL operation on a stack with less than 2 elements
-				fail(state, "EQL while the stack has less than 2 items");
+				nj_fail(state, "EQL while the stack has less than 2 items");
 				return 0;
 			}
 
@@ -1729,14 +1727,14 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// Failed to execute EQL operation
-				fail(state, "Failed to execute EQL");
+				nj_fail(state, "Failed to execute EQL");
 				return 0;
 			}
 
 			if(!object_push(&state->eval_stack, result)) {
 
 				// #ERROR
-				fail(state, "Out of memory. Failed to grow evaluation stack");
+				nj_fail(state, "Out of memory. Failed to grow evaluation stack");
 				return 0;
 			}
 			break;
@@ -1748,7 +1746,7 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// NQL operation on a stack with less than 2 elements
-				fail(state, "NQL while the stack has less than 2 items");
+				nj_fail(state, "NQL while the stack has less than 2 items");
 				return 0;
 			}
 
@@ -1763,14 +1761,14 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// Failed to execute NQL operation
-				fail(state, "Failed to execute NQL");
+				nj_fail(state, "Failed to execute NQL");
 				return 0;
 			}
 
 			if(!object_push(&state->eval_stack, result)) {
 
 				// #ERROR
-				fail(state, "Out of memory. Failed to grow evaluation stack");
+				nj_fail(state, "Out of memory. Failed to grow evaluation stack");
 				return 0;
 			}
 			break;
@@ -1782,7 +1780,7 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// AND operation on a stack with less than 2 elements
-				fail(state, "AND while the stack has less than 2 items");
+				nj_fail(state, "AND while the stack has less than 2 items");
 				return 0;
 			}
 
@@ -1797,14 +1795,14 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// Failed to execute AND operation
-				fail(state, "Failed to execute AND");
+				nj_fail(state, "Failed to execute AND");
 				return 0;
 			}
 
 			if(!object_push(&state->eval_stack, result)) {
 
 				// #ERROR
-				fail(state, "Out of memory. Failed to grow evaluation stack");
+				nj_fail(state, "Out of memory. Failed to grow evaluation stack");
 				return 0;
 			}
 			break;
@@ -1816,7 +1814,7 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// OR operation on a stack with less than 2 elements
-				fail(state, "OR while the stack has less than 2 items");
+				nj_fail(state, "OR while the stack has less than 2 items");
 				return 0;
 			}
 
@@ -1831,14 +1829,14 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// Failed to execute OR operation
-				fail(state, "Failed to execute OR");
+				nj_fail(state, "Failed to execute OR");
 				return 0;
 			}
 
 			if(!object_push(&state->eval_stack, result)) {
 
 				// #ERROR
-				fail(state, "Out of memory. Failed to grow evaluation stack");
+				nj_fail(state, "Out of memory. Failed to grow evaluation stack");
 				return 0;
 			}
 			break;
@@ -1852,7 +1850,7 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// SHL operation on a stack with less than 2 elements
-				fail(state, "SHL while the stack has less than 2 items");
+				nj_fail(state, "SHL while the stack has less than 2 items");
 				return 0;
 			}
 
@@ -1867,14 +1865,14 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// Failed to execute SHL operation
-				fail(state, "Failed to execute SHL");
+				nj_fail(state, "Failed to execute SHL");
 				return 0;
 			}
 
 			if(!object_push(&state->eval_stack, result)) {
 
 				// #ERROR
-				fail(state, "Out of memory. Failed to grow evaluation stack");
+				nj_fail(state, "Out of memory. Failed to grow evaluation stack");
 				return 0;
 			}
 			break;
@@ -1886,7 +1884,7 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// SHR operation on a stack with less than 2 elements
-				fail(state, "SHR while the stack has less than 2 items");
+				nj_fail(state, "SHR while the stack has less than 2 items");
 				return 0;
 			}
 
@@ -1901,14 +1899,14 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// Failed to execute SHR operation
-				fail(state, "Failed to execute SHR");
+				nj_fail(state, "Failed to execute SHR");
 				return 0;
 			}
 
 			if(!object_push(&state->eval_stack, result)) {
 
 				// #ERROR
-				fail(state, "Out of memory. Failed to grow evaluation stack");
+				nj_fail(state, "Out of memory. Failed to grow evaluation stack");
 				return 0;
 			}
 			break;
@@ -1920,7 +1918,7 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// BITWISE_AND operation on a stack with less than 2 elements
-				fail(state, "BITWISE_AND while the stack has less than 2 items");
+				nj_fail(state, "BITWISE_AND while the stack has less than 2 items");
 				return 0;
 			}
 
@@ -1935,14 +1933,14 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// Failed to execute BITWISE_AND operation
-				fail(state, "Failed to execute BITWISE_AND");
+				nj_fail(state, "Failed to execute BITWISE_AND");
 				return 0;
 			}
 
 			if(!object_push(&state->eval_stack, result)) {
 
 				// #ERROR
-				fail(state, "Out of memory. Failed to grow evaluation stack");
+				nj_fail(state, "Out of memory. Failed to grow evaluation stack");
 				return 0;
 			}
 			break;
@@ -1954,7 +1952,7 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// BITWISE_OR operation on a stack with less than 2 elements
-				fail(state, "BITWISE_OR while the stack has less than 2 items");
+				nj_fail(state, "BITWISE_OR while the stack has less than 2 items");
 				return 0;
 			}
 
@@ -1969,14 +1967,14 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// Failed to execute BITWISE_OR operation
-				fail(state, "Failed to execute BITWISE_OR");
+				nj_fail(state, "Failed to execute BITWISE_OR");
 				return 0;
 			}
 
 			if(!object_push(&state->eval_stack, result)) {
 
 				// #ERROR
-				fail(state, "Out of memory. Failed to grow evaluation stack");
+				nj_fail(state, "Out of memory. Failed to grow evaluation stack");
 				return 0;
 			}
 			break;
@@ -1988,7 +1986,7 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// BITWISE_XOR operation on a stack with less than 2 elements
-				fail(state, "BITWISE_XOR while the stack has less than 2 items");
+				nj_fail(state, "BITWISE_XOR while the stack has less than 2 items");
 				return 0;
 			}
 
@@ -2003,14 +2001,14 @@ int step(nj_state_t *state)
 
 				// #ERROR
 				// Failed to execute BITWISE_XOR operation
-				fail(state, "Failed to execute BITWISE_XOR");
+				nj_fail(state, "Failed to execute BITWISE_XOR");
 				return 0;
 			}
 
 			if(!object_push(&state->eval_stack, result)) {
 
 				// #ERROR
-				fail(state, "Out of memory. Failed to grow evaluation stack");
+				nj_fail(state, "Out of memory. Failed to grow evaluation stack");
 				return 0;
 			}
 			break;
@@ -2022,7 +2020,7 @@ int step(nj_state_t *state)
 		default:
 		// #ERROR
 		// Unexpected opcode
-		fail(state, "Unknown opcode");
+		nj_fail(state, "Unknown opcode");
 		return 0;
 
 	}
@@ -2048,7 +2046,7 @@ static void fetch_u32(nj_state_t *state, uint32_t *value)
 {
 	if(u32_top(&state->offset_stack) + sizeof(uint32_t) > state->segments[u32_top(&state->segment_stack)].code_size) {
 
-		fail(state, "Unexpected end of the code segment while fetching an u32");
+		nj_fail(state, "Unexpected end of the code segment while fetching an u32");
 		return;
 	}
 
@@ -2062,7 +2060,7 @@ static void fetch_i64(nj_state_t *state, int64_t *value)
 {
 	if(u32_top(&state->offset_stack) + sizeof(int64_t) > state->segments[u32_top(&state->segment_stack)].code_size) {
 
-		fail(state, "Unexpected end of the code segment while fetching an i64");
+		nj_fail(state, "Unexpected end of the code segment while fetching an i64");
 		return;
 	}
 
@@ -2076,7 +2074,7 @@ static void fetch_f64(nj_state_t *state, double *value)
 {
 	if(u32_top(&state->offset_stack) + sizeof(double) > state->segments[u32_top(&state->segment_stack)].code_size) {
 
-		fail(state, "Unexpected end of the code segment while fetching an f64");
+		nj_fail(state, "Unexpected end of the code segment while fetching an f64");
 		return;
 	}
 
@@ -2090,7 +2088,7 @@ static void fetch_string(nj_state_t *state, char **value)
 {
 	if(u32_top(&state->offset_stack) + sizeof(uint32_t) > state->segments[u32_top(&state->segment_stack)].code_size) {
 
-		fail(state, "Unexpected end of the code segment while fetching an u32");
+		nj_fail(state, "Unexpected end of the code segment while fetching an u32");
 		return;
 	}
 
@@ -2098,7 +2096,7 @@ static void fetch_string(nj_state_t *state, char **value)
 
 	if(offset >= state->segments[u32_top(&state->segment_stack)].data_size) {
 
-		fail(state, "Fetched data offset points outside of the data segment");
+		nj_fail(state, "Fetched data offset points outside of the data segment");
 		return;
 	}
 
@@ -2108,7 +2106,7 @@ static void fetch_string(nj_state_t *state, char **value)
 	*u32_top_ref(&state->offset_stack) += sizeof(uint32_t);
 }
 
-static void fail(nj_state_t *state, const char *fmt, ...)
+void nj_fail(nj_state_t *state, const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
@@ -2118,7 +2116,7 @@ static void fail(nj_state_t *state, const char *fmt, ...)
 	state->failed = 1;
 }
 
-static int failed(nj_state_t *state)
+int nj_failed(nj_state_t *state)
 {
 	return state->failed;
 }

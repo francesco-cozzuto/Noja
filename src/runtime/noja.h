@@ -384,6 +384,9 @@ nj_object_t *nj_get_null_object(nj_state_t *state);
 nj_object_t *nj_get_true_object(nj_state_t *state);
 nj_object_t *nj_get_false_object(nj_state_t *state);
 
+void nj_fail(nj_state_t *state, const char *fmt, ...);
+int  nj_failed(nj_state_t *state);
+
 int nj_run(const char *text, int length, char **error_text);
 int nj_run_file(const char *path, char **error_text);
 
