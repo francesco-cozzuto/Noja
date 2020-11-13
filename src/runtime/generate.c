@@ -1,4 +1,6 @@
 
+/*
+
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -1056,3 +1058,5 @@ static void node_compile(function_text_t *ft, node_t *node)
 		}
 	}
 }
+
+*/

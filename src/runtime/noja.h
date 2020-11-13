@@ -392,3 +392,11 @@ int nj_run_file(const char *path, char **error_text);
 
 int parse(const char *source, int source_length, ast_t *ast, string_builder_t *output_builder);
 int generate(ast_t ast, char **e_data, char **e_code, uint32_t *e_data_size, uint32_t *e_code_size);
+
+typedef struct {
+	char *code, *data;
+	uint32_t code_length, 
+			 data_length;
+} program_t;
+
+program_t build_program(ast_t ast);
