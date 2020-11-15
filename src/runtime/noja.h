@@ -4,71 +4,6 @@
 #include <stdio.h>
 
 #include "utils/string_builder.h"
-#include "ast.h"
-
-enum {
-
-	OPCODE_NOPE,
-	OPCODE_QUIT,
-		
-	OPCODE_PUSH_NULL,
-	OPCODE_PUSH_TRUE,
-	OPCODE_PUSH_FALSE,
-	OPCODE_PUSH_INT,
-	OPCODE_PUSH_FLOAT,
-	OPCODE_PUSH_STRING,
-	OPCODE_PUSH_FUNCTION,
-	OPCODE_PUSH_VARIABLE,
-	OPCODE_SELECT_ATTRIBUTE_AND_REPUSH,
-
-	OPCODE_BUILD_ARRAY,
-	OPCODE_BUILD_DICT,
-
-	OPCODE_POP,
-
-	OPCODE_IMPORT,
-	OPCODE_IMPORT_AS,
-
-	OPCODE_ASSIGN,
-	OPCODE_SELECT,
-	OPCODE_INSERT,
-	OPCODE_SELECT_ATTRIBUTE,
-	OPCODE_INSERT_ATTRIBUTE,
-
-	OPCODE_VARIABLE_MAP_PUSH,
-	OPCODE_VARIABLE_MAP_POP,
-
-	OPCODE_CALL,
-	OPCODE_EXPECT,
-	OPCODE_RETURN,
-
-	OPCODE_JUMP_ABSOLUTE,
-	OPCODE_JUMP_IF_FALSE_AND_POP,
-
-	OPCODE_ADD,
-	OPCODE_SUB,
-	OPCODE_MUL,
-	OPCODE_DIV,
-	OPCODE_MOD,
-	OPCODE_POW,
-	OPCODE_NEG,
-	OPCODE_LSS,
-	OPCODE_GRT,
-	OPCODE_LEQ,
-	OPCODE_GEQ,
-	OPCODE_EQL,
-	OPCODE_NQL,
-	OPCODE_AND,
-	OPCODE_OR,
-	OPCODE_NOT,
-	OPCODE_SHL,
-	OPCODE_SHR,
-	OPCODE_BITWISE_AND,
-	OPCODE_BITWISE_OR,
-	OPCODE_BITWISE_XOR,
-	OPCODE_BITWISE_NOT,
-	
-};
 
 typedef struct nj_state_t nj_state_t;
 typedef struct nj_object_t nj_object_t;
@@ -145,7 +80,6 @@ typedef struct {
 	char *code;
 	uint32_t data_size;
 	uint32_t code_size;
-	ast_t ast;
 	nj_object_t *global_variables_map;
 } segment_t;
 
@@ -325,33 +259,27 @@ nj_object_t *nj_object_from_segment_and_offset(nj_state_t *state, uint32_t segme
 nj_object_t *nj_object_istanciate(nj_state_t *state, nj_object_t *type);
 void 	     nj_object_print(nj_state_t *state, nj_object_t *self, FILE *fp);
 nj_object_t *nj_object_type(nj_object_t *self);
-
 nj_object_t *nj_object_add(nj_state_t *state, nj_object_t *self, nj_object_t *right);
 nj_object_t *nj_object_sub(nj_state_t *state, nj_object_t *self, nj_object_t *right);
 nj_object_t *nj_object_mul(nj_state_t *state, nj_object_t *self, nj_object_t *right);
 nj_object_t *nj_object_div(nj_state_t *state, nj_object_t *self, nj_object_t *right);
 nj_object_t *nj_object_mod(nj_state_t *state, nj_object_t *self, nj_object_t *right);
 nj_object_t *nj_object_pow(nj_state_t *state, nj_object_t *self, nj_object_t *right);
-
 nj_object_t *nj_object_lss(nj_state_t *state, nj_object_t *self, nj_object_t *right);
 nj_object_t *nj_object_grt(nj_state_t *state, nj_object_t *self, nj_object_t *right);
 nj_object_t *nj_object_leq(nj_state_t *state, nj_object_t *self, nj_object_t *right);
 nj_object_t *nj_object_geq(nj_state_t *state, nj_object_t *self, nj_object_t *right);
-
 nj_object_t *nj_object_eql(nj_state_t *state, nj_object_t *self, nj_object_t *right);
 nj_object_t *nj_object_nql(nj_state_t *state, nj_object_t *self, nj_object_t *right);
-
 nj_object_t *nj_object_and(nj_state_t *state, nj_object_t *self, nj_object_t *right);
 nj_object_t *nj_object_or (nj_state_t *state, nj_object_t *self, nj_object_t *right);
-
 nj_object_t *nj_object_bitwise_and(nj_state_t *state, nj_object_t *self, nj_object_t *right);
 nj_object_t *nj_object_bitwise_or (nj_state_t *state, nj_object_t *self, nj_object_t *right);
 nj_object_t *nj_object_bitwise_xor(nj_state_t *state, nj_object_t *self, nj_object_t *right);
-
 nj_object_t *nj_object_shl(nj_state_t *state, nj_object_t *self, nj_object_t *right);
 nj_object_t *nj_object_shr(nj_state_t *state, nj_object_t *self, nj_object_t *right);
-
 uint8_t   	 nj_object_test(nj_state_t *state, nj_object_t *object);
+
 nj_object_t *nj_object_select(nj_state_t *state, nj_object_t *self, nj_object_t *key);
 int 	  	 nj_object_insert(nj_state_t *state, nj_object_t *self, nj_object_t *key, nj_object_t *item);
 nj_object_t *nj_object_select_attribute(nj_state_t *state, nj_object_t *self, const char *name);
@@ -374,18 +302,17 @@ nj_object_t *nj_get_false_object(nj_state_t *state);
 void nj_fail(nj_state_t *state, const char *fmt, ...);
 int  nj_failed(nj_state_t *state);
 
-int nj_run(const char *name, const char *text, int length, char **error_text);
+int nj_run(const char *text, int length, char **error_text);
 int nj_run_file(const char *path, char **error_text);
 
-void disassemble(char *code, char *data, uint32_t code_size, uint32_t data_size);
+void nj_disassemble(char *code, char *data, uint32_t code_size, uint32_t data_size);
+int nj_compile(const char *text, size_t length, char **e_data, char **e_code, uint32_t *e_data_size, uint32_t *e_code_size, string_builder_t *output_builder);
 
-int parse(const char *source, int source_length, ast_t *ast, string_builder_t *output_builder);
-int generate(ast_t ast, char **e_data, char **e_code, uint32_t *e_data_size, uint32_t *e_code_size);
+int nj_import(nj_state_t *state);
+int nj_import_as(nj_state_t *state, const char *name);
 
-typedef struct {
-	char *code, *data;
-	uint32_t code_length, 
-			 data_length;
-} program_t;
+int  nj_state_init(nj_state_t *state, string_builder_t *output_builder);
+void nj_state_deinit(nj_state_t *state);
+int  nj_step(nj_state_t *state);
 
-program_t build_program(ast_t ast, int *failed);
+int append_segment(nj_state_t *state, char *code, char *data, uint32_t code_size, uint32_t data_size, uint32_t *e_segment);

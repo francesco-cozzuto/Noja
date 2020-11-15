@@ -876,7 +876,7 @@ void node_print(node_t *node, FILE *fp)
 				break;
 
 				default:
-				fprintf(fp, "<???>");
+				fprintf(fp, "<?>");
 				break;
 			}
 			break;
@@ -902,7 +902,7 @@ void node_print(node_t *node, FILE *fp)
 		}
 
 		default:
-		fprintf(fp, "<???>");
+		fprintf(fp, "<?>");
 		break;
 	}
 }

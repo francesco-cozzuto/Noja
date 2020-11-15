@@ -1,7 +1,8 @@
 
 #include <string.h>
 #include <alloca.h>
-#include "../noja.h"
+#include <assert.h>
+#include "ast.h"
 
 #define FAILED //fprintf(stderr, ">> Failed at %s:%d\n", __FILE__, __LINE__);
 

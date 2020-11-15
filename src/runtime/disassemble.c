@@ -1,5 +1,8 @@
 
-#include "noja.h"
+#include <stdint.h>
+#include <assert.h>
+#include <stdio.h>
+#include "bytecode.h"
 
 static const char *operand_types[] = {
 	
@@ -135,7 +138,7 @@ static const char *get_opcode_name(int opcode)
 	return "???";
 }
 
-void disassemble(char *code, char *data, uint32_t code_size, uint32_t data_size)
+void nj_disassemble(char *code, char *data, uint32_t code_size, uint32_t data_size)
 {
 	{
 		uint32_t i = 0;

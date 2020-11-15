@@ -3,7 +3,9 @@
 #include <stdint.h>
 #include <setjmp.h>
 #include <string.h>
-#include "noja.h"
+#include <assert.h>
+#include "ast.h"
+#include "../bytecode.h"
 
 #define BYTES_PER_CODE_CHUNK 1024
 #define BYTES_PER_DATA_CHUNK 1024
@@ -119,25 +121,9 @@ void release_resources_on_abort(program_builder_t *builder)
 
 }
 
-int generate(ast_t ast, char **e_data, char **e_code, uint32_t *e_data_size, uint32_t *e_code_size)
-{
-	int failed;
-
-	program_t program = build_program(ast, &failed);
-
-	if(failed)
-		return 0;
-
-	*e_data = program.data;
-	*e_code = program.code;
-	*e_data_size = program.data_length;
-	*e_code_size = program.code_length;
-	return 1;
-}
-
 static void node_compile(block_t *block, label_t *break_destination, label_t *continue_destination, node_t *node);
 
-program_t build_program(ast_t ast, int *failed)
+int generate(ast_t ast, char **e_data, char **e_code, uint32_t *e_data_size, uint32_t *e_code_size)
 {
 
 	//
@@ -150,13 +136,8 @@ program_t build_program(ast_t ast, int *failed)
 	{
 		builder.head_data_chunk = malloc(sizeof(data_chunk_t));
 
-		if(builder.head_data_chunk == 0) {
-
-			assert(0);
-
-			if(failed) *failed = 1;
-			return (program_t) { 0 };
-		}
+		if(builder.head_data_chunk == 0)
+			return 0;
 
 		builder.head_data_chunk->used = 0;
 		builder.head_data_chunk->next = NULL;
@@ -166,12 +147,8 @@ program_t build_program(ast_t ast, int *failed)
 
 	if(setjmp(builder.env)) {
 
-		assert(0);
-
 		release_resources_on_abort(&builder);
-
-		if(failed) *failed = 1;
-		return (program_t) { 0 };
+		return 0;
 	}
 
 	//
@@ -325,8 +302,12 @@ program_t build_program(ast_t ast, int *failed)
 
 	// Done!
 
-	if(failed) *failed = 0;
-	return (program_t) { .code = code, .data = data, .code_length = length, .data_length = builder.data_length };
+	*e_data = data;
+	*e_code = code;
+	*e_data_size = builder.data_length;
+	*e_code_size = length;
+
+	return 1;
 }
 
 void label_points_here(block_t *block, label_t *label)
@@ -688,6 +669,7 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 		case NODE_KIND_ARGUMENT:
 		case NODE_KIND_DICT_ITEM:
 		assert(0);
+		break;
 
 		case NODE_KIND_EXPRESSION:
 		{
@@ -1018,6 +1000,7 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 				case EXPRESSION_KIND_POST_DEC:
 				#warning "Implement compilation of post/pre-increment/decrement operators"
 				assert(0);
+				break;
 
 				case EXPRESSION_KIND_ASSIGN:
 				{

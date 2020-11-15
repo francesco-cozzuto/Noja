@@ -21,7 +21,7 @@ nj_object_t *builtin_disassemble(nj_state_t *state, int argc, nj_object_t **argv
 	code_length = state->segments[u32_top(&state->segment_stack)].code_size;
 	data_length = state->segments[u32_top(&state->segment_stack)].data_size;
 
-	disassemble(code, data, code_length, data_length);
+	nj_disassemble(code, data, code_length, data_length);
 
 	return (nj_object_t*) &state->null_object;
 }

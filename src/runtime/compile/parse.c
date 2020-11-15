@@ -1,7 +1,7 @@
 
 #include <assert.h>
 #include "token.h"
-#include "../noja.h"
+#include "ast.h"
 
 void find_line_range(const char *source, int source_length, int offset, int *prev_line_offset, int *line_offset, int *next_line_offset, int *line_no)
 {
