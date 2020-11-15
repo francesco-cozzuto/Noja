@@ -512,21 +512,11 @@ int step(nj_state_t *state)
 
 	switch(opcode) {
 
-		case OPCODE_NOPE:
-		break;
-
-		case OPCODE_QUIT:
-		return 0;
-
-		case OPCODE_IMPORT: 
-		do_unnamed_import(state); 
-		break;
+		case OPCODE_NOPE:break;
+		case OPCODE_QUIT:return 0;
+		case OPCODE_IMPORT: do_unnamed_import(state); break;
+		case OPCODE_IMPORT_AS: do_named_import(state); break;
 		
-		case OPCODE_IMPORT_AS: 
-		do_named_import(state); 
-		break;
-		
-
 		case OPCODE_PUSH_NULL:
 
 		if(!object_push(&state->eval_stack, (nj_object_t*) &state->null_object)) {
@@ -540,7 +530,7 @@ int step(nj_state_t *state)
 		
 		case OPCODE_PUSH_TRUE:
 
-		if(!object_push(&state->eval_stack, (nj_object_t*) &state->true_object)){
+		if(!object_push(&state->eval_stack, (nj_object_t*) &state->true_object)) {
 			
 			// #ERROR
 			nj_fail(state, "Out of memory. Couldn't grow the evaluation stack");
@@ -551,7 +541,7 @@ int step(nj_state_t *state)
 
 		case OPCODE_PUSH_FALSE:
 
-		if(!object_push(&state->eval_stack, (nj_object_t*) &state->false_object)){
+		if(!object_push(&state->eval_stack, (nj_object_t*) &state->false_object)) {
 			
 			// #ERROR
 			nj_fail(state, "Out of memory. Couldn't grow the evaluation stack");

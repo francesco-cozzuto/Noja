@@ -23,5 +23,3 @@ while list["count"] < 10 {
 
 	iter_no = iter_no + 1;
 }
-
-print(an_undefined_variable);

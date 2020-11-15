@@ -206,9 +206,6 @@ struct nj_state_t {
 	object_stack_t eval_stack;
 	object_stack_t vars_stack;
 	nj_object_t *builtins_map;
-
-	// Keep track of the point of execution
-
 	u32_stack_t segment_stack;
 	u32_stack_t offset_stack;
 

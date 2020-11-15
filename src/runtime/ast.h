@@ -77,7 +77,6 @@ struct node_t {
 	int kind;
 	int offset;
 	int length;
-	uint32_t in_code;
 	node_t *next;
 };
 
