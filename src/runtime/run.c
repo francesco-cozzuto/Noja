@@ -13,7 +13,7 @@ int insert_builtins(nj_state_t *state, nj_object_t *dest);
 static int  state_init(nj_state_t *state, string_builder_t *output_builder);
 static void state_deinit(nj_state_t *state);
 
-int append_segment(nj_state_t *state, char *code, char *data, uint32_t code_size, uint32_t data_size, ast_t ast, uint32_t *e_segment)
+int append_segment(nj_state_t *state, char *code, char *data, uint32_t code_size, uint32_t data_size, char *name, char *text, ast_t ast, uint32_t *e_segment)
 {
 	if(state->segments_used == state->segments_size) {
 
@@ -39,6 +39,8 @@ int append_segment(nj_state_t *state, char *code, char *data, uint32_t code_size
 		return 0;
 
 	state->segments[state->segments_used] = (segment_t) { 
+		.name = name,
+		.text = text,
 		.ast = ast,
 		.code = code, 
 		.data = data, 
@@ -52,7 +54,7 @@ int append_segment(nj_state_t *state, char *code, char *data, uint32_t code_size
 	return 1;
 }
 
-static int run_text_inner(const char *text, int length, string_builder_t *output_builder)
+static int run_text_inner(const char *name, const char *text, int length, string_builder_t *output_builder)
 {
 	nj_state_t state;
 	ast_t ast;
@@ -81,7 +83,11 @@ static int run_text_inner(const char *text, int length, string_builder_t *output
 		return 0;
 	}
 
-	if(!append_segment(&state, first_code_segment, first_data_segment, first_code_segment_size, first_data_segment_size, ast, 0)) {
+	char *name_copy = malloc(strlen(name)+1);
+	assert(name_copy);
+	strcpy(name_copy, name);
+
+	if(!append_segment(&state, first_code_segment, first_data_segment, first_code_segment_size, first_data_segment_size, name_copy, text, ast, 0)) {
 
 		ast_delete(ast);
 		free(first_code_segment);
@@ -106,12 +112,12 @@ static int run_text_inner(const char *text, int length, string_builder_t *output
 	return result;	
 }
 
-int nj_run(const char *text, int length, char **error_text)
+int nj_run(const char *name, const char *text, int length, char **error_text)
 {
 	string_builder_t output_builder;
 	string_builder_init(&output_builder);
 
-	int result = run_text_inner(text, length, &output_builder);
+	int result = run_text_inner(name, text, length, &output_builder);
 
 	if(!result && error_text) {
 
@@ -137,7 +143,7 @@ int nj_run_file(const char *path, char **error_text)
 		return 0;
 	}
 
-	int result = nj_run(text, length, error_text);
+	int result = nj_run(path, text, length, error_text);
 
 	free(text);
 
@@ -306,8 +312,6 @@ static nj_object_t *do_text_import(nj_state_t *state, char *path)
 		return 0;
 	}
 
-	free(text);
-
 	//
 	// Generate the bytecode
 	//
@@ -325,7 +329,11 @@ static nj_object_t *do_text_import(nj_state_t *state, char *path)
 
 	uint32_t imported_segment;
 
-	if(!append_segment(state, code_segment, data_segment, code_segment_size, data_segment_size, ast, &imported_segment)) {
+	char *path_copy = malloc(strlen(path) + 1);
+	assert(path_copy);
+	strcpy(path_copy, path);
+	
+	if(!append_segment(state, code_segment, data_segment, code_segment_size, data_segment_size, path_copy, text, ast, &imported_segment)) {
 
 		// #ERROR
 

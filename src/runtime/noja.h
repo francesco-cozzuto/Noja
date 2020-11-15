@@ -139,6 +139,8 @@ struct overflow_allocation_t {
 };
 
 typedef struct {
+	char *name;
+	char *text;
 	char *data;
 	char *code;
 	uint32_t data_size;
@@ -375,7 +377,7 @@ nj_object_t *nj_get_false_object(nj_state_t *state);
 void nj_fail(nj_state_t *state, const char *fmt, ...);
 int  nj_failed(nj_state_t *state);
 
-int nj_run(const char *text, int length, char **error_text);
+int nj_run(const char *name, const char *text, int length, char **error_text);
 int nj_run_file(const char *path, char **error_text);
 
 void disassemble(char *code, char *data, uint32_t code_size, uint32_t data_size);

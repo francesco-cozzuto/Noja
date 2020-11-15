@@ -585,6 +585,7 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 
 	switch(node->kind) {
 		case NODE_KIND_BREAK:
+		node_code_starts_here(node, block);
 		block_append(block, 
 			U32, OPCODE_JUMP_ABSOLUTE,
 			LBL, break_destination, 
@@ -592,6 +593,7 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 		break;
 
 		case NODE_KIND_CONTINUE:
+		node_code_starts_here(node, block);
 		block_append(block, 
 			U32, OPCODE_JUMP_ABSOLUTE,
 			LBL, continue_destination, 
@@ -600,6 +602,8 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 
 		case NODE_KIND_RETURN:
 		{
+			node_code_starts_here(node, block);
+
 			node_return_t *x = (node_return_t*) node;
 
 			node_compile(block, break_destination, continue_destination, x->expression);
@@ -613,6 +617,8 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 
 		case NODE_KIND_IMPORT:
 		{
+			node_code_starts_here(node, block);
+
 			node_import_t *x = (node_import_t*) node;
 
 			node_compile(block, break_destination, continue_destination, x->expression);
@@ -636,6 +642,8 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 		case NODE_KIND_IFELSE:
 		{
 			node_ifelse_t *x = (node_ifelse_t*) node;
+
+			node_code_starts_here(node, block);
 
 			if(x->else_block) {
 
@@ -711,6 +719,8 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 
 		case NODE_KIND_WHILE:
 		{
+			node_code_starts_here(node, block);
+
 			node_while_t *x = (node_while_t*) node;
 
 			label_t *label_while_start = label_create(block);
@@ -741,6 +751,8 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 		case NODE_KIND_EXPRESSION:
 		{
 			node_expr_t *x = (node_expr_t*) node;
+
+			node_code_starts_here(node, block);
 
 			switch(x->kind) {
 
@@ -815,6 +827,7 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 
 						node_t *argument = x->argument_head;
 
+						node_t **arguments = alloca(sizeof(node_t*) * x->argument_count);
 						char **names = alloca(sizeof(char*) * x->argument_count);
 						int   i = 0;
 
@@ -822,6 +835,7 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 
 						{
 							while(argument) {
+								arguments[i++] = argument;
 								names[i++] = ((node_argument_t*) argument)->name;
 								argument = argument->next;
 							}
@@ -833,12 +847,16 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 
 						// Iterate it backwards
 
-						for(int j = i-1; j >= 0; j--)
+						for(int j = i-1; j >= 0; j--) {
+
+							node_code_starts_here(arguments[j], sub_block);
 
 							block_append(sub_block, U32, OPCODE_ASSIGN, 
 													STR, names[j], 
 													U32, OPCODE_POP, 
 													S64, 1, END);
+
+						}
 	
 						block_append(sub_block, U32, OPCODE_POP,
 												S64, 1, END);
@@ -881,6 +899,7 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 
 					node_compile(block, break_destination, continue_destination, (node_t*) l);
 
+					node_code_starts_here(x->operand_tail, block);
 					block_append(block, U32, OPCODE_SELECT_ATTRIBUTE, 
 										STR, ((node_expr_identifier_t*) r)->content, END);
 					break;	
@@ -905,6 +924,7 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 
 						node_compile(block, break_destination, continue_destination, container);
 
+						node_code_starts_here((node_t*) identifier, block);
 						block_append(block, U32, OPCODE_SELECT_ATTRIBUTE_AND_REPUSH, 
 											STR, ((node_expr_identifier_t*) identifier)->content, END);
 
@@ -1079,6 +1099,8 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 						case EXPRESSION_KIND_IDENTIFIER:
 						{
 							node_compile(block, break_destination, continue_destination, (node_t*) r);
+
+							node_code_starts_here((node_t*) l, block);
 							block_append(block, U32, OPCODE_ASSIGN, STR, ((node_expr_identifier_t*) l)->content, END);
 							break;
 						}
@@ -1108,6 +1130,8 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 
 							node_compile(block, break_destination, continue_destination, container);
 							node_compile(block, break_destination, continue_destination, value);
+
+							node_code_starts_here((node_t*) attribute_name, block);
 							block_append(block, U32, OPCODE_INSERT_ATTRIBUTE, 
 												STR, ((node_expr_identifier_t*) attribute_name)->content, END);
 							break;
