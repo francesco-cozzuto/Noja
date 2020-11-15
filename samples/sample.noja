@@ -15,3 +15,11 @@ while i < list["count"] {
 	item = item["next"];
 	i = i + 1;
 }
+
+while 1 {
+	
+	print("Hello!");
+
+	break;
+	continue;
+}

@@ -47,6 +47,16 @@ struct label_t {
 
 };
 
+typedef struct node_location_t node_location_t;
+struct node_location_t {
+	
+	node_location_t *prev;
+
+	node_t *node;
+	block_t *block;
+	uint32_t offset_in_block;
+};
+
 struct block_t {
 
 	program_builder_t *builder;
@@ -54,16 +64,20 @@ struct block_t {
 
 	uint32_t offset;
 	uint32_t length;
-	
+
 	chunk_t head, *tail;
 
 };
 
 struct program_builder_t {
 
+	node_location_t *tail_node_location;
+
 	label_t *tail_label;
+
 	block_t *head_block,
 			*tail_block;
+
 	data_chunk_t *head_data_chunk,
 				 *tail_data_chunk;
 	uint32_t data_length;
@@ -92,6 +106,21 @@ void 	 label_points_here(block_t *block, label_t *label);
 static void throw(program_builder_t *builder)
 {
 	longjmp(builder->env, 1);
+}
+
+void node_code_starts_here(node_t *node, block_t *block)
+{
+	node_location_t *node_location = malloc(sizeof(node_location_t));
+
+	if(node_location == 0)
+		throw(block->builder);
+
+	node_location->node = node;
+	node_location->block = block;
+	node_location->offset_in_block = block->length;
+
+	node_location->prev = block->builder->tail_node_location;
+	block->builder->tail_node_location = node_location; 
 }
 
 label_t *label_create(block_t *block)
@@ -202,6 +231,29 @@ program_t build_program(ast_t ast, int *failed)
 
 			block = block->next;
 		}
+	}
+
+	//
+	// Set node locations
+	//
+
+	{
+		node_location_t *location = builder.tail_node_location;
+
+		while(location) {
+
+			// Set the location of the node inside of the node
+
+			location->node->in_code = location->block->offset + location->offset_in_block;
+
+			// Free node location structure
+
+			{
+				node_location_t *prev_location = location->prev;
+				free(location);
+				location = prev_location;
+			}
+		}	
 	}
 
 	// Resolve the gaps associated to each label and while 
@@ -532,14 +584,16 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 	assert(node);
 
 	switch(node->kind) {
-		case NODE_KIND_BREAK: 
+		case NODE_KIND_BREAK:
 		block_append(block, 
+			U32, OPCODE_JUMP_ABSOLUTE,
 			LBL, break_destination, 
 			END);
 		break;
 
 		case NODE_KIND_CONTINUE:
 		block_append(block, 
+			U32, OPCODE_JUMP_ABSOLUTE,
 			LBL, continue_destination, 
 			END); 
 		break;

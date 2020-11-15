@@ -74,7 +74,7 @@ static int run_text_inner(const char *text, int length, string_builder_t *output
 	}
 
 	printf("The generated text is:\n");
-	nj_disassemble(first_code_segment, first_data_segment, first_code_segment_size, first_data_segment_size);
+	disassemble(first_code_segment, first_data_segment, first_code_segment_size, first_data_segment_size);
 
 	ast_delete(ast);
 

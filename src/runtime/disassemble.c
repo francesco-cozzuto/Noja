@@ -1,7 +1,6 @@
 
 #include "noja.h"
 
-
 static const char *operand_types[] = {
 	
 	[OPCODE_NOPE] = "",
@@ -75,7 +74,7 @@ static const char *get_opcode_name(int opcode)
 
 		case OPCODE_NOPE: return "NOPE";
 		case OPCODE_QUIT: return "QUIT";
-			
+
 		case OPCODE_PUSH_NULL: return "PUSH_NULL";
 		case OPCODE_PUSH_TRUE: return "PUSH_TRUE";
 		case OPCODE_PUSH_FALSE: return "PUSH_FALSE";
@@ -136,7 +135,7 @@ static const char *get_opcode_name(int opcode)
 	return "???";
 }
 
-void nj_disassemble(char *code, char *data, uint32_t code_size, uint32_t data_size)
+void disassemble(char *code, char *data, uint32_t code_size, uint32_t data_size)
 {
 	{
 		uint32_t i = 0;
