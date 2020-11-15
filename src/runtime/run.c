@@ -73,6 +73,9 @@ static int run_text_inner(const char *text, int length, string_builder_t *output
 		return 0;
 	}
 
+	printf("The generated text is:\n");
+	nj_disassemble(first_code_segment, first_data_segment, first_code_segment_size, first_data_segment_size);
+
 	ast_delete(ast);
 
 	if(!state_init(&state, output_builder)) {

@@ -390,6 +390,8 @@ int  nj_failed(nj_state_t *state);
 int nj_run(const char *text, int length, char **error_text);
 int nj_run_file(const char *path, char **error_text);
 
+void nj_disassemble(char *code, char *data, uint32_t code_size, uint32_t data_size);
+
 int parse(const char *source, int source_length, ast_t *ast, string_builder_t *output_builder);
 int generate(ast_t ast, char **e_data, char **e_code, uint32_t *e_data_size, uint32_t *e_code_size);
 
@@ -399,4 +401,4 @@ typedef struct {
 			 data_length;
 } program_t;
 
-program_t build_program(ast_t ast);
+program_t build_program(ast_t ast, int *failed);

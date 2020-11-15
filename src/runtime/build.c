@@ -2,10 +2,14 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <setjmp.h>
+#include <string.h>
 #include "noja.h"
 
 #define BYTES_PER_CODE_CHUNK 1024
 #define BYTES_PER_DATA_CHUNK 1024
+
+typedef struct block_t block_t;
+typedef struct program_builder_t program_builder_t;
 
 typedef struct data_chunk_t data_chunk_t;
 struct data_chunk_t {
@@ -22,6 +26,7 @@ struct chunk_t {
 	char body[BYTES_PER_CODE_CHUNK];
 };
 
+typedef struct gap_t gap_t;
 struct gap_t {
 
 	gap_t *prev;
@@ -30,7 +35,8 @@ struct gap_t {
 	uint32_t offset_in_chunk; // The pointer to the gap
 };
 
-typedef struct {
+typedef struct label_t label_t;
+struct label_t {
 	
 	label_t *prev;
 
@@ -39,36 +45,49 @@ typedef struct {
 
 	gap_t *tail_gap;
 
-} label_t;
+};
 
-typedef struct {
+struct block_t {
 
 	program_builder_t *builder;
+	block_t *next;
 
 	uint32_t offset;
 	uint32_t length;
 	
 	chunk_t head, *tail;
 
-} block_t;
+};
 
-typedef struct {
+struct program_builder_t {
 
 	label_t *tail_label;
 	block_t *head_block,
 			*tail_block;
 	data_chunk_t *head_data_chunk,
-				  tail_data_chunk;
+				 *tail_data_chunk;
 	uint32_t data_length;
 
 	jmp_buf env;
 
-} program_builder_t;
+};
+
+enum {
+	END = 0,
+	U8 , S8 ,
+	U16, S16,
+	U32, S32,
+	U64, S64, 
+	F32,
+	F64,
+	STR,
+	LBL,
+};
 
 block_t *block_create(program_builder_t *builder);
 int 	 block_append(block_t *block, ...);
 label_t *label_create(block_t *block);
-void 	 label_points_here(label_t *label, block_t *block);
+void 	 label_points_here(block_t *block, label_t *label);
 
 static void throw(program_builder_t *builder)
 {
@@ -81,9 +100,9 @@ label_t *label_create(block_t *block)
 
 	assert(label);
 
-	label->chunk = 0;
-	label->offset = 0;
-	label->gap = 0;
+	label->block = 0;
+	label->offset_in_block = 0;
+	label->tail_gap = 0;
 
 	// Add to the label list of the builder
 
@@ -127,20 +146,25 @@ program_t build_program(ast_t ast, int *failed)
 	memset(&builder, 0, sizeof(program_builder_t));
 
 	{
-		builder->head_data_chunk = malloc(sizeof(data_chunk_t));
+		builder.head_data_chunk = malloc(sizeof(data_chunk_t));
 
-		if(builder->head_data_chunk) {
+		if(builder.head_data_chunk == 0) {
+
+			assert(0);
 
 			if(failed) *failed = 1;
 			return (program_t) { 0 };
 		}
-		builder->head_data_chunk->used = 0;
-		builder->head_data_chunk->next = NULL;
 
-		builder->tail_data_chunk = builder->head_data_chunk;
+		builder.head_data_chunk->used = 0;
+		builder.head_data_chunk->next = NULL;
+
+		builder.tail_data_chunk = builder.head_data_chunk;
 	}
 
 	if(setjmp(builder.env)) {
+
+		assert(0);
 
 		release_resources_on_abort(&builder);
 
@@ -154,15 +178,16 @@ program_t build_program(ast_t ast, int *failed)
 
 	{
 		block_t *first_block = block_create(&builder);
-		node_compile(first_block, 0, 0, art.root);
-		block_append(block, U32, OPCODE_QUIT, END);
+
+		node_compile(first_block, 0, 0, ast.root);
+		block_append(first_block, U32, OPCODE_QUIT, END);
 	}
 
 	//
 	// Serialize the code
 	//
 
-	uint32_t length; // The lengths of the code. To be calculated!
+	uint32_t length = 0; // The lengths of the code. To be calculated!
 
 	// Assigns offsets to the blocks and
 	// calculate the size of the whole
@@ -230,7 +255,15 @@ program_t build_program(ast_t ast, int *failed)
 
 		while(block) {
 
-			chunk_t *chunk = block->head;
+			chunk_t *chunk = &block->head;
+
+			{
+				memcpy(code + written, chunk->body, chunk->used);
+
+				written += chunk->used;
+			}
+
+			chunk = chunk->next;
 
 			while(chunk) {
 
@@ -294,10 +327,10 @@ program_t build_program(ast_t ast, int *failed)
 	return (program_t) { .code = code, .data = data, .code_length = length, .data_length = builder.data_length };
 }
 
-void label_points_here(label_t *label, block_t *block)
+void label_points_here(block_t *block, label_t *label)
 {
-	label->chunk = block->tail;
-	label->offset = block->length;
+	label->block = block;
+	label->offset_in_block = block->length;
 }
 
 block_t *block_create(program_builder_t *builder)
@@ -307,11 +340,10 @@ block_t *block_create(program_builder_t *builder)
 	assert(block);
 
 	block->builder = builder;
+	block->next = 0;
 
 	block->offset = 0;
 	block->length = 0;
-	block->c_dests = NULL;
-	block->b_dests = NULL;
 
 	block->head.next = NULL;
 	block->head.used = 0;
@@ -334,7 +366,12 @@ block_t *block_create(program_builder_t *builder)
 	return block;
 }
 
-static int block_ensure_space(block_t *block, int required_space)
+block_t *sub_block_create(block_t *parent_block)
+{
+	return block_create(parent_block->builder);
+}
+
+static int block_ensure_space(block_t *block, uint32_t required_space)
 {
 	if(BYTES_PER_CODE_CHUNK - block->tail->used < required_space) {
 
@@ -384,7 +421,7 @@ static int block_append_string(block_t *block, const char *string)
 	if(!block_append_u32(block, block->builder->data_length))
 		return 0;
 
-	while(*string) { 
+	do { 
 
 		if(block->builder->tail_data_chunk->used == BYTES_PER_DATA_CHUNK) {
 
@@ -401,22 +438,17 @@ static int block_append_string(block_t *block, const char *string)
 		}
 
 		block->builder->tail_data_chunk->body[block->builder->tail_data_chunk->used++] = *string;
-		block->data_length++;
-	}
+		block->builder->data_length++;
+		
+		if(*string == '\0')
+			break;
+		
+		string++;
+
+	} while(1);
+
 	return 1;
 }
-
-enum {
-	END = 0,
-	U8 , S8 ,
-	U16, S16,
-	U32, S32,
-	U64, S64, 
-	F32,
-	F64,
-	STR,
-	LBL,
-};
 
 int block_append(block_t *block, ...)
 {
@@ -441,8 +473,8 @@ int block_append(block_t *block, ...)
 			case S32: if(!block_append_s32(block, va_arg(args, int32_t))) return 0; break;
 			case S64: if(!block_append_s64(block, va_arg(args, int64_t))) return 0; break;
 
-			case F32: if(!block_append_s32(block, va_arg(args, float)))  return 0; break;
-			case F64: if(!block_append_s64(block, va_arg(args, double))) return 0; break;
+			case F32: if(!block_append_f32(block, va_arg(args, float)))  return 0; break;
+			case F64: if(!block_append_f64(block, va_arg(args, double))) return 0; break;
 
 			case STR: if(!block_append_string(block, va_arg(args, char*))) return 0; break;
 
@@ -571,7 +603,7 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 
 						block_append(block, 
 							U32, OPCODE_POP, 
-							I64, 1, END);
+							S64, 1, END);
 					}
 
 					block_append(block, U32, OPCODE_JUMP_ABSOLUTE, 
@@ -590,7 +622,7 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 
 					if(x->else_block->kind == NODE_KIND_EXPRESSION)
 						block_append(block, U32, OPCODE_POP, 
-											I64, 1, 
+											S64, 1, 
 											END);
 				}
 
@@ -612,7 +644,7 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 					node_compile(block, break_destination, continue_destination, x->if_block);
 
 					if(x->if_block->kind == NODE_KIND_EXPRESSION)
-						block_append(block, U32, OPCODE_POP, I64, 1, END);
+						block_append(block, U32, OPCODE_POP, S64, 1, END);
 				}
 
 				// if block end
@@ -639,7 +671,7 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 			node_compile(block, label_while_end, label_while_start, x->block);
 
 			if(x->block->kind == NODE_KIND_EXPRESSION)
-				block_append(block, U32, OPCODE_POP, I64, 1);
+				block_append(block, U32, OPCODE_POP, S64, 1);
 
 			block_append(block, U32, OPCODE_JUMP_ABSOLUTE, LBL, label_while_start, END);
 
@@ -659,7 +691,7 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 			switch(x->kind) {
 
 				case EXPRESSION_KIND_INT:
-				block_append(block, U32, OPCODE_PUSH_INT, I64, ((node_expr_int_t*) node)->value, END);
+				block_append(block, U32, OPCODE_PUSH_INT, S64, ((node_expr_int_t*) node)->value, END);
 				break;
 
 				case EXPRESSION_KIND_FLOAT:
@@ -686,7 +718,7 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 						item = item->next;
 					}
 
-					block_append(block, U32, OPCODE_BUILD_ARRAY, I64, i, END);
+					block_append(block, U32, OPCODE_BUILD_ARRAY, S64, i, END);
 					break;
 				}
 				
@@ -709,7 +741,7 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 						item = item->next;
 					}
 
-					block_append(block, U32, OPCODE_BUILD_DICT, I64, i, END);
+					block_append(block, U32, OPCODE_BUILD_DICT, S64, i, END);
 					break;
 				}
 
@@ -742,7 +774,7 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 						}
 
 						block_append(sub_block, U32, OPCODE_EXPECT, 
-												I64, x->argument_count, 
+												S64, x->argument_count, 
 												U32, OPCODE_VARIABLE_MAP_PUSH, END);
 
 						// Iterate it backwards
@@ -752,16 +784,16 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 							block_append(sub_block, U32, OPCODE_ASSIGN, 
 													STR, names[j], 
 													U32, OPCODE_POP, 
-													I64, 1, END);
+													S64, 1, END);
 	
 						block_append(sub_block, U32, OPCODE_POP,
-												I64, 1, END);
+												S64, 1, END);
 					}
 
 					node_compile(sub_block, 0, 0, x->body);
 
 					if(x->body->kind == NODE_KIND_EXPRESSION)
-						block_append(sub_block, U32, OPCODE_POP, I64, 1, END);
+						block_append(sub_block, U32, OPCODE_POP, S64, 1, END);
 
 					block_append(sub_block, U32, OPCODE_VARIABLE_MAP_POP,
 											U32, OPCODE_PUSH_NULL,
@@ -834,7 +866,7 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 						arg = arg->next;
 					}
 
-					block_append(block, U32, OPCODE_CALL, I64, argc, END);
+					block_append(block, U32, OPCODE_CALL, S64, argc, END);
 					break;	
 				}
 
@@ -881,21 +913,96 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 				block_append(block, U32, OPCODE_DIV, END);
 				break;
 
-				case EXPRESSION_KIND_MOD: assert(0); break;
-				case EXPRESSION_KIND_POW: assert(0); break;
-				case EXPRESSION_KIND_LSS: assert(0); break;
-				case EXPRESSION_KIND_GRT: assert(0); break;
-				case EXPRESSION_KIND_LEQ: assert(0); break;
-				case EXPRESSION_KIND_GEQ: assert(0); break;
-				case EXPRESSION_KIND_EQL: assert(0); break;
-				case EXPRESSION_KIND_NQL: assert(0); break;
-				case EXPRESSION_KIND_AND: assert(0); break;
-				case EXPRESSION_KIND_OR: assert(0); break;
-				case EXPRESSION_KIND_BITWISE_AND: assert(0); break;
-				case EXPRESSION_KIND_BITWISE_OR: assert(0); break;
-				case EXPRESSION_KIND_BITWISE_XOR: assert(0); break;
-				case EXPRESSION_KIND_SHL: assert(0); break;
-				case EXPRESSION_KIND_SHR: assert(0); break;
+				case EXPRESSION_KIND_MOD:
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_tail);
+				block_append(block, U32, OPCODE_MOD, END);
+				break;
+
+				case EXPRESSION_KIND_POW:
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_tail);
+				block_append(block, U32, OPCODE_POW, END);
+				break;
+
+				case EXPRESSION_KIND_LSS:
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_tail);
+				block_append(block, U32, OPCODE_LSS, END);
+				break;
+
+				case EXPRESSION_KIND_GRT:
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_tail);
+				block_append(block, U32, OPCODE_GRT, END);
+				break;
+
+				case EXPRESSION_KIND_LEQ:
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_tail);
+				block_append(block, U32, OPCODE_LEQ, END);
+				break;
+
+				case EXPRESSION_KIND_GEQ:
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_tail);
+				block_append(block, U32, OPCODE_GEQ, END);
+				break;
+
+				case EXPRESSION_KIND_EQL:
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_tail);
+				block_append(block, U32, OPCODE_EQL, END);
+				break;
+
+				case EXPRESSION_KIND_NQL:
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_tail);
+				block_append(block, U32, OPCODE_NQL, END);
+				break;
+
+				case EXPRESSION_KIND_AND:
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_tail);
+				block_append(block, U32, OPCODE_AND, END);
+				break;
+
+				case EXPRESSION_KIND_OR:
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_tail);
+				block_append(block, U32, OPCODE_OR, END);
+				break;
+
+				case EXPRESSION_KIND_BITWISE_AND:
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_tail);
+				block_append(block, U32, OPCODE_BITWISE_AND, END);
+				break;
+
+				case EXPRESSION_KIND_BITWISE_OR:
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_tail);
+				block_append(block, U32, OPCODE_BITWISE_OR, END);
+				break;
+
+				case EXPRESSION_KIND_BITWISE_XOR:
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_tail);
+				block_append(block, U32, OPCODE_BITWISE_XOR, END);
+				break;
+
+				case EXPRESSION_KIND_SHL:
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_tail);
+				block_append(block, U32, OPCODE_SHL, END);
+				break;
+
+				case EXPRESSION_KIND_SHR:
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_head);
+				node_compile(block, break_destination, continue_destination, ((node_expr_operation_t*) node)->operand_tail);
+				block_append(block, U32, OPCODE_SHR, END);
+				break;
+
 
 				case EXPRESSION_KIND_PRE_INC:
 				case EXPRESSION_KIND_PRE_DEC:
@@ -983,7 +1090,7 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 				node_compile(block, break_destination, continue_destination, stmt);
 
 				if(stmt->kind == NODE_KIND_EXPRESSION)
-					block_append(block, U32, OPCODE_POP, I64, 1, END);
+					block_append(block, U32, OPCODE_POP, S64, 1, END);
 
 				stmt = stmt->next;
 			}
