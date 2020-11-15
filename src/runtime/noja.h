@@ -143,6 +143,7 @@ typedef struct {
 	char *code;
 	uint32_t data_size;
 	uint32_t code_size;
+	ast_t ast;
 	nj_object_t *global_variables_map;
 } segment_t;
 

@@ -13,7 +13,7 @@ int insert_builtins(nj_state_t *state, nj_object_t *dest);
 static int  state_init(nj_state_t *state, string_builder_t *output_builder);
 static void state_deinit(nj_state_t *state);
 
-int append_segment(nj_state_t *state, char *code, char *data, uint32_t code_size, uint32_t data_size, uint32_t *e_segment)
+int append_segment(nj_state_t *state, char *code, char *data, uint32_t code_size, uint32_t data_size, ast_t ast, uint32_t *e_segment)
 {
 	if(state->segments_used == state->segments_size) {
 
@@ -39,6 +39,7 @@ int append_segment(nj_state_t *state, char *code, char *data, uint32_t code_size
 		return 0;
 
 	state->segments[state->segments_used] = (segment_t) { 
+		.ast = ast,
 		.code = code, 
 		.data = data, 
 		.code_size = code_size, 
@@ -73,22 +74,26 @@ static int run_text_inner(const char *text, int length, string_builder_t *output
 		return 0;
 	}
 
-	printf("The generated text is:\n");
-	disassemble(first_code_segment, first_data_segment, first_code_segment_size, first_data_segment_size);
-
-	ast_delete(ast);
-
 	if(!state_init(&state, output_builder)) {
 
+		ast_delete(ast);
 		free(first_code_segment);
 		return 0;
 	}
 
-	if(!append_segment(&state, first_code_segment, first_data_segment, first_code_segment_size, first_data_segment_size, 0))
-		return 0;
+	if(!append_segment(&state, first_code_segment, first_data_segment, first_code_segment_size, first_data_segment_size, ast, 0)) {
 
-	if(!u32_push(&state.segment_stack, 0) || !u32_push(&state.offset_stack, 0))
+		ast_delete(ast);
+		free(first_code_segment);
 		return 0;
+	}
+
+	if(!u32_push(&state.segment_stack, 0) || !u32_push(&state.offset_stack, 0)) {
+
+		ast_delete(ast);
+		free(first_code_segment);
+		return 0;
+	}
 
 	while(step(&state));
 
@@ -314,17 +319,18 @@ static nj_object_t *do_text_import(nj_state_t *state, char *path)
 		return 0;
 	}
 
-	ast_delete(ast);
-
 	//
 	// Create a new segment
 	//
 
 	uint32_t imported_segment;
 
-	if(!append_segment(state, code_segment, data_segment, code_segment_size, data_segment_size, &imported_segment)) {
+	if(!append_segment(state, code_segment, data_segment, code_segment_size, data_segment_size, ast, &imported_segment)) {
 
 		// #ERROR
+
+		free(code_segment);
+		ast_delete(ast);
 		nj_fail(state, "Out of memory. Failed to grow segment array");
 		return 0;
 	}
