@@ -38,14 +38,6 @@ enum {
 	OPCODE_VARIABLE_MAP_PUSH,
 	OPCODE_VARIABLE_MAP_POP,
 
-	OPCODE_BREAK,
-	OPCODE_BREAK_DESTINATION_PUSH,
-	OPCODE_BREAK_DESTINATION_POP,
-
-	OPCODE_CONTINUE,
-	OPCODE_CONTINUE_DESTINATION_PUSH,
-	OPCODE_CONTINUE_DESTINATION_POP,
-
 	OPCODE_CALL,
 	OPCODE_EXPECT,
 	OPCODE_RETURN,
@@ -211,11 +203,6 @@ struct nj_state_t {
 	object_stack_t eval_stack;
 	object_stack_t vars_stack;
 	nj_object_t *builtins_map;
-
-	// Break/continue stuff
-
-	u32_stack_t break_destinations;
-	u32_stack_t continue_destinations;
 
 	// Keep track of the point of execution
 

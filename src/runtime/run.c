@@ -176,8 +176,6 @@ static int state_init(nj_state_t *state, string_builder_t *output_builder)
 
 	object_stack_init(&state->eval_stack);
 	object_stack_init(&state->vars_stack);
-	u32_stack_init(&state->continue_destinations);
-	u32_stack_init(&state->break_destinations);
 	u32_stack_init(&state->segment_stack);
 	u32_stack_init(&state->offset_stack);
 
@@ -232,8 +230,6 @@ static void state_deinit(nj_state_t *state)
 
 	object_stack_deinit(&state->eval_stack);
 	object_stack_deinit(&state->vars_stack);
-	u32_stack_deinit(&state->continue_destinations);
-	u32_stack_deinit(&state->break_destinations);
 	u32_stack_deinit(&state->segment_stack);
 	u32_stack_deinit(&state->offset_stack);
 }
@@ -1068,123 +1064,6 @@ int step(nj_state_t *state)
 			}
 
 			object_pop(&state->vars_stack);
-			break;
-		}
-
-		case OPCODE_BREAK: 
-		{
-			if(u32_stack_size(&state->break_destinations) == 0) {
-
-				// #ERROR
-				nj_fail(state, "BREAK but no break destination was set");
-				return 0;
-			}
-
-			u32_pop(&state->offset_stack);
-			
-			if(!u32_push(&state->offset_stack, u32_top(&state->break_destinations))) {
-
-				// #ERROR
-				nj_fail(state, "Out of memory. Failed to grow offset stack");
-				return 0;
-			}
-			break;
-		}
-		
-		case OPCODE_BREAK_DESTINATION_PUSH: 
-		{
-			uint32_t dest;
-
-			fetch_u32(state, &dest);
-
-			if(nj_failed(state))
-				return 0;
-
-			if(dest >= state->segments[u32_top(&state->segment_stack)].code_size) {
-
-				// #ERROR
-				nj_fail(state, "OPCODE_BREAK_DESTINATION_PUSH refers to an address outside of the code segment");
-				return 0;
-			}
-
-			if(!u32_push(&state->break_destinations, dest)) {
-				
-				// #ERROR
-				nj_fail(state, "Out of memory. Failed to grow break destinations stack");
-				return 0;
-			}
-			break;
-		}
-		
-		case OPCODE_BREAK_DESTINATION_POP: 
-		{
-			if(u32_stack_size(&state->break_destinations) == 0) {
-
-				// #ERROR
-				nj_fail(state, "OPCODE_BREAK_DESTINATION_POP but the break destination stack is empty");
-				return 0;
-			}
-
-			u32_pop(&state->break_destinations);
-			break;
-		}
-
-		case OPCODE_CONTINUE: 
-		{
-			if(u32_stack_size(&state->continue_destinations) == 0) {
-
-				// #ERROR
-				nj_fail(state, "CONTINUE but no break destination was set");
-				return 0;
-			}
-
-			u32_pop(&state->offset_stack);
-			
-			if(!u32_push(&state->offset_stack, u32_top(&state->continue_destinations))) {
-
-				// #ERROR
-				nj_fail(state, "Out of memory. Failed to grow offset stack");
-				return 0;
-			}
-			break;
-		}
-		
-		case OPCODE_CONTINUE_DESTINATION_PUSH: 
-		{
-			uint32_t dest;
-
-			fetch_u32(state, &dest);
-
-			if(nj_failed(state))
-				return 0;
-
-			if(dest >= state->segments[u32_top(&state->segment_stack)].code_size) {
-
-				// #ERROR
-				// OPCODE_CONTINUE_DESTINATION_PUSH refers to an address outside of the code segment
-				nj_fail(state, "OPCODE_CONTINUE_DESTINATION_PUSH refers to an address outside of the code segment");
-				return 0;
-			}
-
-			if(!u32_push(&state->continue_destinations, dest)) {
-				
-				// #ERROR
-				nj_fail(state, "Out of memory. Failed to grow continue destinations stack");
-				return 0;
-			}
-			break;
-		}
-		
-		case OPCODE_CONTINUE_DESTINATION_POP:
-		{
-			if(u32_stack_size(&state->continue_destinations) == 0) {
-
-				// #ERROR
-				nj_fail(state, "OPCODE_CONTINUE_DESTINATION_POP but the continue destination stack is empty");
-				return 0;
-			}
-
-			u32_pop(&state->continue_destinations);
 			break;
 		}
 
