@@ -44,12 +44,12 @@ int float_methods_setup(nj_state_t *state);
 
 int nj_state_init(nj_state_t *state, string_builder_t *output_builder)
 {
-	state->heap = malloc(4096);
-	state->heap_size = 4096;
-	state->heap_used = 0;
-	state->overflow_allocations = 0;
+	state->heap.chunk = malloc(4096);
+	state->heap.size = 4096;
+	state->heap.used = 0;
+	state->heap.overflow_allocations = 0;
 
-	if(state->heap == 0)
+	if(state->heap.chunk == 0)
 		return 0;
 
 	state->failed = 0;
@@ -102,8 +102,8 @@ int nj_state_init(nj_state_t *state, string_builder_t *output_builder)
 
 void nj_state_deinit(nj_state_t *state)
 {
-	free(state->heap); // free overflow allocations!
-
+	free(state->heap.chunk); // free overflow allocations!
+	
 	for(int i = 0; i < state->segments_used; i++)
 		free(state->segments[i].code);
 

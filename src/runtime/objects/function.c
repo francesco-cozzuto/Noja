@@ -32,7 +32,7 @@ int function_setup(nj_state_t *state)
 {
 	state->type_object_function = (nj_object_type_t) {
 
-		.super = (nj_object_t) { .new_location = 0, .type = (nj_object_t*) &state->type_object_type, .flags = 0 },
+		.super = (nj_object_t) { .type = (nj_object_t*) &state->type_object_type, .flags = 0 },
 		.name = "Function",
 		.size = sizeof(nj_object_function_t),
 		.methods = 0, // Must be created

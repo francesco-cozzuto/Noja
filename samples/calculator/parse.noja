@@ -1,0 +1,133 @@
+
+skip_spaces = function(text, i) {
+
+	c = text[i++];
+
+	while c == "\n" || c == "\t" || c == " "
+
+		c = text[i++];
+
+	i--;
+
+	return i;
+}
+
+parse_primary = function(tokens, i) {
+
+	if type_of(tokens[i]) != type_of(1)
+		return null;
+
+	return [{"type": "number", "value": tokens[i]}, i++];
+}
+
+parse_multiplicative = function(tokens, i) {
+
+	res = parse_primary(tokens, i);
+
+	if res == null 
+		return null;
+
+	left = res[0];
+	i    = res[1];
+
+	i = skip_spaces(tokens, i);
+
+	if tokens[i] == "*" {
+
+		i++;
+
+		res = parse_multiplicative(tokens, i);
+
+		if res == null
+			return null;
+
+		right = res[0];
+		i     = res[1];
+
+		return [{"type": "*", "left": left, "right": right}, i];
+	} 
+
+	if tokens[i] == "/" {
+
+		i++;
+
+		res = parse_multiplicative(tokens, i);
+
+		if res == null
+			return null;
+
+		right = res[0];
+		i     = res[1];
+
+		return [{"type": "/", "left": left, "right": right}, i];
+	} 
+
+
+	return null;
+};
+
+parse_additive = function(tokens, i) {
+
+	res = parse_multiplicative(tokens, i);
+
+	if res == null 
+		return null;
+
+	left = res[0];
+	i    = res[1];
+
+	if tokens[i] == "+" {
+
+		i++;
+
+		res = parse_additive(tokens, i);
+
+		if res == null
+			return null;
+
+		right = res[0];
+		i     = res[1];
+
+		return [{"type": "+", "left": left, "right": right}, i];
+	} 
+
+	if tokens[i] == "-" {
+
+		i++;
+
+		res = parse_additive(tokens, i);
+
+		if res == null
+			return null;
+
+		right = res[0];
+		i     = res[1];
+
+		return [{"type": "-", "left": left, "right": right}, i];
+	} 
+
+	return null;
+}
+
+parse = function(text) {
+
+	import "tokenize.noja";
+
+	tokens = tokenize(text);
+
+	if tokens == null
+
+		return null;
+
+	i = 0;
+
+	res = parse_additive(tokens, i);
+
+	if res == null
+		return null;
+
+	root = res[0];
+	i 	 = res[1];
+
+	return root;
+};

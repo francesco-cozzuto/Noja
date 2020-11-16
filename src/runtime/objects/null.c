@@ -39,14 +39,13 @@ int null_methods_setup(nj_state_t *state)
 int null_setup(nj_state_t *state)
 {
 	state->null_object = (nj_object_t) {
-		.new_location = 0, 
 		.type = (nj_object_t*) &state->type_object_null, 
 		.flags = 0,
 	};
 
 	state->type_object_null = (nj_object_type_t) {
 
-		.super = (nj_object_t) { .new_location = 0, .type = (nj_object_t*) &state->type_object_type, .flags = 0 },
+		.super = (nj_object_t) { .type = (nj_object_t*) &state->type_object_type, .flags = 0 },
 		.name = "Null",
 		.size = sizeof(nj_object_t),
 		.methods = 0, // Must be created

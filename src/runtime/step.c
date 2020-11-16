@@ -13,6 +13,13 @@ static void fetch_string(nj_state_t *state, char **value);
 
 int nj_step(nj_state_t *state)
 {
+	if(nj_should_collect(state))
+		if(!nj_collect(state)) {
+
+			nj_fail(state, "Out of heap");
+			return 0;
+		}
+
 	uint32_t opcode;
 
 	fetch_u32(state, &opcode);

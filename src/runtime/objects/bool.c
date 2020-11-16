@@ -48,18 +48,18 @@ int bool_methods_setup(nj_state_t *state)
 int bool_setup(nj_state_t *state)
 {
 	state->true_object = (nj_object_bool_t) {
-		.super = (nj_object_t) { .new_location = 0, .type = (nj_object_t*) &state->type_object_bool, .flags = 0 },
+		.super = (nj_object_t) { .type = (nj_object_t*) &state->type_object_bool, .flags = 0 },
 		.value = 1,
 	};
 
 	state->false_object = (nj_object_bool_t) {
-		.super = (nj_object_t) { .new_location = 0, .type = (nj_object_t*) &state->type_object_bool, .flags = 0 },
+		.super = (nj_object_t) { .type = (nj_object_t*) &state->type_object_bool, .flags = 0 },
 		.value = 0,
 	};
 
 	state->type_object_bool = (nj_object_type_t) {
 
-		.super = (nj_object_t) { .new_location = 0, .type = (nj_object_t*) &state->type_object_type, .flags = 0 },
+		.super = (nj_object_t) { .type = (nj_object_t*) &state->type_object_type, .flags = 0 },
 		.name = "Bool",
 		.size = sizeof(nj_object_bool_t),
 		.methods = 0, // Must be created

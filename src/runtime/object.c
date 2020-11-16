@@ -3,10 +3,6 @@
 #include <string.h>
 #include "noja.h"
 
-enum {
-	OBJECT_IS_COLLECTABLE = 1,
-};
-
 nj_object_t *nj_get_dict_type_object(nj_state_t *state)
 {
 	return (nj_object_t*) &state->type_object_dict;
@@ -252,8 +248,8 @@ nj_object_t *nj_object_istanciate(nj_state_t *state, nj_object_t *type)
 	// Align the heap pointer
 	//
 
-	if(state->heap_used & 7)
-		state->heap_used = (state->heap_used & ~7) + 8;
+	if(state->heap.used & 7)
+		state->heap.used = (state->heap.used & ~7) + 8;
 
 	//
 	// Determine if there is space in the heap or
@@ -262,23 +258,23 @@ nj_object_t *nj_object_istanciate(nj_state_t *state, nj_object_t *type)
 
 	nj_object_t *object;
 
-	if(state->heap_used + object_size > state->heap_size) {
+	if(state->heap.used + object_size > state->heap.size) {
 
 		overflow_allocation_t *allocation = malloc(sizeof(overflow_allocation_t) + object_size);
 
 		if(allocation == 0)
 			return 0;
 
-		allocation->prev = state->overflow_allocations;
-		state->overflow_allocations = allocation;
+		allocation->prev = state->heap.overflow_allocations;
+		state->heap.overflow_allocations = allocation;
 		
 		object = (nj_object_t*) allocation->body;
 	
 	} else {
 
-		object = (nj_object_t*) (state->heap + state->heap_used);
+		object = (nj_object_t*) (state->heap.chunk + state->heap.used);
 
-		state->heap_used += object_size;
+		state->heap.used += object_size;
 	}
 	
 	//

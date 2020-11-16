@@ -9,15 +9,27 @@ typedef struct nj_state_t nj_state_t;
 typedef struct nj_object_t nj_object_t;
 
 struct nj_object_t {
-	nj_object_t *new_location;
 	nj_object_t *type;
 	uint32_t flags;
+};
+
+typedef struct nj_moved_object_t nj_moved_object_t;
+
+struct nj_moved_object_t {
+	nj_object_t *type;
+	uint32_t flags;
+	nj_object_t *new_location;
 };
 
 typedef struct {
 	nj_object_t super;
 	uint8_t value;
 } nj_object_bool_t;
+
+enum {
+	OBJECT_IS_COLLECTABLE = 1,
+	OBJECT_WAS_MOVED = 2,
+};
 
 typedef struct {
 
@@ -58,6 +70,8 @@ typedef struct {
 
 	nj_object_t *(*on_shl)(nj_state_t *state, nj_object_t *self, nj_object_t *right);
 	nj_object_t *(*on_shr)(nj_state_t *state, nj_object_t *self, nj_object_t *right);
+
+	int (*on_collect_children)(nj_state_t *state, nj_object_t *self);
 
 	uint8_t (*on_test)(nj_state_t *state, nj_object_t *self);
 
@@ -112,6 +126,14 @@ typedef struct {
 	uint32_t absolute_size;
 } u32_stack_t;
 
+typedef struct nj_heap_t nj_heap_t;
+
+struct nj_heap_t {
+	char *chunk;
+	uint32_t size, used;
+	overflow_allocation_t *overflow_allocations;
+};
+
 struct nj_state_t {
 
 	nj_object_t 	 null_object;
@@ -135,10 +157,7 @@ struct nj_state_t {
 
 	string_builder_t *output_builder;
 
-	char *heap;
-	uint32_t heap_size;
-	uint32_t heap_used;
-	overflow_allocation_t *overflow_allocations;
+	nj_heap_t heap;
 
 	object_stack_t eval_stack;
 	object_stack_t vars_stack;
@@ -302,11 +321,15 @@ nj_object_t *nj_get_null_object(nj_state_t *state);
 nj_object_t *nj_get_true_object(nj_state_t *state);
 nj_object_t *nj_get_false_object(nj_state_t *state);
 
+int nj_collect(nj_state_t *state);
+int nj_collect_object(nj_state_t *state, nj_object_t **reference);
+int nj_collect_children(nj_state_t *state, nj_object_t *object);
+int nj_should_collect(nj_state_t *state);
+
 void nj_fail(nj_state_t *state, const char *fmt, ...);
 int  nj_failed(nj_state_t *state);
 
 int nj_run(const char *name, const char *text, int length, char **error_text);
-
 int nj_run_file(const char *path, char **error_text);
 
 void nj_disassemble(char *code, char *data, uint32_t code_size, uint32_t data_size);

@@ -5,7 +5,6 @@
 static void int_print(nj_state_t *state, nj_object_t *self, FILE *fp);
 
 static nj_object_t *int_add(nj_state_t *state, nj_object_t *self, nj_object_t *right);
-
 static nj_object_t *int_sub(nj_state_t *state, nj_object_t *self, nj_object_t *right);
 static nj_object_t *int_mul(nj_state_t *state, nj_object_t *self, nj_object_t *right);
 static nj_object_t *int_div(nj_state_t *state, nj_object_t *self, nj_object_t *right);
@@ -24,7 +23,6 @@ static nj_object_t *int_bitwise_or(nj_state_t *state, nj_object_t *self, nj_obje
 static nj_object_t *int_bitwise_xor(nj_state_t *state, nj_object_t *self, nj_object_t *right);
 static nj_object_t *int_shl(nj_state_t *state, nj_object_t *self, nj_object_t *right);
 static nj_object_t *int_shr(nj_state_t *state, nj_object_t *self, nj_object_t *right);
-
 
 static uint8_t int_test(nj_state_t *state, nj_object_t *self);
 
@@ -423,7 +421,7 @@ int int_setup(nj_state_t *state)
 {
 	state->type_object_int = (nj_object_type_t) {
 
-		.super = (nj_object_t) { .new_location = 0, .type = (nj_object_t*) &state->type_object_type, .flags = 0 },
+		.super = (nj_object_t) { .type = (nj_object_t*) &state->type_object_type, .flags = 0 },
 		.name = "Int",
 		.size = sizeof(nj_object_int_t),
 		.methods = 0, // Must be created
