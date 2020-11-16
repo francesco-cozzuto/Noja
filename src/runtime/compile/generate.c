@@ -694,6 +694,18 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 
 			switch(x->kind) {
 
+				case EXPRESSION_KIND_NULL:
+				block_append(block, U32, OPCODE_PUSH_NULL, END);
+				break;
+
+				case EXPRESSION_KIND_TRUE:
+				block_append(block, U32, OPCODE_PUSH_TRUE, END);
+				break;
+
+				case EXPRESSION_KIND_FALSE:
+				block_append(block, U32, OPCODE_PUSH_FALSE, END);
+				break;
+
 				case EXPRESSION_KIND_INT:
 				block_append(block, U32, OPCODE_PUSH_INT, S64, ((node_expr_int_t*) node)->value, END);
 				break;

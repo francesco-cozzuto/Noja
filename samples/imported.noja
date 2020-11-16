@@ -23,3 +23,7 @@ while list["count"] < 10 {
 
 	iter_no = iter_no + 1;
 }
+
+print("true is ", true);
+print("false is ", false);
+print("null is ", null);

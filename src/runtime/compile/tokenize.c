@@ -68,6 +68,11 @@ static void assign_identifier_kind(char *source, token_t *token)
 			token->kind = TOKEN_KIND_KWORD_FUNCTION;
 			break;
 		}
+
+		if MATCH("false") {
+			token->kind = TOKEN_KIND_KWORD_FALSE;
+			break;
+		}
 		break;
 
 		case 'i':
@@ -85,6 +90,20 @@ static void assign_identifier_kind(char *source, token_t *token)
 		case 'w':
 		if MATCH("while") {
 			token->kind = TOKEN_KIND_KWORD_WHILE;
+			break;
+		}
+		break;
+
+		case 'n':
+		if MATCH("null") {
+			token->kind = TOKEN_KIND_KWORD_NULL;
+			break;
+		}
+		break;
+
+		case 't':
+		if MATCH("true") {
+			token->kind = TOKEN_KIND_KWORD_TRUE;
 			break;
 		}
 		break;

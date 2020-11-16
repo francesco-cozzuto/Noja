@@ -633,6 +633,15 @@ node_t *parse_primary_expression(pool_t *pool, token_iterator_t *iterator, const
 
 	switch(token.kind) {
 
+		case TOKEN_KIND_KWORD_NULL:
+		return node_null_create(pool, token.offset, token.length);
+
+		case TOKEN_KIND_KWORD_TRUE:
+		return node_true_create(pool, token.offset, token.length);
+
+		case TOKEN_KIND_KWORD_FALSE:
+		return node_false_create(pool, token.offset, token.length);
+
 		case TOKEN_KIND_VALUE_INT: 	 
 		{
 

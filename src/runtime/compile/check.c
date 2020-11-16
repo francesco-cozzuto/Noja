@@ -230,6 +230,10 @@ static int node_check(checking_context_t *ctx, node_t *node)
 			node_expr_t *x = (node_expr_t*) node;
 
 			switch(x->kind) {
+
+				case EXPRESSION_KIND_NULL:return 1;
+				case EXPRESSION_KIND_TRUE:return 1;
+				case EXPRESSION_KIND_FALSE:return 1;
 				case EXPRESSION_KIND_INT:return 1;
 				case EXPRESSION_KIND_FLOAT:return 1;
 				case EXPRESSION_KIND_STRING:return 1;

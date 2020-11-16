@@ -18,6 +18,9 @@ enum {
 };
 
 enum {
+	EXPRESSION_KIND_NULL,
+	EXPRESSION_KIND_TRUE,
+	EXPRESSION_KIND_FALSE,
 	EXPRESSION_KIND_INT,
 	EXPRESSION_KIND_FLOAT,
 	EXPRESSION_KIND_STRING,
@@ -230,6 +233,9 @@ node_t *node_function_create(pool_t *pool, int offset, int length, node_t *argum
 node_t *node_dict_item_create(pool_t *pool, int offset, int length, node_t *key, node_t *value);
 node_t *node_dict_create(pool_t *pool, int offset, int length, node_t *item_head, node_t *item_tail, int item_count);
 node_t *node_array_create(pool_t *pool, int offset, int length, node_t *item_head, node_t *item_tail, int item_count);
+node_t *node_null_create(pool_t *pool, int offset, int length);
+node_t *node_true_create(pool_t *pool, int offset, int length);
+node_t *node_false_create(pool_t *pool, int offset, int length);
 node_t *node_while_create(pool_t *pool, int offset, int length, node_t *expression, node_t *block);
 node_t *node_ifelse_create(pool_t *pool, int offset, int length, node_t *expression, node_t *if_block, node_t *else_block);
 node_t *node_return_create(pool_t *pool, int offset, int length, node_t *expression);

@@ -399,6 +399,54 @@ node_t *node_array_create(pool_t *pool, int offset, int length, node_t *item_hea
 	return (node_t*) node;
 }
 
+node_t *node_null_create(pool_t *pool, int offset, int length)
+{
+	node_expr_t *node = pool_request(pool, sizeof(node_expr_t));
+
+	if(node == 0)
+		return 0;
+
+	node->super.kind = NODE_KIND_EXPRESSION;
+	node->super.offset = offset;
+	node->super.length = length;
+	node->super.next = 0;
+	node->kind = EXPRESSION_KIND_NULL;
+
+	return (node_t*) node;
+}
+
+node_t *node_true_create(pool_t *pool, int offset, int length)
+{
+	node_expr_t *node = pool_request(pool, sizeof(node_expr_t));
+
+	if(node == 0)
+		return 0;
+
+	node->super.kind = NODE_KIND_EXPRESSION;
+	node->super.offset = offset;
+	node->super.length = length;
+	node->super.next = 0;
+	node->kind = EXPRESSION_KIND_TRUE;
+
+	return (node_t*) node;
+}
+
+node_t *node_false_create(pool_t *pool, int offset, int length)
+{
+	node_expr_t *node = pool_request(pool, sizeof(node_expr_t));
+
+	if(node == 0)
+		return 0;
+
+	node->super.kind = NODE_KIND_EXPRESSION;
+	node->super.offset = offset;
+	node->super.length = length;
+	node->super.next = 0;
+	node->kind = EXPRESSION_KIND_FALSE;
+
+	return (node_t*) node;
+}
+
 node_t *node_while_create(pool_t *pool, int offset, int length, node_t *expression, node_t *block)
 {
 	node_while_t *node = pool_request(pool, sizeof(node_while_t));

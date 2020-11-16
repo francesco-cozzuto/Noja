@@ -5,10 +5,10 @@ print(imp->some_text);
 
 print(imp->list);
 
-item = imp->list["head"];
+item = imp->list->head;
 i = 0;
 
-while i < imp->list["count"] {
+while i < imp->list->count {
 
 	
 
@@ -38,3 +38,8 @@ function(a) {
 
 print("a = ", a);
 
+{
+	test = 10;
+}
+
+print("test is equal to ", test);
