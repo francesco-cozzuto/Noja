@@ -18,7 +18,7 @@ CXREF_FLAGS = 	-DHAVE_CONFIG_H\
 
 docs:
 	mkdir docs
-	cxref $(wildcard src/runtime/*.h src/runtime/*.c src/runtime/*/*.h src/runtime/*/*.c) -Odocs $(CXREF_FLAGS) -html
+	cxref $(wildcard src/*/*.c src/*/*/*.c src/*/*.h src/*/*/*.h) -Odocs $(CXREF_FLAGS) -html -I./include
 
 noja: $(wildcard src/runtime/*.h src/runtime/*.c src/runtime/*/*.h src/runtime/*/*.c)
 	gcc $(wildcard src/runtime/*.c src/runtime/*/*.c) -o noja -g -Wall -Wextra -lm -ldl -rdynamic
