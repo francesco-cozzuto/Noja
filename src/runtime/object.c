@@ -208,14 +208,6 @@ nj_object_t *nj_object_select_attribute(nj_state_t *state, nj_object_t *self, co
 {
 	nj_object_type_t *type = (nj_object_type_t*) self->type;
 
-	if(type->on_select_attribute) {
-
-		nj_object_t *selected = type->on_select_attribute(state, self, name);
-	
-		if(selected != 0)
-			return selected;
-	}
-
 	if(type->methods == 0)
 		return 0;
 
@@ -225,12 +217,6 @@ nj_object_t *nj_object_select_attribute(nj_state_t *state, nj_object_t *self, co
 int nj_object_insert_attribute(nj_state_t *state, nj_object_t *self, const char *name, nj_object_t *value)
 {
 	nj_object_type_t *type = (nj_object_type_t*) self->type;
-
-	if(type->on_insert_attribute) {
-
-		if(type->on_insert_attribute(state, self, name, value))
-			return 1;
-	}
 
 	if(type->methods == 0) {
 

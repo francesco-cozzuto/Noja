@@ -355,8 +355,6 @@ int dict_setup(nj_state_t *state)
 		.on_deinit = dict_deinit,
 		.on_select = dict_select,
 		.on_insert = dict_insert,
-		.on_select_attribute = 0,
-		.on_insert_attribute = 0,
 		.on_print = dict_print,
 		.on_add = 0,
 		.on_sub = 0,

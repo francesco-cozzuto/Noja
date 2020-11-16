@@ -76,8 +76,6 @@ int float_setup(nj_state_t *state)
 		.on_deinit = 0,
 		.on_select = 0,
 		.on_insert = 0,
-		.on_select_attribute = 0,
-		.on_insert_attribute = 0,
 		.on_print = float_print,
 		.on_add = float_add,
 		.on_sub = 0,

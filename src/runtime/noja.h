@@ -33,11 +33,7 @@ typedef struct {
 
 	nj_object_t *(*on_select)(nj_state_t *state, nj_object_t *self, nj_object_t *key);
 	int          (*on_insert)(nj_state_t *state, nj_object_t *self, nj_object_t *key, nj_object_t *value);
-
-	nj_object_t *(*on_select_attribute)(nj_state_t *state, nj_object_t *self, const char *name);
-	int          (*on_insert_attribute)(nj_state_t *state, nj_object_t *self, const char *name, nj_object_t *value);
-
-	void (*on_print)(nj_state_t *state, nj_object_t *self, FILE *fp);
+	void 		 (*on_print)(nj_state_t *state, nj_object_t *self, FILE *fp);
 
 	nj_object_t *(*on_add)(nj_state_t *state, nj_object_t *self, nj_object_t *right);
 	nj_object_t *(*on_sub)(nj_state_t *state, nj_object_t *self, nj_object_t *right);

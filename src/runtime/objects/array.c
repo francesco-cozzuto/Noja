@@ -168,8 +168,6 @@ int array_setup(nj_state_t *state)
 		.on_deinit = array_deinit,
 		.on_select = array_select,
 		.on_insert = array_insert,
-		.on_select_attribute = 0,
-		.on_insert_attribute = 0,
 		.on_print = array_print,
 		.on_add = 0,
 		.on_sub = 0,

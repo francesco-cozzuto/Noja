@@ -67,8 +67,6 @@ int bool_setup(nj_state_t *state)
 		.on_deinit = 0,
 		.on_select = 0,
 		.on_insert = 0,
-		.on_select_attribute = 0,
-		.on_insert_attribute = 0,
 		.on_print = bool_print,
 		.on_add = 0,
 		.on_sub = 0,
