@@ -100,7 +100,9 @@ static void string_print(nj_state_t *state, nj_object_t *self, FILE *fp)
 
 int string_methods_setup(nj_state_t *state)
 {
-(void) state;
+	
+	(void) state;
+	
 	/*
 	state->type_object_string.methods = nj_object_istanciate(state, (nj_object_t*) &state->type_object_dict);
 

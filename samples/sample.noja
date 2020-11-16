@@ -1,18 +1,21 @@
 
-import "samples/imported.noja";
+import "samples/imported.noja" as imp;
 
-print(some_text);
+print(imp->some_text);
 
-print(list);
+print(imp->list);
 
-item = list["head"];
+item = imp->list["head"];
 i = 0;
 
-while i < list["count"] {
+while i < imp->list["count"] {
+
+	
 
 	print("Item is ", item);
 
-	item = item["next"];
+	item = item->next;
+
 	i = i + 1;
 }
 
@@ -23,3 +26,15 @@ while 1 {
 	break;
 	continue;
 }
+
+a = [];
+
+function(a) {
+
+	a[0] = 0;
+	a[1] = 0;
+
+}(a);
+
+print("a = ", a);
+

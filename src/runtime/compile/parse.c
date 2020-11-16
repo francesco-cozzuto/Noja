@@ -889,6 +889,45 @@ node_t *parse_postfix_expression(pool_t *pool, token_iterator_t *iterator, const
 				break;
 			}
 
+			case TOKEN_KIND_OPERATOR_ARW:
+			{
+				if(!token_iterator_next(iterator)) {
+
+					FAILED;
+					
+					// #ERROR
+					// Unexpected end of source while parsing dot selection
+					return 0;
+				}
+
+				token = token_iterator_current(iterator);
+
+				if(token.kind != TOKEN_KIND_IDENTIFIER) {
+
+					FAILED;
+
+					// #ERROR
+					// Unexpected token after dot in dot selection. Was expected an identifier
+					string_builder_append(output_builder, "Unexpected token [${string-with-length}] after arrow in arrow selection. Was expected an identifier!", source + token.offset, token.length);
+					print_unexpected_token_location(output_builder, source, source_length, token);
+					return 0;
+				}
+
+				char *content;
+				int length;
+
+				if(!token_to_string(pool, token, source, &content, &length))
+					return 0;
+
+				node_t *index = node_string_create(pool, token.offset, token.length, content, length);
+
+				if(index == 0)
+					return 0;
+
+				node =  node_index_selection_create(pool, node->offset, token.offset + token.length - node->offset, node, index);
+				break;
+			}
+
 			case TOKEN_KIND_OPERATOR_INC: node = node_post_inc_create(pool, node->offset, token.offset + token.length - node->offset, node); break;
 			case TOKEN_KIND_OPERATOR_DEC: node = node_post_dec_create(pool, node->offset, token.offset + token.length - node->offset, node); break;
 			default:

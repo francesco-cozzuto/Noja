@@ -23,6 +23,19 @@ int nj_step(nj_state_t *state)
 
 		case OPCODE_NOPE:break;
 		case OPCODE_QUIT:return 0;
+
+		case OPCODE_OFFSET:
+		{
+			uint32_t offset;
+
+			fetch_u32(state, &offset);
+
+			if(nj_failed(state))
+				return 0;
+
+			state->offset = offset;
+			break;
+		}
 		
 		case OPCODE_IMPORT: 
 		if(!nj_import(state))

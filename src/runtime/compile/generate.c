@@ -516,6 +516,9 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 
 	switch(node->kind) {
 		case NODE_KIND_BREAK:
+		
+		block_append(block, U32, OPCODE_OFFSET, U32, node->offset, END);
+
 		block_append(block, 
 			U32, OPCODE_JUMP_ABSOLUTE,
 			LBL, break_destination, 
@@ -523,6 +526,9 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 		break;
 
 		case NODE_KIND_CONTINUE:
+
+		block_append(block, U32, OPCODE_OFFSET, U32, node->offset, END);
+
 		block_append(block, 
 			U32, OPCODE_JUMP_ABSOLUTE,
 			LBL, continue_destination, 
@@ -531,6 +537,8 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 
 		case NODE_KIND_RETURN:
 		{
+			block_append(block, U32, OPCODE_OFFSET, U32, node->offset, END);
+
 			node_return_t *x = (node_return_t*) node;
 
 			node_compile(block, break_destination, continue_destination, x->expression);
@@ -544,10 +552,13 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 
 		case NODE_KIND_IMPORT:
 		{
+			block_append(block, U32, OPCODE_OFFSET, U32, node->offset, END);
 
 			node_import_t *x = (node_import_t*) node;
 
 			node_compile(block, break_destination, continue_destination, x->expression);
+
+			block_append(block, U32, OPCODE_OFFSET, U32, node->offset, END);
 
 			if(x->name) {
 
@@ -567,12 +578,14 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 
 		case NODE_KIND_IFELSE:
 		{
+			block_append(block, U32, OPCODE_OFFSET, U32, node->offset, END);
+
 			node_ifelse_t *x = (node_ifelse_t*) node;
 
 			if(x->else_block) {
 
 				node_compile(block, break_destination, continue_destination, x->expression);
-
+				
 				label_t *label_else_start = label_create(block),
 					    *label_else_end   = label_create(block);
 
@@ -643,6 +656,8 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 
 		case NODE_KIND_WHILE:
 		{
+			block_append(block, U32, OPCODE_OFFSET, U32, node->offset, END);
+
 			node_while_t *x = (node_while_t*) node;
 
 			label_t *label_while_start = label_create(block);
@@ -673,6 +688,8 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 
 		case NODE_KIND_EXPRESSION:
 		{
+			block_append(block, U32, OPCODE_OFFSET, U32, node->offset, END);
+
 			node_expr_t *x = (node_expr_t*) node;
 
 			switch(x->kind) {
@@ -1074,6 +1091,8 @@ static void node_compile(block_t *block, label_t *break_destination, label_t *co
 
 		case NODE_KIND_COMPOUND:
 		{
+			block_append(block, U32, OPCODE_OFFSET, U32, node->offset, END);
+			
 			node_compound_t *x = (node_compound_t*) node;
 
 			node_t *stmt = x->head;

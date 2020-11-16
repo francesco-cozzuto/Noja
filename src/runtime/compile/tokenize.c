@@ -136,6 +136,9 @@ static int get_operator_kind(char *string, int length)
 		if(length == 1)
 			return TOKEN_KIND_OPERATOR_SUB;
 
+		if MATCH("->")
+			return TOKEN_KIND_OPERATOR_ARW;
+
 		if MATCH("--")
 			return TOKEN_KIND_OPERATOR_DEC;
 

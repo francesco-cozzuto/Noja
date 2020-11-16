@@ -9,6 +9,8 @@ static const char *operand_types[] = {
 	[OPCODE_NOPE] = "",
 	[OPCODE_QUIT] = "",
 
+	[OPCODE_OFFSET] = "a",
+
 	[OPCODE_PUSH_NULL] = "",
 	[OPCODE_PUSH_TRUE] = "",
 	[OPCODE_PUSH_FALSE] = "",
@@ -77,6 +79,8 @@ static const char *get_opcode_name(int opcode)
 
 		case OPCODE_NOPE: return "NOPE";
 		case OPCODE_QUIT: return "QUIT";
+
+		case OPCODE_OFFSET: return "OFFSET";
 
 		case OPCODE_PUSH_NULL: return "PUSH_NULL";
 		case OPCODE_PUSH_TRUE: return "PUSH_TRUE";

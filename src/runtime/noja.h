@@ -73,7 +73,13 @@ struct overflow_allocation_t {
 	char body[];
 };
 
+enum {
+	SEGMENT_OWNS_NAME = 1,
+	SEGMENT_OWNS_TEXT = 2,
+};
+
 typedef struct {
+	int flags;
 	char *name;
 	char *text;
 	char *data;
@@ -129,6 +135,7 @@ struct nj_state_t {
 
 	int failed;
 	int64_t argc;
+	uint32_t offset;
 
 	string_builder_t *output_builder;
 
@@ -302,7 +309,7 @@ nj_object_t *nj_get_false_object(nj_state_t *state);
 void nj_fail(nj_state_t *state, const char *fmt, ...);
 int  nj_failed(nj_state_t *state);
 
-int nj_run(const char *text, int length, char **error_text);
+int nj_run(const char *name, const char *text, int length, char **error_text);
 int nj_run_file(const char *path, char **error_text);
 
 void nj_disassemble(char *code, char *data, uint32_t code_size, uint32_t data_size);
@@ -315,4 +322,4 @@ int  nj_state_init(nj_state_t *state, string_builder_t *output_builder);
 void nj_state_deinit(nj_state_t *state);
 int  nj_step(nj_state_t *state);
 
-int append_segment(nj_state_t *state, char *code, char *data, uint32_t code_size, uint32_t data_size, uint32_t *e_segment);
+int append_segment(nj_state_t *state, char *code, char *data, uint32_t code_size, uint32_t data_size, char *name, char *text, int flags, uint32_t *e_segment);

@@ -41,12 +41,24 @@ static nj_object_t *do_text_import(nj_state_t *state, char *path)
 	char *code, *data;
 	uint32_t code_size, data_size;
 
+	char *path_copy = malloc(strlen(path)+1);
+
+	if(path_copy == 0) {
+
+		nj_fail(state, "Out of memory");
+		return 0;
+	}
+
+	strcpy(path_copy, path);
+
 	char *text;
 	int length;
 
 	if(!load_text(path, &text, &length)) {
 
 		nj_fail(state, "Failed to open \"${zero-terminated-string}\"", path);
+
+		free(path_copy);
 		return 0;
 	}
 
@@ -55,10 +67,9 @@ static nj_object_t *do_text_import(nj_state_t *state, char *path)
 		nj_fail(state, "Failed to generate bytecode for \"${zero-terminated-string}\"", path);
 		
 		free(text);
+		free(path_copy);
 		return 0;
 	}
-
-	free(text);
 
 	//
 	// Create a new segment
@@ -66,12 +77,14 @@ static nj_object_t *do_text_import(nj_state_t *state, char *path)
 
 	uint32_t imported_segment;
 
-	if(!append_segment(state, code, data, code_size, data_size, &imported_segment)) {
+	if(!append_segment(state, code, data, code_size, data_size, path_copy, text, SEGMENT_OWNS_NAME | SEGMENT_OWNS_TEXT, &imported_segment)) {
 
 		// #ERROR
 
 		free(code);
 		free(data);
+		free(text);
+		free(path_copy);
 
 		nj_fail(state, "Out of memory. Failed to grow segment array");
 		return 0;

@@ -6,7 +6,7 @@
 #include "noja.h"
 #include "utils/basic.h"
 
-int append_segment(nj_state_t *state, char *code, char *data, uint32_t code_size, uint32_t data_size, uint32_t *e_segment)
+int append_segment(nj_state_t *state, char *code, char *data, uint32_t code_size, uint32_t data_size, char *name, char *text, int flags, uint32_t *e_segment)
 {
 	if(state->segments_used == state->segments_size) {
 
@@ -32,6 +32,9 @@ int append_segment(nj_state_t *state, char *code, char *data, uint32_t code_size
 		return 0;
 
 	state->segments[state->segments_used] = (segment_t) { 
+		.flags = flags,
+		.name = name,
+		.text = text,
 		.code = code, 
 		.data = data, 
 		.code_size = code_size, 
@@ -44,7 +47,7 @@ int append_segment(nj_state_t *state, char *code, char *data, uint32_t code_size
 	return 1;
 }
 
-static int run_text_inner(const char *text, int length, string_builder_t *output_builder)
+static int run_text_inner(const char *name, const char *text, int length, string_builder_t *output_builder)
 {
 	char *code, *data;
 	uint32_t code_size, data_size;
@@ -61,12 +64,36 @@ static int run_text_inner(const char *text, int length, string_builder_t *output
 		return 0;
 	}
 
-	append_segment(&state, code, data, code_size, data_size, 0); // Can't fail 
+	char *name_copy = malloc(strlen(name)+1);
+
+	assert(name_copy);
+
+	strcpy(name_copy, name);
+
+	append_segment(&state, code, data, code_size, data_size, name, text, SEGMENT_OWNS_NAME, 0); // Can't fail 
 
 	u32_push(&state.segment_stack, 0);
 	u32_push(&state.offset_stack, 0);
 
 	while(nj_step(&state));
+
+	if(state.failed) {
+
+		uint32_t lineno = 1;
+		uint32_t offset = 0;
+
+		segment_t *segment = state.segments + u32_top(&state.segment_stack);
+		
+		while(offset < state.offset) {
+
+			if(segment->text[offset] == '\n')
+				lineno++;
+
+			offset++;
+		}
+
+		string_builder_append(output_builder, " in ${zero-terminated-string}:${integer}", segment->name, lineno);
+	}
 
 	u32_pop(&state.segment_stack);
 	u32_pop(&state.offset_stack);
@@ -77,12 +104,12 @@ static int run_text_inner(const char *text, int length, string_builder_t *output
 	return result;	
 }
 
-int nj_run(const char *text, int length, char **error_text)
+int nj_run(const char *name, const char *text, int length, char **error_text)
 {
 	string_builder_t output_builder;
 	string_builder_init(&output_builder);
 
-	int result = run_text_inner(text, length, &output_builder);
+	int result = run_text_inner(name, text, length, &output_builder);
 
 	if(!result && error_text) {
 
@@ -108,7 +135,7 @@ int nj_run_file(const char *path, char **error_text)
 		return 0;
 	}
 
-	int result = nj_run(text, length, error_text);
+	int result = nj_run(path, text, length, error_text);
 
 	free(text);
 
