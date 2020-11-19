@@ -102,8 +102,8 @@ int nj_state_init(nj_state_t *state, string_builder_t *output_builder)
 
 void nj_state_deinit(nj_state_t *state)
 {
-	free(state->heap.chunk); // free overflow allocations!
-	
+	nj_destroy_heap(state, &state->heap);
+
 	for(int i = 0; i < state->segments_used; i++)
 		free(state->segments[i].code);
 

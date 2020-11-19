@@ -327,6 +327,7 @@ int nj_collect_object(nj_state_t *state, nj_object_t **reference);
 int nj_collect_children(nj_state_t *state, nj_object_t *object);
 int nj_should_collect(nj_state_t *state);
 void nj_update_reference(nj_object_t **reference);
+void nj_destroy_heap(nj_state_t *state, nj_heap_t *heap);
 
 void nj_fail(nj_state_t *state, const char *fmt, ...);
 int  nj_failed(nj_state_t *state);

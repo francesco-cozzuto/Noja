@@ -151,6 +151,54 @@ void nj_update_reference(nj_object_t **reference)
 		(*reference) = ((nj_moved_object_t*) *reference)->new_location;
 }
 
+void nj_destroy_heap(nj_state_t *state, nj_heap_t *heap)
+{
+	size_t i = 0;
+
+	while(i < state->heap.used) {
+
+		if(i & 7)
+			i = (i & ~7) + 8;
+
+		nj_object_t *object = (nj_object_t*) (state->heap.chunk + i);
+
+		if(!(object->flags & OBJECT_WAS_MOVED)) {
+
+			nj_update_reference(&object->type);
+
+			nj_object_type_t *type = (nj_object_type_t*) object->type;
+
+			if(type->on_deinit)
+				type->on_deinit(state, object);
+
+		}
+
+		i += OBJECT_TYPE(object)->size;
+	}
+
+	overflow_allocation_t *p = state->heap.overflow_allocations;
+
+	while(p) {
+
+		nj_object_t *object = (nj_object_t*) p->body;
+
+		nj_update_reference(&object->type);
+
+		nj_object_type_t *type = (nj_object_type_t*) object->type;
+
+		if(type->on_deinit)
+			type->on_deinit(state, object);
+
+		{
+			overflow_allocation_t *prev_p = p->prev;
+			free(p);
+			p = prev_p;
+		}
+	}
+
+	free(state->heap.chunk);
+}
+
 int nj_collect(nj_state_t *state)
 {
 	char *chunk = malloc(state->heap.size);
@@ -169,54 +217,7 @@ int nj_collect(nj_state_t *state)
 		return 0;
 	}
 
-	// Call destructors of the objects into the old heap
-
-	{
-		size_t i = 0;
-
-		while(i < state->heap.used) {
-
-			if(i & 7)
-				i = (i & ~7) + 8;
-
-			nj_object_t *object = (nj_object_t*) (state->heap.chunk + i);
-
-			if(!(object->flags & OBJECT_WAS_MOVED)) {
-
-				nj_update_reference(&object->type);
-
-				nj_object_type_t *type = (nj_object_type_t*) object->type;
-
-				if(type->on_deinit)
-					type->on_deinit(state, object);
-
-			}
-
-			i += OBJECT_TYPE(object)->size;
-		}
-
-		overflow_allocation_t *p = state->heap.overflow_allocations;
-
-		while(p) {
-
-			nj_object_t *object = (nj_object_t*) p->body;
-
-			nj_update_reference(&object->type);
-
-			nj_object_type_t *type = (nj_object_type_t*) object->type;
-
-			if(type->on_deinit)
-				type->on_deinit(state, object);
-
-			{
-				overflow_allocation_t *prev_p = p->prev;
-				free(p);
-				p = prev_p;
-			}
-		}
-
-		free(state->heap.chunk);
-	}
+	nj_destroy_heap(state, &state->temp_heap);
 
 	state->heap = state->temp_heap;
 
