@@ -7,6 +7,10 @@
 
 int nj_collect_children(nj_state_t *state, nj_object_t *object)
 {
+	if(object->type != object)
+		if(!nj_collect_object(state, &object->type))
+			return 0;
+
 	if(OBJECT_TYPE(object)->on_collect_children)
 		return OBJECT_TYPE(object)->on_collect_children(state, object);
 
@@ -15,37 +19,47 @@ int nj_collect_children(nj_state_t *state, nj_object_t *object)
 
 int nj_collect_object(nj_state_t *state, nj_object_t **reference)
 {
-	if(reference == NULL) 
-		return 1;
 
-	printf("collecting object at address %p\n", *reference);
+	if(reference == NULL) {
+
+		return 1;
+	}
+
+	if(*reference == NULL) {
+
+		return 1;
+	}
 
 	if((*reference)->flags & OBJECT_WAS_MOVED) {
 
 		*reference = (*(nj_moved_object_t**) reference)->new_location;
+
 		return 1;
 	}
 	
+	if(!((*reference)->flags & OBJECT_IS_COLLECTABLE))
+
+		return nj_collect_children(state, *reference);
+
 	// Align heap pointer
 
-	if(state->heap.used & 7)
-		state->heap.used = (state->heap.used & ~7) + 8;
+	if(state->temp_heap.used & 7)
+		state->temp_heap.used = (state->temp_heap.used & ~7) + 8;
 
 	// Allocate
 
+	nj_update_reference(&(*reference)->type);
+
 	size_t object_size = ((nj_object_type_t*) (*reference)->type)->size;
 
-	printf("moving object with type name %s and size %ld\n", OBJECT_TYPE(*reference)->name, object_size);
-
-	if(state->heap.used + object_size > state->heap.size) {
+	if(state->temp_heap.used + object_size > state->temp_heap.size)
 
 		// Out of heap
 		return 0;
-	}
 
-	nj_object_t *object_copy = (nj_object_t*) (state->heap.chunk + state->heap.used);
+	nj_object_t *object_copy = (nj_object_t*) (state->temp_heap.chunk + state->temp_heap.used);
 
-	state->heap.used += object_size;
+	state->temp_heap.used += object_size;
 
 	// Copy the object in the newly allocated space
 
@@ -72,13 +86,15 @@ int nj_should_collect(nj_state_t *state)
 static int nj_collect_inner(nj_state_t *state)
 {
 
-	printf("Collecting global variable maps\n");
+	printf("Collecting global variable maps (there are %d)\n", state->segments_used);
 
 	// Collect global variable maps
 	{
-		for(int i = 0; state->segments_used; i++)
+		for(int i = 0; i < state->segments_used; i++) {
+
 			if(!nj_collect_object(state, &state->segments[i].global_variables_map))
 				return 0;
+		}
 	}
 
 	printf("Collecting variable maps\n");
@@ -128,23 +144,28 @@ static int nj_collect_inner(nj_state_t *state)
 	return 1;
 }
 
+void nj_update_reference(nj_object_t **reference)
+{
+
+	if((*reference)->flags & OBJECT_WAS_MOVED)
+		(*reference) = ((nj_moved_object_t*) *reference)->new_location;
+}
+
 int nj_collect(nj_state_t *state)
 {
-	nj_heap_t old_heap = state->heap;
-
-	char *chunk = malloc(old_heap.size);
+	char *chunk = malloc(state->heap.size);
 
 	if(chunk == 0)
 		return 0;
 
-	state->heap.chunk = chunk;
-	state->heap.size = old_heap.size;
-	state->heap.used = 0;
+	state->temp_heap.chunk = chunk;
+	state->temp_heap.size = state->heap.size;
+	state->temp_heap.used = 0;
+	state->temp_heap.overflow_allocations = NULL;
 
 	if(!nj_collect_inner(state)) {
 
-		free(state->heap.chunk);
-		state->heap = old_heap;
+		free(state->temp_heap.chunk);
 		return 0;
 	}
 
@@ -153,34 +174,36 @@ int nj_collect(nj_state_t *state)
 	{
 		size_t i = 0;
 
-		while(i < old_heap.used) {
+		while(i < state->heap.used) {
 
 			if(i & 7)
 				i = (i & ~7) + 8;
 
-			nj_object_t *object = (nj_object_t*) (old_heap.chunk + i);
+			nj_object_t *object = (nj_object_t*) (state->heap.chunk + i);
 
-			nj_object_type_t *type = (nj_object_type_t*) object->type;
+			if(!(object->flags & OBJECT_WAS_MOVED)) {
 
-			if(type->super.flags & OBJECT_WAS_MOVED)
-				type = (nj_object_type_t*) ((nj_moved_object_t*) type)->new_location;
+				nj_update_reference(&object->type);
 
-			if(type->on_deinit)
-				type->on_deinit(state, object);
+				nj_object_type_t *type = (nj_object_type_t*) object->type;
+
+				if(type->on_deinit)
+					type->on_deinit(state, object);
+
+			}
 
 			i += OBJECT_TYPE(object)->size;
 		}
 
-		overflow_allocation_t *p = old_heap.overflow_allocations;
+		overflow_allocation_t *p = state->heap.overflow_allocations;
 
 		while(p) {
 
 			nj_object_t *object = (nj_object_t*) p->body;
 
-			nj_object_type_t *type = (nj_object_type_t*) object->type;
+			nj_update_reference(&object->type);
 
-			if(type->super.flags & OBJECT_WAS_MOVED)
-				type = (nj_object_type_t*) ((nj_moved_object_t*) type)->new_location;
+			nj_object_type_t *type = (nj_object_type_t*) object->type;
 
 			if(type->on_deinit)
 				type->on_deinit(state, object);
@@ -192,8 +215,10 @@ int nj_collect(nj_state_t *state)
 			}
 		}
 
-		free(old_heap.chunk);
+		free(state->heap.chunk);
 	}
+
+	state->heap = state->temp_heap;
 
 	return 1;
 }

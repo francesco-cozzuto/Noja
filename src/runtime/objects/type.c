@@ -51,6 +51,13 @@ int type_methods_setup(nj_state_t *state)
 	return 1;
 }
 
+static int collect_children(nj_state_t *state, nj_object_t *self)
+{
+	nj_object_type_t *type = (nj_object_type_t*) self;
+
+	return nj_collect_object(state, &type->methods);
+}
+
 int type_setup(nj_state_t *state)
 {
 	state->type_object_type = (nj_object_type_t) {
@@ -84,6 +91,7 @@ int type_setup(nj_state_t *state)
 		.on_shl = 0,
 		.on_shr = 0,
 		.on_test = 0,
+		.on_collect_children = collect_children,
 	};
 
 	return 1;

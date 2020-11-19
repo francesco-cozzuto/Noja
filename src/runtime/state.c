@@ -44,10 +44,10 @@ int float_methods_setup(nj_state_t *state);
 
 int nj_state_init(nj_state_t *state, string_builder_t *output_builder)
 {
-	state->heap.chunk = malloc(4096);
-	state->heap.size = 4096;
+	state->heap.chunk = malloc(65536);
+	state->heap.size = 65536;
 	state->heap.used = 0;
-	state->heap.overflow_allocations = 0;
+	state->heap.overflow_allocations = NULL;
 
 	if(state->heap.chunk == 0)
 		return 0;

@@ -158,6 +158,7 @@ struct nj_state_t {
 	string_builder_t *output_builder;
 
 	nj_heap_t heap;
+	nj_heap_t temp_heap;
 
 	object_stack_t eval_stack;
 	object_stack_t vars_stack;
@@ -325,6 +326,7 @@ int nj_collect(nj_state_t *state);
 int nj_collect_object(nj_state_t *state, nj_object_t **reference);
 int nj_collect_children(nj_state_t *state, nj_object_t *object);
 int nj_should_collect(nj_state_t *state);
+void nj_update_reference(nj_object_t **reference);
 
 void nj_fail(nj_state_t *state, const char *fmt, ...);
 int  nj_failed(nj_state_t *state);

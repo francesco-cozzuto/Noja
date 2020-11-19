@@ -343,6 +343,17 @@ int dict_methods_setup(nj_state_t *state)
 	return 1;
 }
 
+static int collect_children(nj_state_t *state, nj_object_t *self)
+{
+	nj_object_dict_t *dict = (nj_object_dict_t*) self;
+
+	for(int i = 0; i < dict->item_used; i++)
+		if(!nj_collect_object(state, dict->item_values + i))
+			return 0;
+
+	return 1;
+}
+
 int dict_setup(nj_state_t *state)
 {
 	state->type_object_dict = (nj_object_type_t) {
@@ -376,6 +387,7 @@ int dict_setup(nj_state_t *state)
 		.on_shl = 0,
 		.on_shr = 0,
 		.on_test = 0,
+		.on_collect_children = collect_children,
 	};
 
 	return 1;

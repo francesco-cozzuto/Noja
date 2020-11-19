@@ -446,17 +446,17 @@ int block_append(block_t *block, ...)
 
 		switch(type) {
 
-			case U8 : if(!block_append_u8 (block, va_arg(args, uint8_t)))  return 0; break;
-			case U16: if(!block_append_u16(block, va_arg(args, uint16_t))) return 0; break;
+			case U8 : if(!block_append_u8 (block, va_arg(args, int)))  return 0; break;
+			case U16: if(!block_append_u16(block, va_arg(args, int))) return 0; break;
 			case U32: if(!block_append_u32(block, va_arg(args, uint32_t))) return 0; break;
 			case U64: if(!block_append_u64(block, va_arg(args, uint64_t))) return 0; break;
 
-			case S8 : if(!block_append_s8 (block, va_arg(args, int8_t)))  return 0; break;
-			case S16: if(!block_append_s16(block, va_arg(args, int16_t))) return 0; break;
-			case S32: if(!block_append_s32(block, va_arg(args, int32_t))) return 0; break;
+			case S8 : if(!block_append_s8 (block, va_arg(args, int)))  return 0; break;
+			case S16: if(!block_append_s16(block, va_arg(args, int))) return 0; break;
+			case S32: if(!block_append_s32(block, va_arg(args, int))) return 0; break;
 			case S64: if(!block_append_s64(block, va_arg(args, int64_t))) return 0; break;
 
-			case F32: if(!block_append_f32(block, va_arg(args, float)))  return 0; break;
+			case F32: if(!block_append_f32(block, va_arg(args, double)))  return 0; break;
 			case F64: if(!block_append_f64(block, va_arg(args, double))) return 0; break;
 
 			case STR: if(!block_append_string(block, va_arg(args, char*))) return 0; break;
