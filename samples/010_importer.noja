@@ -1,0 +1,18 @@
+
+example_1 = function() {
+	
+	import "011_imported.noja" as imported;
+
+	print("The imported string using the import-as statement is: ", imported->some_text);
+};
+
+
+example_2 = function() {
+	
+	import "011_imported.noja";
+
+	print("The imported string using the import statement is: ", some_text)
+}
+
+example_1();
+example_2();

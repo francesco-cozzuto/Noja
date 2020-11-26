@@ -1,8 +1,10 @@
 
+### The Noja programming language
+
 This is the implementation of a programming language I came up with called Noja. 
 Noja is the misspelling of the italian word for boredom "noia". 
 
-This is what it looks like
+This is what it looks like:
 
 ```js
 import "samples/imported.noja" as imp;
@@ -51,4 +53,4 @@ print("a = ", a);
 print("test is equal to ", test);
 ```
 
-It's not innovative in any way. I wrote it as an exercise.
+I wrote it as an exercise so it's not innovative in any way. The internal implementation looks very much like CPython's since it's been my main reference.

@@ -1,0 +1,19 @@
+
+# Dictionaries are declared just as in Python
+
+some_dict = {
+
+	"name"	: "Francesco",
+	"age"	: 22,
+	"city"	: "Naples"
+}
+
+# keys can only be strings.
+
+# You can access the fields using the [] notation or the -> notation
+# The following two statements are equivalent:
+
+print("Hi! I'm ", some_dict["name"]);
+
+print("Hi! I'm ", some_dict->name);
+

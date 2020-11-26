@@ -1,0 +1,5 @@
+
+create_node = function(value) {
+	
+	return {"value": value, "next": 0};
+};
